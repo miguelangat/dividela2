@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dividela - Prototype</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .phone-container {
+            background: white;
+            width: 100%;
+            max-width: 390px;
+            height: 844px;
+            border-radius: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .screen {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: white;
+        }
+
+        .status-bar {
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #666;
+        }
+
+        .header {
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .app-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 20px 80px 20px;
+        }
+
+        .balance-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            padding: 25px;
+            color: white;
+            margin-bottom: 25px;
+        }
+
+        .balance-label {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+
+        .balance-amount {
+            font-size: 42px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .balance-subtitle {
+            font-size: 14px;
+            opacity: 0.85;
+            margin-bottom: 15px;
+        }
+
+        .settle-button {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-weight: 600;
+            width: 100%;
+            cursor: pointer;
+            font-size: 15px;
+            transition: transform 0.1s;
+        }
+
+        .settle-button:active {
+            transform: scale(0.98);
+        }
+
+        .section-header {
+            font-size: 13px;
+            text-transform: uppercase;
+            color: #999;
+            margin-bottom: 15px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .expense-list {
+            margin-bottom: 20px;
+        }
+
+        .expense-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .expense-item:hover {
+            background: #f0f1f3;
+            transform: translateX(2px);
+        }
+
+        .expense-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-size: 22px;
+        }
+
+        .expense-details {
+            flex: 1;
+        }
+
+        .expense-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+            font-size: 15px;
+        }
+
+        .expense-meta {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .expense-amount-col {
+            text-align: right;
+        }
+
+        .expense-amount {
+            font-weight: 700;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .expense-split {
+            font-size: 11px;
+            color: #999;
+            margin-top: 2px;
+        }
+
+        .fab {
+            position: fixed;
+            bottom: 90px;
+            right: calc(50% - 175px);
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #667eea;
+            color: white;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+            transition: all 0.2s;
+            z-index: 100;
+        }
+
+        .fab:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
+        }
+
+        .fab:active {
+            transform: scale(0.95);
+        }
+
+        .nav-bar {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 390px;
+            background: white;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 0 20px 0;
+            border-radius: 0 0 40px 40px;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #999;
+            font-size: 11px;
+            cursor: pointer;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .nav-item.active {
+            color: #667eea;
+            background: #f0f3ff;
+        }
+
+        .nav-icon {
+            font-size: 22px;
+            margin-bottom: 4px;
+        }
+
+        /* Modal/Form styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 0.2s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        .modal-content {
+            background: white;
+            width: 100%;
+            max-width: 390px;
+            border-radius: 25px 25px 0 0;
+            padding: 25px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .modal-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .close-button {
+            background: none;
+            border: none;
+            font-size: 28px;
+            color: #999;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+            display: block;
+            font-weight: 500;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #eee;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-input-large {
+            font-size: 42px;
+            font-weight: bold;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .option-button {
+            padding: 14px;
+            border: 2px solid #eee;
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            font-size: 15px;
+        }
+
+        .option-button.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .primary-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+            transition: all 0.2s;
+        }
+
+        .primary-button:hover {
+            background: #5568d3;
+        }
+
+        .primary-button:active {
+            transform: scale(0.98);
+        }
+
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .category-button {
+            padding: 16px 10px;
+            border: 2px solid #eee;
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .category-button:hover {
+            background: #f8f9ff;
+        }
+
+        .category-button.active {
+            background: #f0f3ff;
+            border-color: #667eea;
+        }
+
+        .category-icon {
+            font-size: 28px;
+            margin-bottom: 6px;
+        }
+
+        .category-name {
+            font-size: 12px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-icon {
+            font-size: 64px;
+            margin-bottom: 15px;
+        }
+
+        .empty-text {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .empty-subtext {
+            font-size: 14px;
+        }
+
+        .back-button {
+            font-size: 24px;
+            color: #667eea;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+    <div style="position: fixed; top: 0; left: 0; right: 0; background: #667eea; color: white; padding: 10px; text-align: center; z-index: 10000; font-size: 13px;">
+        <strong>DEMO MODE:</strong> Reload page to see onboarding flow. Click "Simulate partner joined" in invite screen to continue.
+    </div>
+    <div id="root" style="margin-top: 40px;"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const CATEGORIES = [
+            { id: 'food', name: 'Food', icon: '🍕' },
+            { id: 'groceries', name: 'Groceries', icon: '🛒' },
+            { id: 'transport', name: 'Transport', icon: '🚗' },
+            { id: 'home', name: 'Home', icon: '🏠' },
+            { id: 'fun', name: 'Fun', icon: '🎬' },
+            { id: 'other', name: 'Other', icon: '➕' }
+        ];
+
+        function App() {
+            const [expenses, setExpenses] = useState([
+                {
+                    id: 1,
+                    description: 'Dinner at Pizza Place',
+                    amount: 52.00,
+                    category: 'food',
+                    paidBy: 'you',
+                    splitType: '50-50',
+                    date: new Date(),
+                    icon: '🍕'
+                },
+                {
+                    id: 2,
+                    description: 'Morning Coffee',
+                    amount: 8.50,
+                    category: 'food',
+                    paidBy: 'partner',
+                    splitType: '50-50',
+                    date: new Date(),
+                    icon: '☕'
+                },
+                {
+                    id: 3,
+                    description: 'Groceries',
+                    amount: 87.32,
+                    category: 'groceries',
+                    paidBy: 'you',
+                    splitType: '50-50',
+                    date: new Date(Date.now() - 86400000),
+                    icon: '🛒'
+                }
+            ]);
+
+            // Onboarding state
+            const [isAuthenticated, setIsAuthenticated] = useState(false);
+            const [onboardingStep, setOnboardingStep] = useState('welcome'); // welcome, signup, connect, invite, join, success
+            const [userName, setUserName] = useState('');
+            const [partnerName, setPartnerName] = useState('Jordan');
+            const [inviteCode, setInviteCode] = useState('');
+            const [generatedCode, setGeneratedCode] = useState('');
+
+            const [activeScreen, setActiveScreen] = useState('home');
+            const [showAddExpense, setShowAddExpense] = useState(false);
+            const [showSettleUp, setShowSettleUp] = useState(false);
+
+            const calculateBalance = () => {
+                let balance = 0;
+                expenses.forEach(expense => {
+                    const split = expense.amount / 2;
+                    if (expense.paidBy === 'you') {
+                        balance += split; // Partner owes you
+                    } else {
+                        balance -= split; // You owe partner
+                    }
+                });
+                return balance;
+            };
+
+            const balance = calculateBalance();
+
+            const addExpense = (newExpense) => {
+                setExpenses([...expenses, { ...newExpense, id: Date.now(), date: new Date() }]);
+                setShowAddExpense(false);
+            };
+
+            const formatDate = (date) => {
+                const today = new Date();
+                const yesterday = new Date(today);
+                yesterday.setDate(yesterday.getDate() - 1);
+
+                if (date.toDateString() === today.toDateString()) return 'Today';
+                if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+                return date.toLocaleDateString();
+            };
+
+            const generateInviteCode = () => {
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                let code = '';
+                for (let i = 0; i < 6; i++) {
+                    code += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+                return code;
+            };
+
+            // Show onboarding if not authenticated
+            if (!isAuthenticated) {
+                return (
+                    <div className="phone-container">
+                        <div className="screen">
+                            <div className="status-bar">
+                                <span>9:41</span>
+                                <span>●●●●● WiFi 🔋</span>
+                            </div>
+
+                            {onboardingStep === 'welcome' && (
+                                <WelcomeScreen onNext={() => setOnboardingStep('signup')} />
+                            )}
+
+                            {onboardingStep === 'signup' && (
+                                <SignUpScreen 
+                                    userName={userName}
+                                    setUserName={setUserName}
+                                    onNext={() => setOnboardingStep('connect')}
+                                    onBack={() => setOnboardingStep('welcome')}
+                                />
+                            )}
+
+                            {onboardingStep === 'connect' && (
+                                <ConnectScreen 
+                                    onInvite={() => {
+                                        setGeneratedCode(generateInviteCode());
+                                        setOnboardingStep('invite');
+                                    }}
+                                    onJoin={() => setOnboardingStep('join')}
+                                />
+                            )}
+
+                            {onboardingStep === 'invite' && (
+                                <InviteScreen 
+                                    code={generatedCode}
+                                    onBack={() => setOnboardingStep('connect')}
+                                    onConnected={() => setOnboardingStep('success')}
+                                />
+                            )}
+
+                            {onboardingStep === 'join' && (
+                                <JoinScreen 
+                                    inviteCode={inviteCode}
+                                    setInviteCode={setInviteCode}
+                                    onBack={() => setOnboardingStep('connect')}
+                                    onConnect={() => setOnboardingStep('success')}
+                                />
+                            )}
+
+                            {onboardingStep === 'success' && (
+                                <SuccessScreen 
+                                    userName={userName}
+                                    partnerName={partnerName}
+                                    onContinue={() => setIsAuthenticated(true)}
+                                />
+                            )}
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="phone-container">
+                    <div className="screen">
+                        <div className="status-bar">
+                            <span>9:41</span>
+                            <span>●●●●● WiFi 🔋</span>
+                        </div>
+
+                        <div className="header">
+                            <div className="avatar">A</div>
+                            <div className="app-title">Dividela</div>
+                            <div className="avatar">J</div>
+                        </div>
+
+                        {activeScreen === 'home' && (
+                            <HomeScreen 
+                                balance={balance}
+                                partnerName={partnerName}
+                                expenses={expenses}
+                                formatDate={formatDate}
+                                onSettleUp={() => setShowSettleUp(true)}
+                            />
+                        )}
+
+                        {activeScreen === 'stats' && (
+                            <StatsScreen expenses={expenses} />
+                        )}
+
+                        {activeScreen === 'settings' && (
+                            <SettingsScreen partnerName={partnerName} />
+                        )}
+
+                        <button className="fab" onClick={() => setShowAddExpense(true)}>
+                            +
+                        </button>
+
+                        <div className="nav-bar">
+                            <div 
+                                className={`nav-item ${activeScreen === 'home' ? 'active' : ''}`}
+                                onClick={() => setActiveScreen('home')}
+                            >
+                                <div className="nav-icon">🏠</div>
+                                <div>Home</div>
+                            </div>
+                            <div 
+                                className={`nav-item ${activeScreen === 'stats' ? 'active' : ''}`}
+                                onClick={() => setActiveScreen('stats')}
+                            >
+                                <div className="nav-icon">📊</div>
+                                <div>Stats</div>
+                            </div>
+                            <div 
+                                className={`nav-item ${activeScreen === 'settings' ? 'active' : ''}`}
+                                onClick={() => setActiveScreen('settings')}
+                            >
+                                <div className="nav-icon">⚙️</div>
+                                <div>Settings</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {showAddExpense && (
+                        <AddExpenseModal 
+                            onClose={() => setShowAddExpense(false)}
+                            onAdd={addExpense}
+                            partnerName={partnerName}
+                        />
+                    )}
+
+                    {showSettleUp && (
+                        <SettleUpModal 
+                            balance={balance}
+                            partnerName={partnerName}
+                            onClose={() => setShowSettleUp(false)}
+                            onSettle={() => {
+                                setExpenses([]);
+                                setShowSettleUp(false);
+                            }}
+                        />
+                    )}
+                </div>
+            );
+        }
+
+        function WelcomeScreen({ onNext }) {
+            return (
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
+                    <div style={{ fontSize: '72px', marginBottom: '20px' }}>💑</div>
+                    <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#333', marginBottom: '10px' }}>Dividela</h1>
+                    <p style={{ fontSize: '16px', color: '#666', textAlign: 'center', marginBottom: '60px' }}>
+                        Track shared expenses with your partner, effortlessly.
+                    </p>
+                    
+                    <button className="primary-button" style={{ marginBottom: '15px' }} onClick={onNext}>
+                        Get Started
+                    </button>
+                    <button style={{ background: 'none', border: 'none', color: '#667eea', fontSize: '15px', cursor: 'pointer' }}>
+                        Already have an account? Sign in
+                    </button>
+                </div>
+            );
+        }
+
+        function SignUpScreen({ userName, setUserName, onNext, onBack }) {
+            const [email, setEmail] = useState('');
+            const [password, setPassword] = useState('');
+
+            return (
+                <>
+                    <div className="header">
+                        <button className="back-button" onClick={onBack}>←</button>
+                        <div className="app-title">Create Account</div>
+                        <div style={{ width: '24px' }}></div>
+                    </div>
+
+                    <div className="content">
+                        <div className="form-group">
+                            <label className="form-label">Your Name</label>
+                            <input 
+                                type="text" 
+                                className="form-input" 
+                                placeholder="Alex Smith"
+                                value={userName}
+                                onChange={e => setUserName(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Email</label>
+                            <input 
+                                type="email" 
+                                className="form-input" 
+                                placeholder="alex@example.com"
+                                value={email}
+                                onChange={e => setEmail(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Password</label>
+                            <input 
+                                type="password" 
+                                className="form-input" 
+                                placeholder="••••••••"
+                                value={password}
+                                onChange={e => setPassword(e.target.value)}
+                            />
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'start', marginBottom: '25px' }}>
+                            <input type="checkbox" style={{ marginRight: '10px', marginTop: '4px' }} />
+                            <span style={{ fontSize: '13px', color: '#666' }}>
+                                I agree to the Terms of Service and Privacy Policy
+                            </span>
+                        </div>
+
+                        <button className="primary-button" onClick={onNext}>Create Account</button>
+
+                        <div style={{ margin: '25px 0', textAlign: 'center', color: '#999', fontSize: '14px' }}>
+                            or
+                        </div>
+
+                        <button style={{ width: '100%', padding: '14px', border: '2px solid #eee', borderRadius: '12px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '10px', cursor: 'pointer' }}>
+                            <span style={{ fontWeight: '500' }}>Continue with Apple</span>
+                        </button>
+
+                        <button style={{ width: '100%', padding: '14px', border: '2px solid #eee', borderRadius: '12px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                            <span style={{ fontWeight: '500' }}>Continue with Google</span>
+                        </button>
+                    </div>
+                </>
+            );
+        }
+
+        function ConnectScreen({ onInvite, onJoin }) {
+            return (
+                <>
+                    <div className="header">
+                        <div style={{ width: '24px' }}></div>
+                        <div className="app-title">Connect Partner</div>
+                        <div style={{ width: '24px' }}></div>
+                    </div>
+
+                    <div className="content">
+                        <p style={{ textAlign: 'center', color: '#666', marginBottom: '40px', fontSize: '15px' }}>
+                            Connect with your partner to start tracking expenses together
+                        </p>
+
+                        <div 
+                            onClick={onInvite}
+                            style={{ 
+                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+                                borderRadius: '15px', 
+                                padding: '30px', 
+                                marginBottom: '20px', 
+                                cursor: 'pointer', 
+                                textAlign: 'center', 
+                                color: 'white',
+                                transition: 'transform 0.2s'
+                            }}
+                        >
+                            <div style={{ fontSize: '48px', marginBottom: '15px' }}>📤</div>
+                            <div style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>Invite Partner</div>
+                            <div style={{ fontSize: '14px', opacity: '0.9' }}>Generate a code for your partner to join</div>
+                        </div>
+
+                        <div 
+                            onClick={onJoin}
+                            style={{ 
+                                background: 'white', 
+                                border: '2px solid #eee', 
+                                borderRadius: '15px', 
+                                padding: '30px', 
+                                cursor: 'pointer', 
+                                textAlign: 'center',
+                                transition: 'transform 0.2s'
+                            }}
+                        >
+                            <div style={{ fontSize: '48px', marginBottom: '15px' }}>📥</div>
+                            <div style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px', color: '#333' }}>Join Partner</div>
+                            <div style={{ fontSize: '14px', color: '#666' }}>Enter your partner's invite code</div>
+                        </div>
+                    </div>
+                </>
+            );
+        }
+
+        function InviteScreen({ code, onBack, onConnected }) {
+            const [copied, setCopied] = useState(false);
+
+            const copyCode = () => {
+                navigator.clipboard.writeText(code);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+            };
+
+            return (
+                <>
+                    <div className="header">
+                        <button className="back-button" onClick={onBack}>←</button>
+                        <div className="app-title">Invite Partner</div>
+                        <div style={{ width: '24px' }}></div>
+                    </div>
+
+                    <div className="content" style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '56px', marginBottom: '20px' }}>🔗</div>
+                        
+                        <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#333', marginBottom: '10px' }}>
+                            Share this code with your partner
+                        </h2>
+                        <p style={{ color: '#666', marginBottom: '40px', fontSize: '14px' }}>
+                            They'll need this to connect with you
+                        </p>
+
+                        <div style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', borderRadius: '20px', padding: '30px', marginBottom: '25px' }}>
+                            <div style={{ fontSize: '48px', fontWeight: 'bold', letterSpacing: '8px', color: 'white', fontFamily: 'monospace' }}>
+                                {code}
+                            </div>
+                        </div>
+
+                        <button className="primary-button" style={{ marginBottom: '12px' }} onClick={copyCode}>
+                            {copied ? 'Copied!' : 'Copy Code'}
+                        </button>
+                        
+                        <button style={{ width: '100%', padding: '14px', border: '2px solid #eee', borderRadius: '12px', background: 'white', fontWeight: '500', cursor: 'pointer', marginBottom: '12px' }}>
+                            Share via SMS
+                        </button>
+
+                        <button style={{ width: '100%', padding: '14px', border: '2px solid #eee', borderRadius: '12px', background: 'white', fontWeight: '500', cursor: 'pointer', marginBottom: '30px' }}>
+                            Share via Email
+                        </button>
+
+                        <div style={{ padding: '15px', background: '#f8f9ff', borderRadius: '12px' }}>
+                            <div style={{ fontSize: '13px', color: '#666', marginBottom: '5px' }}>⏱️ Waiting for partner...</div>
+                            <div style={{ fontSize: '12px', color: '#999' }}>Code expires in 7 days</div>
+                        </div>
+
+                        <button 
+                            style={{ 
+                                marginTop: '20px', 
+                                background: 'none', 
+                                border: 'none', 
+                                color: '#667eea', 
+                                fontSize: '14px', 
+                                cursor: 'pointer',
+                                textDecoration: 'underline'
+                            }}
+                            onClick={onConnected}
+                        >
+                            [Demo: Simulate partner joined]
+                        </button>
+                    </div>
+                </>
+            );
+        }
+
+        function JoinScreen({ inviteCode, setInviteCode, onBack, onConnect }) {
+            return (
+                <>
+                    <div className="header">
+                        <button className="back-button" onClick={onBack}>←</button>
+                        <div className="app-title">Join Partner</div>
+                        <div style={{ width: '24px' }}></div>
+                    </div>
+
+                    <div className="content">
+                        <div style={{ fontSize: '56px', textAlign: 'center', marginBottom: '20px' }}>🔐</div>
+                        
+                        <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#333', marginBottom: '10px', textAlign: 'center' }}>
+                            Enter your partner's code
+                        </h2>
+                        <p style={{ color: '#666', marginBottom: '40px', textAlign: 'center', fontSize: '14px' }}>
+                            Ask your partner for their 6-digit invite code
+                        </p>
+
+                        <div className="form-group">
+                            <label className="form-label" style={{ textAlign: 'center' }}>Invite Code</label>
+                            <input 
+                                type="text" 
+                                className="form-input" 
+                                style={{ 
+                                    textAlign: 'center', 
+                                    fontSize: '32px', 
+                                    fontWeight: 'bold', 
+                                    letterSpacing: '4px', 
+                                    fontFamily: 'monospace', 
+                                    textTransform: 'uppercase' 
+                                }}
+                                placeholder="A7K9M2"
+                                maxLength="6"
+                                value={inviteCode}
+                                onChange={e => setInviteCode(e.target.value.toUpperCase())}
+                            />
+                        </div>
+
+                        <button 
+                            className="primary-button" 
+                            onClick={onConnect}
+                            disabled={inviteCode.length !== 6}
+                        >
+                            Connect
+                        </button>
+
+                        <div style={{ marginTop: '20px', padding: '15px', background: '#fff3cd', borderRadius: '12px', border: '1px solid #ffc107' }}>
+                            <div style={{ fontSize: '12px', color: '#856404' }}>
+                                ⚠️ Make sure to enter the code exactly as shown
+                            </div>
+                        </div>
+                    </div>
+                </>
+            );
+        }
+
+        function SuccessScreen({ userName, partnerName, onContinue }) {
+            return (
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
+                    <div style={{ width: '100px', height: '100px', borderRadius: '50%', background: '#4caf50', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '30px' }}>
+                        <span style={{ fontSize: '48px', color: 'white' }}>✓</span>
+                    </div>
+                    
+                    <h2 style={{ fontSize: '24px', fontWeight: '600', color: '#333', marginBottom: '10px' }}>
+                        Connected!
+                    </h2>
+                    <p style={{ color: '#666', textAlign: 'center', marginBottom: '40px', fontSize: '15px' }}>
+                        You're now connected with {partnerName}.<br/>Ready to track expenses together!
+                    </p>
+
+                    <div style={{ display: 'flex', gap: '15px', marginBottom: '40px' }}>
+                        <div className="avatar" style={{ width: '60px', height: '60px', fontSize: '24px' }}>
+                            {userName.charAt(0).toUpperCase()}
+                        </div>
+                        <div style={{ fontSize: '32px', color: '#667eea', display: 'flex', alignItems: 'center' }}>🔗</div>
+                        <div className="avatar" style={{ width: '60px', height: '60px', fontSize: '24px' }}>
+                            {partnerName.charAt(0).toUpperCase()}
+                        </div>
+                    </div>
+
+                    <button className="primary-button" onClick={onContinue}>Continue to App</button>
+                </div>
+            );
+        }
+
+        function HomeScreen({ balance, partnerName, expenses, formatDate, onSettleUp }) {
+            const balanceText = balance > 0 
+                ? `${partnerName} owes you` 
+                : balance < 0 
+                ? `You owe ${partnerName}` 
+                : "You're all settled up!";
+
+            return (
+                <div className="content">
+                    <div className="balance-card">
+                        <div className="balance-label">Current Balance</div>
+                        <div className="balance-amount">${Math.abs(balance).toFixed(2)}</div>
+                        <div className="balance-subtitle">{balanceText}</div>
+                        {balance !== 0 && (
+                            <button className="settle-button" onClick={onSettleUp}>
+                                Settle Up
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="section-header">Recent Expenses</div>
+                    
+                    {expenses.length === 0 ? (
+                        <div className="empty-state">
+                            <div className="empty-icon">💸</div>
+                            <div className="empty-text">No expenses yet</div>
+                            <div className="empty-subtext">Tap the + button to add your first expense</div>
+                        </div>
+                    ) : (
+                        <div className="expense-list">
+                            {expenses.map(expense => (
+                                <div key={expense.id} className="expense-item">
+                                    <div className="expense-icon">{expense.icon}</div>
+                                    <div className="expense-details">
+                                        <div className="expense-name">{expense.description}</div>
+                                        <div className="expense-meta">
+                                            {formatDate(expense.date)} • Paid by {expense.paidBy === 'you' ? 'you' : partnerName}
+                                        </div>
+                                    </div>
+                                    <div className="expense-amount-col">
+                                        <div className="expense-amount">${expense.amount.toFixed(2)}</div>
+                                        <div className="expense-split">Split 50/50</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        function StatsScreen({ expenses }) {
+            const total = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+            const categoryTotals = expenses.reduce((acc, exp) => {
+                const category = CATEGORIES.find(c => c.id === exp.category);
+                const key = category ? category.name : 'Other';
+                acc[key] = (acc[key] || 0) + exp.amount;
+                return acc;
+            }, {});
+
+            const sortedCategories = Object.entries(categoryTotals)
+                .sort((a, b) => b[1] - a[1]);
+
+            return (
+                <div className="content">
+                    <div style={{ marginBottom: '25px' }}>
+                        <div className="button-group">
+                            <button className="option-button active">This Month</button>
+                            <button className="option-button">Last Month</button>
+                        </div>
+                    </div>
+
+                    <div style={{ background: '#f8f9fa', borderRadius: '12px', padding: '15px', marginBottom: '25px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                            <span style={{ color: '#666' }}>Total Expenses</span>
+                            <span style={{ fontWeight: '600' }}>${total.toFixed(2)}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                            <span style={{ color: '#666' }}>Your Share</span>
+                            <span style={{ fontWeight: '600' }}>${(total / 2).toFixed(2)}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                            <span style={{ color: '#666' }}>Jordan's Share</span>
+                            <span style={{ fontWeight: '600' }}>${(total / 2).toFixed(2)}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: '#666' }}>Number of Expenses</span>
+                            <span style={{ fontWeight: '600' }}>{expenses.length}</span>
+                        </div>
+                    </div>
+
+                    <div className="section-header">Top Categories</div>
+                    
+                    {sortedCategories.length === 0 ? (
+                        <div className="empty-state">
+                            <div className="empty-icon">📊</div>
+                            <div className="empty-text">No data yet</div>
+                            <div className="empty-subtext">Add expenses to see statistics</div>
+                        </div>
+                    ) : (
+                        <div>
+                            {sortedCategories.map(([category, amount]) => {
+                                const cat = CATEGORIES.find(c => c.name === category);
+                                const icon = cat ? cat.icon : '➕';
+                                return (
+                                    <div key={category} style={{ 
+                                        display: 'flex', 
+                                        justifyContent: 'space-between',
+                                        padding: '15px',
+                                        background: '#f8f9fa',
+                                        borderRadius: '12px',
+                                        marginBottom: '10px'
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                                            <span style={{ marginRight: '10px', fontSize: '20px' }}>{icon}</span>
+                                            <span style={{ color: '#666' }}>{category}</span>
+                                        </div>
+                                        <span style={{ fontWeight: '600' }}>${amount.toFixed(2)}</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        function SettingsScreen({ partnerName }) {
+            return (
+                <div className="content">
+                    <div className="section-header">Account</div>
+                    
+                    <div style={{ background: '#f8f9fa', borderRadius: '12px', padding: '15px', marginBottom: '25px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
+                            <span style={{ color: '#666' }}>Your Name</span>
+                            <span style={{ fontWeight: '600' }}>Alex</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: '#666' }}>Partner</span>
+                            <span style={{ fontWeight: '600' }}>{partnerName}</span>
+                        </div>
+                    </div>
+
+                    <div className="section-header">Preferences</div>
+                    
+                    <div style={{ background: '#f8f9fa', borderRadius: '12px', padding: '15px', marginBottom: '25px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
+                            <span style={{ color: '#666' }}>Currency</span>
+                            <span style={{ fontWeight: '600' }}>USD ($)</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
+                            <span style={{ color: '#666' }}>Default Split</span>
+                            <span style={{ fontWeight: '600' }}>50/50</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: '#666' }}>Notifications</span>
+                            <span style={{ fontWeight: '600' }}>On</span>
+                        </div>
+                    </div>
+
+                    <button className="primary-button" style={{ background: '#f44336' }}>
+                        Sign Out
+                    </button>
+                </div>
+            );
+        }
+
+        function AddExpenseModal({ onClose, onAdd, partnerName }) {
+            const [amount, setAmount] = useState('');
+            const [description, setDescription] = useState('');
+            const [category, setCategory] = useState('food');
+            const [paidBy, setPaidBy] = useState('you');
+            const [splitType, setSplitType] = useState('50-50');
+            const [customSplit, setCustomSplit] = useState({ you: 50, partner: 50 });
+
+            const handleSubmit = () => {
+                if (!amount || !description) return;
+                
+                const selectedCategory = CATEGORIES.find(c => c.id === category);
+                onAdd({
+                    amount: parseFloat(amount),
+                    description,
+                    category,
+                    paidBy,
+                    splitType,
+                    icon: selectedCategory.icon
+                });
+            };
+
+            return (
+                <div className="modal-overlay" onClick={onClose}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <div className="modal-title">New Expense</div>
+                            <button className="close-button" onClick={onClose}>×</button>
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Amount</label>
+                            <input 
+                                type="number"
+                                className="form-input form-input-large"
+                                value={amount}
+                                onChange={e => setAmount(e.target.value)}
+                                placeholder="$0.00"
+                                step="0.01"
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">What was it for?</label>
+                            <input 
+                                type="text"
+                                className="form-input"
+                                value={description}
+                                onChange={e => setDescription(e.target.value)}
+                                placeholder="Description"
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Category</label>
+                            <div className="category-grid">
+                                {CATEGORIES.map(cat => (
+                                    <div 
+                                        key={cat.id}
+                                        className={`category-button ${category === cat.id ? 'active' : ''}`}
+                                        onClick={() => setCategory(cat.id)}
+                                    >
+                                        <div className="category-icon">{cat.icon}</div>
+                                        <div className="category-name">{cat.name}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Paid by</label>
+                            <div className="button-group">
+                                <button 
+                                    className={`option-button ${paidBy === 'you' ? 'active' : ''}`}
+                                    onClick={() => setPaidBy('you')}
+                                >
+                                    You
+                                </button>
+                                <button 
+                                    className={`option-button ${paidBy === 'partner' ? 'active' : ''}`}
+                                    onClick={() => setPaidBy('partner')}
+                                >
+                                    {partnerName}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Split</label>
+                            <div className="button-group">
+                                <button 
+                                    className={`option-button ${splitType === '50-50' ? 'active' : ''}`}
+                                    onClick={() => setSplitType('50-50')}
+                                >
+                                    50/50
+                                </button>
+                                <button 
+                                    className={`option-button ${splitType === 'custom' ? 'active' : ''}`}
+                                    onClick={() => setSplitType('custom')}
+                                >
+                                    Custom
+                                </button>
+                            </div>
+                        </div>
+
+                        {splitType === 'custom' && (
+                            <div className="form-group">
+                                <div style={{ 
+                                    padding: '15px', 
+                                    background: '#f8f9fa', 
+                                    borderRadius: '12px',
+                                    marginBottom: '10px'
+                                }}>
+                                    <div style={{ marginBottom: '15px' }}>
+                                        <label className="form-label">Your share (%)</label>
+                                        <input 
+                                            type="number"
+                                            className="form-input"
+                                            value={customSplit.you}
+                                            onChange={e => {
+                                                const val = parseInt(e.target.value) || 0;
+                                                setCustomSplit({ you: val, partner: 100 - val });
+                                            }}
+                                            min="0"
+                                            max="100"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="form-label">{partnerName}'s share (%)</label>
+                                        <input 
+                                            type="number"
+                                            className="form-input"
+                                            value={customSplit.partner}
+                                            onChange={e => {
+                                                const val = parseInt(e.target.value) || 0;
+                                                setCustomSplit({ you: 100 - val, partner: val });
+                                            }}
+                                            min="0"
+                                            max="100"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        <button 
+                            className="primary-button"
+                            onClick={handleSubmit}
+                            disabled={!amount || !description}
+                        >
+                            Add Expense
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        function SettleUpModal({ balance, partnerName, onClose, onSettle }) {
+            return (
+                <div className="modal-overlay" onClick={onClose}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <div className="modal-title">Settle Up</div>
+                            <button className="close-button" onClick={onClose}>×</button>
+                        </div>
+
+                        <div className="balance-card" style={{ marginTop: '10px' }}>
+                            <div className="balance-label">Amount to Settle</div>
+                            <div className="balance-amount">${Math.abs(balance).toFixed(2)}</div>
+                            <div className="balance-subtitle">
+                                {balance > 0 ? `${partnerName} pays you` : `You pay ${partnerName}`}
+                            </div>
+                        </div>
+
+                        <div className="section-header" style={{ marginTop: '25px' }}>Settlement Method</div>
+
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            padding: '15px',
+                            background: '#f8f9fa',
+                            borderRadius: '12px',
+                            marginBottom: '10px'
+                        }}>
+                            <div style={{
+                                width: '44px',
+                                height: '44px',
+                                borderRadius: '12px',
+                                background: 'white',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                marginRight: '12px',
+                                fontSize: '22px'
+                            }}>
+                                💵
+                            </div>
+                            <div style={{ flex: 1 }}>
+                                <div style={{ fontWeight: '600', marginBottom: '4px' }}>Cash</div>
+                                <div style={{ fontSize: '12px', color: '#999' }}>In person</div>
+                            </div>
+                            <div style={{ fontSize: '18px', color: '#667eea' }}>✓</div>
+                        </div>
+
+                        <button 
+                            className="primary-button"
+                            onClick={onSettle}
+                        >
+                            Mark as Settled
+                        </button>
+
+                        <div style={{ marginTop: '15px', textAlign: 'center', fontSize: '12px', color: '#999' }}>
+                            Settle up in cash when convenient
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>

@@ -1,0 +1,580 @@
+# Dividela Project - Claude Code Instructions
+
+## Project Overview
+Dividela is a couples expense tracking app built with React Native (Expo) and Firebase. The app allows couples to track shared expenses, manage splits (50/50 or custom), and settle up in cash.
+
+## Key Principles
+- **Simplicity First**: Add expense in <10 seconds
+- **Privacy-Focused**: Cash-only settlements, no bank linking
+- **Trust-Based**: Designed for couples who want transparency without complexity
+- **Mobile-First**: Optimized for one-handed use
+
+## Tech Stack
+- **Frontend**: React Native with Expo
+- **UI Library**: React Native Paper
+- **Backend**: Firebase (Auth, Firestore)
+- **Navigation**: React Navigation (Stack + Bottom Tabs)
+- **State Management**: React Context + Hooks
+
+## Project Structure
+```
+dividela/
+├── src/
+│   ├── config/
+│   │   └── firebase.js          # Firebase initialization
+│   ├── constants/
+│   │   ├── theme.js             # Design system (colors, fonts, spacing)
+│   │   └── categories.js        # Expense categories
+│   ├── contexts/
+│   │   └── AuthContext.js       # Global auth state
+│   ├── utils/
+│   │   ├── validators.js        # Form validation
+│   │   └── calculations.js      # Balance & split calculations
+│   ├── screens/
+│   │   ├── auth/               # Onboarding screens
+│   │   │   ├── WelcomeScreen.js
+│   │   │   ├── SignUpScreen.js
+│   │   │   ├── ConnectScreen.js
+│   │   │   ├── InviteScreen.js
+│   │   │   ├── JoinScreen.js
+│   │   │   └── SuccessScreen.js
+│   │   └── main/               # Main app screens
+│   │       ├── HomeScreen.js
+│   │       ├── AddExpenseScreen.js
+│   │       ├── StatsScreen.js
+│   │       └── SettingsScreen.js
+│   ├── components/             # Reusable components
+│   │   ├── ExpenseItem.js
+│   │   ├── BalanceCard.js
+│   │   └── CategoryButton.js
+│   ├── navigation/
+│   │   └── AppNavigator.js
+│   └── services/
+│       ├── expenseService.js
+│       └── settlementService.js
+├── assets/
+├── .env                        # Firebase config (never commit!)
+└── App.js                      # Root component
+```
+
+## Design System Reference
+Always use the design system from `src/constants/theme.js`:
+
+```javascript
+// Import the design system
+import { COLORS, FONTS, SPACING, SIZES, SHADOWS, COMMON_STYLES } from '../constants/theme';
+
+// Colors
+COLORS.primary          // #667eea (main purple)
+COLORS.text            // #333333 (dark gray text)
+COLORS.background      // #ffffff (white)
+COLORS.backgroundSecondary // #f8f9fa (light gray)
+
+// Spacing (use instead of hardcoded numbers)
+SPACING.screenPadding  // 20px
+SPACING.base          // 16px
+SPACING.small         // 8px
+
+// Border radius
+SIZES.borderRadius.medium // 12px
+
+// Common styles (reuse these!)
+COMMON_STYLES.primaryButton
+COMMON_STYLES.input
+COMMON_STYLES.card
+```
+
+## Component Patterns
+
+### Screen Template
+```javascript
+import React, { useState } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { COLORS, SPACING, COMMON_STYLES } from '../constants/theme';
+
+export default function ScreenName() {
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Screen Title</Text>
+      {/* Content */}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    ...COMMON_STYLES.container,
+    padding: SPACING.screenPadding,
+  },
+  title: COMMON_STYLES.heading,
+});
+```
+
+### Button Pattern
+```javascript
+import { TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { COLORS, SPACING, SIZES } from '../constants/theme';
+
+<TouchableOpacity 
+  style={styles.button} 
+  onPress={handlePress}
+  activeOpacity={0.8}
+>
+  <Text style={styles.buttonText}>Button Text</Text>
+</TouchableOpacity>
+
+const styles = StyleSheet.create({
+  button: {
+    backgroundColor: COLORS.primary,
+    borderRadius: SIZES.borderRadius.medium,
+    paddingVertical: SPACING.buttonPadding,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: COLORS.textWhite,
+    fontWeight: '600',
+  },
+});
+```
+
+### Form Input Pattern
+```javascript
+import { TextInput, View, Text, StyleSheet } from 'react-native';
+import { COLORS, SPACING } from '../constants/theme';
+
+<View style={styles.formGroup}>
+  <Text style={styles.label}>Label</Text>
+  <TextInput
+    style={styles.input}
+    placeholder="Placeholder"
+    value={value}
+    onChangeText={setValue}
+  />
+  {error && <Text style={styles.error}>{error}</Text>}
+</View>
+
+const styles = StyleSheet.create({
+  formGroup: {
+    marginBottom: SPACING.large,
+  },
+  label: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.small,
+  },
+  input: {
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    padding: SPACING.inputPadding,
+  },
+  error: {
+    color: COLORS.error,
+    fontSize: 12,
+    marginTop: 4,
+  },
+});
+```
+
+## Firebase Patterns
+
+### Reading Data
+```javascript
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '../config/firebase';
+
+// Get all expenses for a couple
+const expensesRef = collection(db, 'expenses');
+const q = query(expensesRef, where('coupleId', '==', coupleId));
+const snapshot = await getDocs(q);
+const expenses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+```
+
+### Writing Data
+```javascript
+import { doc, setDoc, addDoc, collection } from 'firebase/firestore';
+import { db } from '../config/firebase';
+
+// Add new expense
+const expensesRef = collection(db, 'expenses');
+await addDoc(expensesRef, {
+  coupleId,
+  amount,
+  description,
+  paidBy,
+  createdAt: new Date().toISOString(),
+});
+```
+
+### Real-time Listeners
+```javascript
+import { collection, query, onSnapshot } from 'firebase/firestore';
+
+useEffect(() => {
+  const q = query(collection(db, 'expenses'), where('coupleId', '==', coupleId));
+  
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    setExpenses(data);
+  });
+
+  return () => unsubscribe();
+}, [coupleId]);
+```
+
+## Authentication Pattern
+```javascript
+import { useAuth } from '../contexts/AuthContext';
+
+function MyScreen() {
+  const { user, userDetails, signUp, signIn, signOut } = useAuth();
+
+  const handleSignUp = async () => {
+    try {
+      await signUp(email, password, displayName);
+      // Navigate to next screen
+    } catch (error) {
+      setError(error.message);
+    }
+  };
+
+  return user ? <AuthenticatedView /> : <LoginView />;
+}
+```
+
+## Navigation Pattern
+```javascript
+// Stack navigation
+navigation.navigate('ScreenName', { param1, param2 });
+navigation.goBack();
+navigation.replace('ScreenName');
+
+// Tab navigation
+navigation.navigate('TabName');
+
+// Get params
+const { param1, param2 } = route.params;
+```
+
+## Validation Pattern
+```javascript
+import { validateEmail, validatePassword } from '../utils/validators';
+
+const handleSubmit = () => {
+  // Validate individual fields
+  const emailValidation = validateEmail(email);
+  if (!emailValidation.isValid) {
+    setEmailError(emailValidation.error);
+    return;
+  }
+
+  // Validate entire form
+  const { isValid, errors } = validateForm({
+    email: { value: email, validator: validateEmail },
+    password: { value: password, validator: validatePassword },
+  });
+
+  if (!isValid) {
+    setErrors(errors);
+    return;
+  }
+
+  // Proceed with submission
+};
+```
+
+## Calculation Pattern
+```javascript
+import { calculateBalance, formatCurrency, calculateSplit } from '../utils/calculations';
+
+// Calculate balance
+const balance = calculateBalance(expenses, user.uid, partner.uid);
+
+// Format for display
+const formatted = formatCurrency(balance); // Returns "$47.50"
+
+// Calculate split
+const split = calculateSplit(100, 60, 40); // 60/40 split
+// Returns: { user1Amount: 60, user2Amount: 40, user1Percentage: 60, user2Percentage: 40 }
+```
+
+## Key Documentation Files
+Reference these files when implementing features:
+- **technical-spec.md**: Complete technical specification
+- **wireframes.html**: Visual reference for all screens
+- **prototype.html**: Working prototype with interactions
+- **IMPLEMENTATION-ROADMAP.md**: Step-by-step development plan
+- **ONBOARDING-GUIDE.md**: Invite code system details
+
+## Firestore Data Models
+
+### User Document
+```javascript
+{
+  uid: string,
+  email: string,
+  displayName: string,
+  partnerId: string | null,
+  coupleId: string | null,
+  createdAt: timestamp,
+  settings: {
+    notifications: boolean,
+    defaultSplit: number,
+    currency: string
+  }
+}
+```
+
+### Expense Document
+```javascript
+{
+  coupleId: string,
+  paidBy: string (userId),
+  amount: number,
+  description: string,
+  category: string,
+  splitType: string, // '50-50' or 'custom'
+  splitDetails: {
+    user1Percentage: number,
+    user2Percentage: number,
+    user1Amount: number,
+    user2Amount: number
+  },
+  date: timestamp,
+  createdAt: timestamp
+}
+```
+
+### Invite Code Document
+```javascript
+{
+  code: string, // 6-character alphanumeric
+  createdBy: string (userId),
+  createdAt: timestamp,
+  expiresAt: timestamp, // 7 days from creation
+  isUsed: boolean,
+  usedBy: string | null,
+  usedAt: timestamp | null
+}
+```
+
+### Couple Document
+```javascript
+{
+  user1Id: string,
+  user2Id: string,
+  inviteCode: string,
+  createdAt: timestamp,
+  currentBalance: number,
+  totalExpenses: number,
+  lastActivity: timestamp
+}
+```
+
+## Code Quality Standards
+
+### Do's ✅
+- Use functional components with hooks
+- Use TypeScript-style JSDoc comments for complex functions
+- Extract reusable logic into custom hooks
+- Keep components under 200 lines
+- Use meaningful variable names
+- Add loading and error states to all async operations
+- Use COMMON_STYLES where possible
+- Test on both iOS and Android
+- Handle edge cases (empty states, network errors)
+- Use proper key props in lists
+
+### Don'ts ❌
+- Don't hardcode colors or spacing (use theme.js)
+- Don't use inline styles for complex styling
+- Don't ignore errors (always catch and handle)
+- Don't store sensitive data in AsyncStorage
+- Don't use console.log in production code
+- Don't create deeply nested components
+- Don't mutate state directly
+- Don't forget to cleanup listeners in useEffect
+- Don't use var (use const/let)
+- Don't commit .env file or Firebase keys
+
+## Error Handling Pattern
+```javascript
+const [loading, setLoading] = useState(false);
+const [error, setError] = useState(null);
+
+const handleAction = async () => {
+  try {
+    setLoading(true);
+    setError(null);
+    
+    // Perform action
+    await someAsyncOperation();
+    
+  } catch (err) {
+    console.error('Action failed:', err);
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
+// In render
+{loading && <ActivityIndicator />}
+{error && <Text style={styles.error}>{error}</Text>}
+```
+
+## Testing Checklist
+Before marking any feature complete:
+- [ ] Works on iOS
+- [ ] Works on Android
+- [ ] Loading states show correctly
+- [ ] Error states handled gracefully
+- [ ] Empty states look good
+- [ ] Navigation works both ways
+- [ ] Data persists correctly
+- [ ] Real-time updates work
+- [ ] Forms validate properly
+- [ ] Back button works
+
+## Common Components Patterns
+
+### Loading Indicator
+```javascript
+import { ActivityIndicator, View } from 'react-native';
+import { COLORS } from '../constants/theme';
+
+{loading ? (
+  <View style={styles.loadingContainer}>
+    <ActivityIndicator size="large" color={COLORS.primary} />
+  </View>
+) : (
+  <ContentView />
+)}
+```
+
+### Empty State
+```javascript
+<View style={styles.emptyState}>
+  <Text style={styles.emptyIcon}>💸</Text>
+  <Text style={styles.emptyText}>No expenses yet</Text>
+  <Text style={styles.emptySubtext}>Tap the + button to add your first expense</Text>
+</View>
+```
+
+### Modal Pattern
+```javascript
+import { Modal, View, TouchableOpacity } from 'react-native';
+
+<Modal
+  visible={isVisible}
+  animationType="slide"
+  transparent={true}
+  onRequestClose={onClose}
+>
+  <TouchableOpacity 
+    style={styles.modalOverlay} 
+    activeOpacity={1}
+    onPress={onClose}
+  >
+    <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
+      {/* Modal content */}
+    </View>
+  </TouchableOpacity>
+</Modal>
+```
+
+## Performance Tips
+- Use `React.memo()` for expensive components
+- Use `useMemo()` for expensive calculations
+- Use `useCallback()` for event handlers passed to children
+- Paginate large lists
+- Optimize images with proper sizes
+- Debounce search inputs
+- Use `FlatList` instead of `ScrollView` for long lists
+
+## Environment Variables
+Never hardcode these - use .env:
+```
+EXPO_PUBLIC_FIREBASE_API_KEY=...
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=...
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=...
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=...
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
+EXPO_PUBLIC_FIREBASE_APP_ID=...
+```
+
+## Useful Commands
+```bash
+# Start dev server
+npx expo start
+
+# Clear cache
+npx expo start -c
+
+# Install package
+npm install package-name
+
+# Run on specific platform
+npx expo start --ios
+npx expo start --android
+
+# Check for issues
+npx expo-doctor
+```
+
+## When Creating New Screens
+1. Create screen file in appropriate folder (auth/ or main/)
+2. Import and use design system (theme.js)
+3. Add loading/error states
+4. Implement form validation if needed
+5. Add navigation handlers
+6. Test on both platforms
+7. Update navigation config if needed
+
+## When Working with Forms
+1. Use validators from utils/validators.js
+2. Show inline errors below inputs
+3. Disable submit button when invalid
+4. Show loading state during submission
+5. Handle Firebase errors with getFirebaseErrorMessage()
+6. Clear form after successful submission
+
+## Security Reminders
+- Never store passwords in plain text
+- Use Firebase Auth for authentication
+- Implement proper Firestore security rules
+- Don't expose Firebase keys in client code (use .env)
+- Validate all inputs on both client and server
+- Use HTTPS only
+
+## Implementation Priority
+Follow IMPLEMENTATION-ROADMAP.md for the correct order:
+1. Week 1: Auth screens (Welcome, SignUp, SignIn)
+2. Week 1-2: Pairing system (Connect, Invite, Join, Success)
+3. Week 2: Navigation setup
+4. Week 2-3: Expense management (Home, AddExpense)
+5. Week 3: Balance calculation and display
+6. Week 3: Settle up flow
+7. Week 4: Stats and Settings
+8. Week 5: Polish and optimization
+
+## Questions to Ask Before Implementing
+1. Which screen am I building? (Check wireframes.html)
+2. What data do I need? (Check Firestore models above)
+3. What validations are needed? (Check validators.js)
+4. What calculations are needed? (Check calculations.js)
+5. How should errors be handled?
+6. What are the loading states?
+7. What navigation actions are needed?
+
+## Remember
+- The user experience should be fast and simple
+- Always test with real Firebase data
+- Keep components focused and small
+- Reuse existing utilities and components
+- Follow the design system consistently
+- Reference the prototype for interaction patterns
+
+---
+
+Good luck building Dividela! 🚀

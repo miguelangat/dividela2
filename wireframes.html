@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dividela - Wireframes</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        .wireframe-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .phone-frame {
+            background: white;
+            border-radius: 30px;
+            padding: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            width: 320px;
+            margin: 0 auto;
+        }
+
+        .screen {
+            background: #fff;
+            border: 2px solid #ddd;
+            border-radius: 20px;
+            padding: 20px;
+            min-height: 600px;
+            position: relative;
+        }
+
+        .screen-title {
+            font-size: 11px;
+            color: #999;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        /* Status bar */
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .app-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        /* Balance card */
+        .balance-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            padding: 25px;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .balance-label {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+
+        .balance-amount {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .balance-subtitle {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .settle-button {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            margin-top: 15px;
+            width: 100%;
+            cursor: pointer;
+        }
+
+        /* Expense list */
+        .section-header {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #999;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .expense-item {
+            display: flex;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .expense-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-size: 18px;
+        }
+
+        .expense-details {
+            flex: 1;
+        }
+
+        .expense-name {
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .expense-meta {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .expense-amount {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .expense-split {
+            font-size: 11px;
+            color: #999;
+            margin-top: 2px;
+        }
+
+        /* Add button */
+        .fab {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: #667eea;
+            color: white;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        /* Form elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+            display: block;
+            font-weight: 500;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-input-large {
+            font-size: 36px;
+            font-weight: bold;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .split-button {
+            padding: 12px;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .split-button.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .primary-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .category-button {
+            padding: 15px;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .category-button:hover, .category-button.active {
+            background: #f8f9ff;
+            border-color: #667eea;
+        }
+
+        .category-icon {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .category-name {
+            font-size: 11px;
+            color: #666;
+        }
+
+        /* Payment methods */
+        .payment-option {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .payment-option:hover {
+            background: #f8f9ff;
+            border-color: #667eea;
+        }
+
+        .payment-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-size: 20px;
+        }
+
+        .nav-tab {
+            display: flex;
+            justify-content: space-around;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid #eee;
+            padding: 15px 0;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #999;
+            font-size: 11px;
+        }
+
+        .nav-item.active {
+            color: #667eea;
+        }
+
+        .nav-icon {
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+
+        .back-button {
+            font-size: 24px;
+            color: #667eea;
+            cursor: pointer;
+        }
+
+        .summary-stat {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .stat-label {
+            color: #666;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Dividela - Wireframes</h1>
+        
+        <div class="wireframe-grid">
+            <!-- Screen 0a: Welcome Screen -->
+            <div class="phone-frame">
+                <div class="screen">
+                    <div class="screen-title">0a. Welcome Screen</div>
+                    
+                    <div class="status-bar">
+                        <span>9:41</span>
+                        <span>●●●●● WiFi 🔋</span>
+                    </div>
+
+                    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px;">
+                        <div style="font-size: 72px; margin-bottom: 20px;">💑</div>
+                        <h1 style="font-size: 32px; font-weight: bold; color: #333; margin-bottom: 10px;">Dividela</h1>
+                        <p style="font-size: 16px; color: #666; text-align: center; margin-bottom: 60px;">
+                            Track shared expenses with your partner, effortlessly.
+                        </p>
+                        
+                        <button class="primary-button" style="margin-bottom: 15px;">Get Started</button>
+                        <button style="background: none; border: none; color: #667eea; font-size: 15px; cursor: pointer;">
+                            Already have an account? Sign in
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 0b: Sign Up -->
+            <div class="phone-frame">
+                <div class="screen">
+                    <div class="screen-title">0b. Sign Up</div>
+                    
+                    <div class="status-bar">
+                        <span>9:41</span>
+                        <span>●●●●● WiFi 🔋</span>
+                    </div>
+
+                    <div class="header">
+                        <div class="back-button">←</div>
+                        <div class="app-title">Create Account</div>
+                        <div style="width: 24px;"></div>
+                    </div>
+
+                    <div style="padding: 0 20px;">
+                        <div class="form-group">
+                            <label class="form-label">Your Name</label>
+                            <input type="text" class="form-input" placeholder="Alex Smith" value="Alex">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-input" placeholder="alex@example.com">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Password</label>
+                            <input type="password" class="form-input" placeholder="••••••••">
+                        </div>
+
+                        <div style="display: flex; align-items: start; margin-bottom: 25px;">
+                            <input type="checkbox" style="margin-right: 10px; margin-top: 4px;">
+                            <span style="font-size: 13px; color: #666;">
+                                I agree to the Terms of Service and Privacy Policy
+                            </span>
+                        </div>
+
+                        <button class="primary-button">Create Account</button>
+
+                        <div style="margin: 25px 0; text-align: center; color: #999; font-size: 14px;">
+                            or
+                        </div>
+
+                        <button style="width: 100%; padding: 14px; border: 2px solid #eee; border-radius: 12px; background: white; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; cursor: pointer;">
+                            <span style="font-weight: 500;">Continue with Apple</span>
+                        </button>
+
+                        <button style="width: 100%; padding: 14px; border: 2px solid #eee; border-radius: 12px; background: white; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                            <span style="font-weight: 500;">Continue with Google</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 0c: Partner Connection Choice -->
+            <div class="phone-frame">
+                <div class="screen">
+                    <div class="screen-title">0c. Partner Connection</div>
+                    
+                    <div class="status-bar">
+                        <span>9:41</span>
+                        <span>●●●●● WiFi 🔋</span>
+                    </div>
+
+                    <div class="header">
+                        <div style="width: 24px;"></div>
+                        <div class="app-title">Connect Partner</div>
+                        <div style="width: 24px;"></div>
+                    </div>
+
+                    <div style="padding: 40px 20px;">
+                        <p style="text-align: center; color: #666; margin-bottom: 40px; font-size: 15px;">
+                            Connect with your partner to start tracking expenses together
+                        </p>
+
+                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; padding: 30px; margin-bottom: 20px; cursor: pointer; text-align: center; color: white;">
+                            <div style="font-size: 48px; margin-bottom: 15px;">📤</div>
+                            <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">Invite Partner</div>
+                            <div style="font-size: 14px; opacity: 0.9;">Generate a code for your partner to join</div>
+                        </div>
+
+                        <div style="background: white; border: 2px solid #eee; border-radius: 15px; padding: 30px; cursor: pointer; text-align: center;">
+                            <div style="font-size: 48px; margin-bottom: 15px;">📥</div>
+                            <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px; color: #333;">Join Partner</div>
+                            <div style="font-size: 14px; color: #666;">Enter your partner's invite code</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 0d: Generate Invite Code -->
+            <div class="phone-frame">
+                <div class="screen">
+                    <div class="screen-title">0d. Invite Partner</div>
+                    
+                    <div class="status-bar">
+                        <span>9:41</span>
+                        <span>●●●●● WiFi 🔋</span>
+                    </div>
+
+                    <div class="header">
+                        <div class="back-button">←</div>
+                        <div class="app-title">Invite Partner</div>
+                        <div style="width: 24px;"></div>
+                    </div>
+
+                    <div style="padding: 40px 20px; text-align: center;">
+                        <div style="font-size: 56px; margin-bottom: 20px;">🔗</div>
+                        
+                        <h2 style="font-size: 20px; font-weight: 600; color: #333; margin-bottom: 10px;">
+                            Share this code with your partner
+                        </h2>
+                        <p style="color: #666; margin-bottom: 40px; font-size: 14px;">
+                            They'll need this to connect with you
+                        </p>
+
+                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 20px; padding: 30px; margin-bottom: 25px;">
+                            <div style="font-size: 48px; font-weight: bold; letter-spacing: 8px; color: white; font-family: monospace;">
+                                A7K9M2
+                            </div>
+                        </div>
+
+                        <button class="primary-button" style="margin-bottom: 12px;">
+                            Copy Code
+                        </button>
+                        
+                        <button style="width: 100%; padding: 14px; border: 2px solid #eee; border-radius: 12px; background: white; font-weight: 500; cursor: pointer; margin-bottom: 12px;">
+                            Share via SMS
+                        </button>
+
+                        <button style="width: 100%; padding: 14px; border: 2px solid #eee; border-radius: 12px; background: white; font-weight: 500; cursor: pointer;">
+                            Share via Email
+                        </button>
+
+                        <div style="margin-top: 30px; padding: 15px; background: #f8f9ff; border-radius: 12px;">
+                            <div style="font-size: 13px; color: #666; margin-bottom: 5px;">⏱️ Waiting for partner...</div>
+                            <div style="font-size: 12px; color: #999;">Code expires in 7 days</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 0e: Enter Invite Code -->
+            <div class="phone-frame">
+                <div class="screen">
+                    <div class="screen-title">0e. Join Partner</div>
+                    
+                    <div class="status-bar">
+                        <span>9:41</span>
+                        <span>●●●●● WiFi 🔋</span>
+                    </div>
+
+                    <div class="header">
+                        <div class="back-button">←</div>
+                        <div class="app-title">Join Partner</div>
+                        <div style="width: 24px;"></div>
+                    </div>
+
+                    <div style="padding: 40px 20px;">
+                        <div style="font-size: 56px; text-align: center; margin-bottom: 20px;">🔐</div>
+                        
+                        <h2 style="font-size: 20px; font-weight: 600; color: #333; margin-bottom: 10px; text-align: center;">
+                            Enter your partner's code
+                        </h2>
+                        <p style="color: #666; margin-bottom: 40px; text-align: center; font-size: 14px;">
+                            Ask your partner for their 6-digit invite code
+                        </p>
+
+                        <div class="form-group">
+                            <label class="form-label" style="text-align: center;">Invite Code</label>
+                            <input 
+                                type="text" 
+                                class="form-input" 
+                                style="text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 4px; font-family: monospace; text-transform: uppercase;"
+                                placeholder="A7K9M2"
+                                maxlength="6"
+                            >
+                        </div>
+
+                        <button class="primary-button">Connect</button>
+
+                        <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 12px; border: 1px solid #ffc107;">
+                            <div style="font-size: 12px; color: #856404;">
+                                ⚠️ Make sure to enter the code exactly as shown
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 0f: Connection Success -->
+            <div class="phone-frame">
+                <div class="screen">
+                    <div class="screen-title">0f. Connected!</div>
+                    
+                    <div class="status-bar">
+                        <span>9:41</span>
+                        <span>●●●●● WiFi 🔋</span>
+                    </div>
+
+                    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px;">
+                        <div style="width: 100px; height: 100px; border-radius: 50%; background: #4caf50; display: flex; align-items: center; justify-content: center; margin-bottom: 30px;">
+                            <span style="font-size: 48px; color: white;">✓</span>
+                        </div>
+                        
+                        <h2 style="font-size: 24px; font-weight: 600; color: #333; margin-bottom: 10px;">
+                            Connected!
+                        </h2>
+                        <p style="color: #666; text-align: center; margin-bottom: 40px; font-size: 15px;">
+                            You're now connected with Jordan.<br/>Ready to track expenses together!
+                        </p>
+
+                        <div style="display: flex; gap: 15px; margin-bottom: 40px;">
+                            <div class="avatar" style="width: 60px; height: 60px; font-size: 24px;">A</div>
+                            <div style="font-size: 32px; color: #667eea; display: flex; align-items: center;">🔗</div>
+                            <div class="avatar" style="width: 60px; height: 60px; font-size: 24px;">J</div>
+                        </div>
+
+                        <button class="primary-button">Continue to App</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 1: Home / Balance View -->
+            <div class="phone-frame">
+                <div class="screen">
+                    <div class="screen-title">1. Home Screen</div>
+                    
+                    <div class="status-bar">
+                        <span>9:41</span>
+                        <span>●●●●● WiFi 🔋</span>
+                    </div>
+
+                    <div class="header">
+                        <div class="avatar">A</div>
+                        <div class="app-title">Dividela</div>
+                        <div class="avatar">J</div>
+                    </div>
+
+                    <div class="balance-card">
+                        <div class="balance-label">Current Balance</div>
+                        <div class="balance-amount">$47.50</div>
+                        <div class="balance-subtitle">Jordan owes you</div>
+                        <button class="settle-button">Settle Up</button>
+                    </div>
+
+                    <div class="section-header">Recent Expenses</div>
+                    
+                    <div class="expense-item">
+                        <div class="expense-icon">🍕</div>
+                        <div class="expense-details">
+                            <div class="expense-name">Dinner at Pizza Place</div>
+                            <div class="expense-meta">Today • Paid by you</div>
+                        </div>
+                        <div>
+                            <div class="expense-amount">$52.00</div>
+                            <div class="expense-split">Split 50/50</div>
+                        </div>
+                    </div>
+
+                    <div class="expense-item">
+                        <div class="expense-icon">☕</div>
+                        <div class="expense-details">
+                            <div class="expense-name">Morning Coffee</div>
+                            <div class="expense-meta">Today • Paid by Jordan</div>
+                        </div>
+                        <div>
+                            <div class="expense-amount">$8.50</div>
+                            <div class="expense-split">Split 50/50</div>
+                        </div>
+                    </div>
+
+                    <div class="expense-item">
+                        <div class="expense-icon">🛒</div>
+                        <div class="expense-details">
+                            <div class="expense-name">Groceries</div>
+                            <div class="expense-meta">Yesterday • Paid by you</div>
+                        </div>
+                        <div>
+                            <div class="expense-amount">$87.32</div>
+                            <div class="expense-split">Split 50/50</div>
+                        </div>
+                    </div>
+
+                    <button class="fab">+</button>
+
+                    <div class="nav-tab">
+                        <div class="nav-item active">
+                            <div class="nav-icon">🏠</div>
+                            <div>Home</div>
+                        </div>
+                        <div class="nav-item">
+                            <div class="nav-icon">📊</div>
+                            <div>Stats</div>
+                        </div>
+                        <div class="nav-item">
+                            <div class="nav-icon">⚙️</div>
+                            <div>Settings</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 2: Add Expense -->
+            <div class="phone-frame">
+                <div class="screen">
+                    <div class="screen-title">2. Add Expense</div>
+                    
+                    <div class="status-bar">
+                        <span>9:41</span>
+                        <span>●●●●● WiFi 🔋</span>
+                    </div>
+
+                    <div class="header">
+                        <div class="back-button">←</div>
+                        <div class="app-title">New Expense</div>
+                        <div style="width: 24px;"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Amount</label>
+                        <input type="text" class="form-input form-input-large" value="$52.00" placeholder="$0.00">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">What was it for?</label>
+                        <input type="text" class="form-input" value="Dinner at Pizza Place" placeholder="Description">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Category</label>
+                        <div class="category-grid">
+                            <div class="category-button active">
+                                <div class="category-icon">🍕</div>
+                                <div class="category-name">Food</div>
+                            </div>
+                            <div class="category-button">
+                                <div class="category-icon">🛒</div>
+                                <div class="category-name">Groceries</div>
+                            </div>
+                            <div class="category-button">
+                                <div class="category-icon">🚗</div>
+                                <div class="category-name">Transport</div>
+                            </div>
+                            <div class="category-button">
+                                <div class="category-icon">🏠</div>
+                                <div class="category-name">Home</div>
+                            </div>
+                            <div class="category-button">
+                                <div class="category-icon">🎬</div>
+                                <div class="category-name">Fun</div>
+                            </div>
+                            <div class="category-button">
+                                <div class="category-icon">➕</div>
+                                <div class="category-name">Other</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Paid by</label>
+                        <div class="button-group">
+                            <button class="split-button active">You</button>
+                            <button class="split-button">Jordan</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Split</label>
+                        <div class="button-group">
+                            <button class="split-button active">50/50</button>
+                            <button class="split-button">Custom</button>
+                        </div>
+                    </div>
+
+                    <button class="primary-button">Add Expense</button>
+                </div>
+            </div>
+
+            <!-- Screen 2b: Add Expense - Custom Split -->
+            <div class="phone-frame">
+                <div class="screen">
+                    <div class="screen-title">2b. Custom Split</div>
+                    
+                    <div class="status-bar">
+                        <span>9:41</span>
+                        <span>●●●●● WiFi 🔋</span>
+                    </div>
+
+                    <div class="header">
+                        <div class="back-button">←</div>
+                        <div class="app-title">New Expense</div>
+                        <div style="width: 24px;"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Amount</label>
+                        <input type="text" class="form-input form-input-large" value="$52.00" placeholder="$0.00">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">What was it for?</label>
+                        <input type="text" class="form-input" value="Dinner at Pizza Place" placeholder="Description">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Category</label>
+                        <div class="category-grid">
+                            <div class="category-button active">
+                                <div class="category-icon">🍕</div>
+                                <div class="category-name">Food</div>
+                            </div>
+                            <div class="category-button">
+                                <div class="category-icon">🛒</div>
+                                <div class="category-name">Groceries</div>
+                            </div>
+                            <div class="category-button">
+                                <div class="category-icon">🚗</div>
+                                <div class="category-name">Transport</div>
+                            </div>
+                            <div class="category-button">
+                                <div class="category-icon">🏠</div>
+                                <div class="category-name">Home</div>
+                            </div>
+                            <div class="category-button">
+                                <div class="category-icon">🎬</div>
+                                <div class="category-name">Fun</div>
+                            </div>
+                            <div class="category-button">
+                                <div class="category-icon">➕</div>
+                                <div class="category-name">Other</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Paid by</label>
+                        <div class="button-group">
+                            <button class="split-button active">You</button>
+                            <button class="split-button">Jordan</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Split</label>
+                        <div class="button-group">
+                            <button class="split-button">50/50</button>
+                            <button class="split-button active">Custom</button>
+                        </div>
+                    </div>
+
+                    <div style="padding: 15px; background: #f8f9fa; border-radius: 12px; margin-bottom: 20px;">
+                        <div class="form-group" style="margin-bottom: 15px;">
+                            <label class="form-label">Your share (%)</label>
+                            <input type="number" class="form-input" value="60" placeholder="50">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label">Jordan's share (%)</label>
+                            <input type="number" class="form-input" value="40" placeholder="50">
+                        </div>
+                        <div style="margin-top: 10px; text-align: center; font-size: 12px; color: #999;">
+                            You: $31.20 • Jordan: $20.80
+                        </div>
+                    </div>
+
+                    <button class="primary-button">Add Expense</button>
+                </div>
+            </div>
+
+            <!-- Screen 3: Settle Up -->
+            <div class="phone-frame">
+                <div class="screen">
+                    <div class="screen-title">3. Settle Up</div>
+                    
+                    <div class="status-bar">
+                        <span>9:41</span>
+                        <span>●●●●● WiFi 🔋</span>
+                    </div>
+
+                    <div class="header">
+                        <div class="back-button">←</div>
+                        <div class="app-title">Settle Up</div>
+                        <div style="width: 24px;"></div>
+                    </div>
+
+                    <div class="balance-card" style="margin-top: 20px;">
+                        <div class="balance-label">Amount to Settle</div>
+                        <div class="balance-amount">$47.50</div>
+                        <div class="balance-subtitle">Jordan pays you</div>
+                    </div>
+
+                    <div class="section-header">Settlement Method</div>
+
+                    <div class="payment-option">
+                        <div class="payment-icon">💵</div>
+                        <div class="expense-details">
+                            <div class="expense-name">Cash</div>
+                            <div class="expense-meta">In person</div>
+                        </div>
+                        <div>✓</div>
+                    </div>
+
+                    <button class="primary-button">Mark as Settled</button>
+
+                    <div style="margin-top: 15px; text-align: center; font-size: 12px; color: #999;">
+                        Settle up in cash when convenient
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 4: Expense Details -->
+            <div class="phone-frame">
+                <div class="screen">
+                    <div class="screen-title">4. Expense Details</div>
+                    
+                    <div class="status-bar">
+                        <span>9:41</span>
+                        <span>●●●●● WiFi 🔋</span>
+                    </div>
+
+                    <div class="header">
+                        <div class="back-button">←</div>
+                        <div class="app-title">Expense Details</div>
+                        <div style="width: 24px;">⋮</div>
+                    </div>
+
+                    <div style="text-align: center; margin: 30px 0;">
+                        <div style="font-size: 48px; margin-bottom: 10px;">🍕</div>
+                        <div style="font-size: 28px; font-weight: bold; color: #333; margin-bottom: 5px;">$52.00</div>
+                        <div style="font-size: 14px; color: #999;">Today at 7:30 PM</div>
+                    </div>
+
+                    <div class="section-header">Details</div>
+
+                    <div class="summary-stat">
+                        <div class="stat-label">Description</div>
+                        <div class="stat-value">Dinner at Pizza Place</div>
+                    </div>
+
+                    <div class="summary-stat">
+                        <div class="stat-label">Category</div>
+                        <div class="stat-value">🍕 Food & Dining</div>
+                    </div>
+
+                    <div class="summary-stat">
+                        <div class="stat-label">Paid by</div>
+                        <div class="stat-value">You</div>
+                    </div>
+
+                    <div class="summary-stat">
+                        <div class="stat-label">Split type</div>
+                        <div class="stat-value">50/50</div>
+                    </div>
+
+                    <div class="section-header" style="margin-top: 30px;">Split Breakdown</div>
+
+                    <div class="summary-stat">
+                        <div class="stat-label">Your share</div>
+                        <div class="stat-value">$26.00</div>
+                    </div>
+
+                    <div class="summary-stat">
+                        <div class="stat-label">Jordan's share</div>
+                        <div class="stat-value">$26.00</div>
+                    </div>
+
+                    <div style="margin-top: 30px; padding: 15px; background: #f8f9ff; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 12px; color: #666; margin-bottom: 5px;">Balance Impact</div>
+                        <div style="font-size: 18px; font-weight: 600; color: #667eea;">Jordan owes you $26.00</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 5: Stats/Insights -->
+            <div class="phone-frame">
+                <div class="screen">
+                    <div class="screen-title">5. Statistics</div>
+                    
+                    <div class="status-bar">
+                        <span>9:41</span>
+                        <span>●●●●● WiFi 🔋</span>
+                    </div>
+
+                    <div class="header">
+                        <div class="avatar">A</div>
+                        <div class="app-title">Statistics</div>
+                        <div style="width: 40px;"></div>
+                    </div>
+
+                    <div class="button-group" style="margin-bottom: 25px;">
+                        <button class="split-button active">This Month</button>
+                        <button class="split-button">Last Month</button>
+                    </div>
+
+                    <div class="summary-stat">
+                        <div class="stat-label">Total Expenses</div>
+                        <div class="stat-value">$1,247.82</div>
+                    </div>
+
+                    <div class="summary-stat">
+                        <div class="stat-label">Your Share</div>
+                        <div class="stat-value">$623.91</div>
+                    </div>
+
+                    <div class="summary-stat">
+                        <div class="stat-label">Jordan's Share</div>
+                        <div class="stat-value">$623.91</div>
+                    </div>
+
+                    <div class="summary-stat">
+                        <div class="stat-label">Number of Expenses</div>
+                        <div class="stat-value">37</div>
+                    </div>
+
+                    <div class="section-header" style="margin-top: 30px;">Top Categories</div>
+
+                    <div class="summary-stat">
+                        <div style="display: flex; align-items: center;">
+                            <span style="margin-right: 8px;">🍕</span>
+                            <span class="stat-label">Food & Dining</span>
+                        </div>
+                        <div class="stat-value">$487.50</div>
+                    </div>
+
+                    <div class="summary-stat">
+                        <div style="display: flex; align-items: center;">
+                            <span style="margin-right: 8px;">🛒</span>
+                            <span class="stat-label">Groceries</span>
+                        </div>
+                        <div class="stat-value">$356.20</div>
+                    </div>
+
+                    <div class="summary-stat">
+                        <div style="display: flex; align-items: center;">
+                            <span style="margin-right: 8px;">🎬</span>
+                            <span class="stat-label">Entertainment</span>
+                        </div>
+                        <div class="stat-value">$198.50</div>
+                    </div>
+
+                    <div class="summary-stat">
+                        <div style="display: flex; align-items: center;">
+                            <span style="margin-right: 8px;">🏠</span>
+                            <span class="stat-label">Home & Utilities</span>
+                        </div>
+                        <div class="stat-value">$152.00</div>
+                    </div>
+
+                    <div class="nav-tab">
+                        <div class="nav-item">
+                            <div class="nav-icon">🏠</div>
+                            <div>Home</div>
+                        </div>
+                        <div class="nav-item active">
+                            <div class="nav-icon">📊</div>
+                            <div>Stats</div>
+                        </div>
+                        <div class="nav-item">
+                            <div class="nav-icon">⚙️</div>
+                            <div>Settings</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="background: white; padding: 30px; border-radius: 15px; margin-top: 40px;">
+            <h2 style="margin-bottom: 20px;">Wireframe Notes</h2>
+            <ul style="line-height: 1.8; color: #666;">
+                <li><strong>Screen 0a (Welcome):</strong> First impression with app branding and call-to-action. Simple, inviting design.</li>
+                <li><strong>Screen 0b (Sign Up):</strong> Account creation with email/password or social sign-in options. Minimal friction.</li>
+                <li><strong>Screen 0c (Partner Connection):</strong> Clear choice between inviting or joining a partner. Visual distinction between actions.</li>
+                <li><strong>Screen 0d (Invite Partner):</strong> Generated 6-digit code displayed prominently with multiple sharing options. Shows waiting state.</li>
+                <li><strong>Screen 0e (Join Partner):</strong> Simple code entry with large, easy-to-read input field. Validation hints provided.</li>
+                <li><strong>Screen 0f (Connected):</strong> Celebration screen confirming successful pairing. Shows both user avatars.</li>
+                <li><strong>Screen 1 (Home):</strong> Primary view showing current balance prominently. Quick access to recent expenses and settle up button.</li>
+                <li><strong>Screen 2 (Add Expense):</strong> Streamlined form with large amount input, smart category selection, paid by selector, and simple split options. Designed for one-handed use.</li>
+                <li><strong>Screen 2b (Custom Split):</strong> When "Custom" is selected, shows percentage inputs for each person with real-time calculation preview.</li>
+                <li><strong>Screen 3 (Settle Up):</strong> Clear amount display with cash settlement option.</li>
+                <li><strong>Screen 4 (Expense Details):</strong> Full expense breakdown showing who paid, how it was split, and the balance impact.</li>
+                <li><strong>Screen 5 (Statistics):</strong> Monthly overview with total expenses and category breakdowns to help couples understand spending patterns.</li>
+            </ul>
+            
+            <h3 style="margin-top: 30px; margin-bottom: 15px;">Key UX Principles</h3>
+            <ul style="line-height: 1.8; color: #666;">
+                <li>✅ <strong>Speed:</strong> Add expense in 3 taps, no unnecessary fields</li>
+                <li>✅ <strong>Clarity:</strong> Balance always visible, plain language (no accounting jargon)</li>
+                <li>✅ <strong>Trust:</strong> Easy to edit/delete, transparent calculations</li>
+                <li>✅ <strong>Simplicity:</strong> Assumes 50/50 split, offers customization when needed</li>
+                <li>✅ <strong>Visual Hierarchy:</strong> Most important info (balance) is largest and most prominent</li>
+                <li>✅ <strong>Easy Pairing:</strong> Simple 6-digit code system, no complex setup</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
