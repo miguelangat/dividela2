@@ -53,9 +53,13 @@ export default function AddExpenseScreen({ navigation }) {
 
   const handleSplitPercentageChange = (text) => {
     const cleaned = text.replace(/[^0-9]/g, '');
-    const num = parseInt(cleaned) || 0;
+    if (cleaned === '') {
+      setUserSplitPercentage('');
+      return;
+    }
+    const num = parseInt(cleaned);
     if (num > 100) return;
-    setUserSplitPercentage(cleaned);
+    setUserSplitPercentage(String(num));
   };
 
   const handleSubmit = async () => {
@@ -109,7 +113,8 @@ export default function AddExpenseScreen({ navigation }) {
       if (splitType === 'equal') {
         splitDetails = calculateEqualSplit(expenseAmount);
       } else {
-        const userPercentage = parseInt(userSplitPercentage) || 50;
+        const parsedPercentage = parseInt(userSplitPercentage);
+        const userPercentage = !isNaN(parsedPercentage) ? parsedPercentage : 50;
         const partnerPercentage = 100 - userPercentage;
         splitDetails = calculateSplit(expenseAmount, userPercentage, partnerPercentage);
       }
@@ -152,8 +157,9 @@ export default function AddExpenseScreen({ navigation }) {
     }
   };
 
+  const parsedUserPercentage = parseInt(userSplitPercentage);
   const partnerPercentage = splitType === 'custom'
-    ? (100 - (parseInt(userSplitPercentage) || 0))
+    ? (100 - (!isNaN(parsedUserPercentage) ? parsedUserPercentage : 0))
     : 50;
 
   return (

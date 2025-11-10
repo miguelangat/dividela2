@@ -28,6 +28,7 @@ import { db } from '../../config/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatCodeInput, isValidCodeFormat } from '../../utils/inviteCode';
 import { COLORS, FONTS, SPACING, COMMON_STYLES } from '../../constants/theme';
+import { initializeCategoriesForCouple } from '../../services/categoryService';
 
 export default function JoinScreen({ navigation }) {
   const { user, userDetails, updatePartnerInfo } = useAuth();
@@ -164,6 +165,11 @@ export default function JoinScreen({ navigation }) {
       console.log('Committing batch (all or nothing)...');
       await batch.commit();
       console.log('✓ Batch committed successfully!');
+
+      // Initialize default categories for the couple
+      console.log('Initializing default categories for couple:', coupleId);
+      await initializeCategoriesForCouple(coupleId);
+      console.log('✓ Categories initialized');
 
       console.log('✓ Couple creation complete!');
       return { success: true, partnerId, coupleId };

@@ -12,6 +12,7 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
+import EmojiPicker from 'rn-emoji-keyboard';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES } from '../constants/theme';
 
 export default function CategoryModal({
@@ -26,6 +27,7 @@ export default function CategoryModal({
   const [defaultBudget, setDefaultBudget] = useState('100');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
 
   // Initialize form when editing
   useEffect(() => {
@@ -95,6 +97,15 @@ export default function CategoryModal({
     onClose();
   };
 
+  const handleEmojiSelect = (emojiObject) => {
+    setIcon(emojiObject.emoji);
+    setIsEmojiPickerOpen(false);
+    // Clear icon error if it exists
+    if (errors.icon) {
+      setErrors({ ...errors, icon: undefined });
+    }
+  };
+
   return (
     <Modal
       visible={visible}
@@ -130,15 +141,22 @@ export default function CategoryModal({
             {/* Icon (Emoji) */}
             <View style={styles.formGroup}>
               <Text style={styles.label}>Icon (emoji)</Text>
-              <TextInput
-                style={[styles.input, errors.icon && styles.inputError, styles.iconInput]}
-                placeholder="e.g., 💪"
-                value={icon}
-                onChangeText={setIcon}
-                maxLength={2}
-              />
+              <TouchableOpacity
+                style={[
+                  styles.emojiButton,
+                  errors.icon && styles.inputError,
+                ]}
+                onPress={() => setIsEmojiPickerOpen(true)}
+                activeOpacity={0.7}
+              >
+                {icon ? (
+                  <Text style={styles.emojiButtonIcon}>{icon}</Text>
+                ) : (
+                  <Text style={styles.emojiButtonPlaceholder}>Tap to select emoji</Text>
+                )}
+              </TouchableOpacity>
               <Text style={styles.hint}>
-                Choose an emoji to represent this category
+                Tap to choose an emoji to represent this category
               </Text>
               {errors.icon && <Text style={styles.errorText}>{errors.icon}</Text>}
             </View>
@@ -195,6 +213,13 @@ export default function CategoryModal({
           </ScrollView>
         </View>
       </View>
+
+      {/* Emoji Picker */}
+      <EmojiPicker
+        onEmojiSelected={handleEmojiSelect}
+        open={isEmojiPickerOpen}
+        onClose={() => setIsEmojiPickerOpen(false)}
+      />
     </Modal>
   );
 }
@@ -236,9 +261,18 @@ const styles = StyleSheet.create({
   inputError: {
     borderColor: COLORS.error,
   },
-  iconInput: {
-    fontSize: 24,
-    textAlign: 'center',
+  emojiButton: {
+    ...COMMON_STYLES.input,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 60,
+  },
+  emojiButtonIcon: {
+    fontSize: 32,
+  },
+  emojiButtonPlaceholder: {
+    fontSize: FONTS.sizes.body,
+    color: COLORS.textSecondary,
   },
   hint: {
     fontSize: FONTS.sizes.tiny,

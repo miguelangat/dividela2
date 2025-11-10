@@ -5,6 +5,7 @@ import React, { createContext, useState, useContext, useEffect, useCallback } fr
 import { useAuth } from './AuthContext';
 import * as categoryService from '../services/categoryService';
 import * as budgetService from '../services/budgetService';
+import * as expenseService from '../services/expenseService';
 
 const BudgetContext = createContext({});
 
@@ -122,6 +123,36 @@ export const BudgetProvider = ({ children }) => {
 
     return () => unsubscribe();
   }, [coupleId]);
+
+  // Subscribe to real-time expense updates and auto-calculate budget progress
+  useEffect(() => {
+    if (!coupleId) {
+      setBudgetProgress(null);
+      return;
+    }
+
+    const unsubscribe = expenseService.subscribeToExpenses(
+      coupleId,
+      (updatedExpenses) => {
+        // Auto-calculate progress whenever expenses change
+        if (currentBudget && updatedExpenses) {
+          try {
+            const progress = budgetService.calculateBudgetProgress(
+              currentBudget,
+              updatedExpenses
+            );
+            setBudgetProgress(progress);
+          } catch (err) {
+            console.error('Error calculating budget progress:', err);
+          }
+        } else {
+          setBudgetProgress(null);
+        }
+      }
+    );
+
+    return () => unsubscribe();
+  }, [coupleId, currentBudget]);
 
   // Category management functions
   const addCategory = async (categoryData) => {

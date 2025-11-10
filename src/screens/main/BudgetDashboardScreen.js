@@ -22,50 +22,24 @@ export default function BudgetDashboardScreen({ navigation }) {
   const {
     categories,
     currentBudget,
+    budgetProgress,
     loading: budgetLoading,
-    calculateProgress,
     isBudgetEnabled,
   } = useBudget();
   const { userDetails } = useAuth();
 
-  const [expenses, setExpenses] = useState([]);
-  const [budgetProgress, setBudgetProgress] = useState(null);
-  const [loadingExpenses, setLoadingExpenses] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const coupleId = userDetails?.coupleId;
 
-  // Load expenses and calculate progress
-  const loadData = async () => {
-    if (!coupleId) return;
-
-    try {
-      setLoadingExpenses(true);
-      const loadedExpenses = await expenseService.getExpenses(coupleId);
-      setExpenses(loadedExpenses);
-
-      if (currentBudget) {
-        const progress = calculateProgress(loadedExpenses);
-        setBudgetProgress(progress);
-      }
-    } catch (error) {
-      console.error('Error loading expenses:', error);
-    } finally {
-      setLoadingExpenses(false);
-    }
-  };
-
-  useEffect(() => {
-    loadData();
-  }, [coupleId, currentBudget]);
-
-  const handleRefresh = async () => {
+  const handleRefresh = () => {
+    // Budget progress updates automatically via context subscription
+    // Just provide visual feedback for pull-to-refresh
     setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
+    setTimeout(() => setRefreshing(false), 500);
   };
 
-  if (budgetLoading || loadingExpenses) {
+  if (budgetLoading) {
     return (
       <View style={styles.container}>
         <StatusBar style="dark" />
