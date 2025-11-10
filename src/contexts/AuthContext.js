@@ -2,11 +2,14 @@
 // Authentication context for managing user state across the app
 
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { 
+import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
-  onAuthStateChanged 
+  onAuthStateChanged,
+  GoogleAuthProvider,
+  OAuthProvider,
+  signInWithPopup
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
@@ -217,6 +220,104 @@ export const AuthProvider = ({ children }) => {
     return userDetails?.partnerId != null && userDetails?.coupleId != null;
   };
 
+  // Sign in with Google (OAuth)
+  const signInWithGoogle = async () => {
+    try {
+      setError(null);
+      const provider = new GoogleAuthProvider();
+
+      const result = await signInWithPopup(auth, provider);
+      const firebaseUser = result.user;
+
+      // Check if user document exists, create if not
+      const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+
+      if (!userDoc.exists()) {
+        // Create user document for new OAuth user
+        const userData = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+          partnerId: null,
+          coupleId: null,
+          createdAt: new Date(),
+        };
+
+        await setDoc(doc(db, 'users', firebaseUser.uid), userData);
+        console.log('Created user document for new Google sign-in user');
+      }
+
+      return firebaseUser;
+    } catch (err) {
+      console.error('Google sign-in error:', err);
+
+      // Handle specific errors
+      if (err.code === 'auth/operation-not-allowed') {
+        setError('Google sign-in is not enabled. Please enable it in Firebase Console → Authentication → Sign-in method → Google');
+      } else if (err.code === 'auth/popup-blocked') {
+        setError('Popup was blocked. Please allow popups for this site.');
+      } else if (err.code === 'auth/popup-closed-by-user') {
+        setError('Sign-in cancelled');
+      } else if (err.code === 'auth/account-exists-with-different-credential') {
+        setError('An account already exists with the same email. Try a different sign-in method.');
+      } else if (err.code === 'auth/unauthorized-domain') {
+        setError('This domain is not authorized. Add it in Firebase Console → Authentication → Settings → Authorized domains');
+      } else {
+        setError(err.message || 'Failed to sign in with Google');
+      }
+      throw err;
+    }
+  };
+
+  // Sign in with Apple (OAuth)
+  const signInWithApple = async () => {
+    try {
+      setError(null);
+      const provider = new OAuthProvider('apple.com');
+
+      const result = await signInWithPopup(auth, provider);
+      const firebaseUser = result.user;
+
+      // Check if user document exists, create if not
+      const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+
+      if (!userDoc.exists()) {
+        // Create user document for new OAuth user
+        const userData = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+          partnerId: null,
+          coupleId: null,
+          createdAt: new Date(),
+        };
+
+        await setDoc(doc(db, 'users', firebaseUser.uid), userData);
+        console.log('Created user document for new Apple sign-in user');
+      }
+
+      return firebaseUser;
+    } catch (err) {
+      console.error('Apple sign-in error:', err);
+
+      // Handle specific errors
+      if (err.code === 'auth/operation-not-allowed') {
+        setError('Apple sign-in is not enabled. Please enable it in Firebase Console → Authentication → Sign-in method → Apple (requires Apple Developer account)');
+      } else if (err.code === 'auth/popup-blocked') {
+        setError('Popup was blocked. Please allow popups for this site.');
+      } else if (err.code === 'auth/popup-closed-by-user') {
+        setError('Sign-in cancelled');
+      } else if (err.code === 'auth/account-exists-with-different-credential') {
+        setError('An account already exists with the same email. Try a different sign-in method.');
+      } else if (err.code === 'auth/unauthorized-domain') {
+        setError('This domain is not authorized. Add it in Firebase Console → Authentication → Settings → Authorized domains');
+      } else {
+        setError(err.message || 'Failed to sign in with Apple');
+      }
+      throw err;
+    }
+  };
+
   // Value provided to consumers
   const value = {
     user,
@@ -226,6 +327,8 @@ export const AuthProvider = ({ children }) => {
     signUp,
     signIn,
     signOut,
+    signInWithGoogle,
+    signInWithApple,
     updateUserDetails,
     updatePartnerInfo,
     getPartnerDetails,

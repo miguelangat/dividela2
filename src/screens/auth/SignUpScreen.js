@@ -19,13 +19,14 @@ import { validateEmail, validatePassword, validateDisplayName } from '../../util
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES } from '../../constants/theme';
 
 export default function SignUpScreen({ navigation }) {
-  const { signUp } = useAuth();
+  const { signUp, signInWithGoogle, signInWithApple } = useAuth();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState(null); // 'google' | 'apple' | null
   const [errors, setErrors] = useState({});
 
   const handleSignUp = async () => {
@@ -66,6 +67,45 @@ export default function SignUpScreen({ navigation }) {
 
   const handleBackPress = () => {
     navigation.goBack();
+  };
+
+  const handleGoogleSignIn = async () => {
+    console.log('🔵 Google sign-up button clicked');
+    console.log('🔵 signInWithGoogle function:', typeof signInWithGoogle);
+
+    try {
+      setErrors({});
+      setSocialLoading('google');
+      console.log('🔵 Calling signInWithGoogle...');
+      await signInWithGoogle();
+      console.log('🔵 Google sign-in successful');
+      // Navigation handled by AuthContext
+    } catch (error) {
+      console.error('🔴 Google sign-in error:', error);
+      if (error.code !== 'auth/popup-closed-by-user') {
+        setErrors({ general: error.message || 'Failed to sign in with Google' });
+      }
+    } finally {
+      setSocialLoading(null);
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    console.log('🍎 Apple sign-up button clicked');
+
+    try {
+      setErrors({});
+      setSocialLoading('apple');
+      await signInWithApple();
+      // Navigation handled by AuthContext
+    } catch (error) {
+      console.error('Apple sign-in error:', error);
+      if (error.code !== 'auth/popup-closed-by-user') {
+        setErrors({ general: error.message || 'Failed to sign in with Apple' });
+      }
+    } finally {
+      setSocialLoading(null);
+    }
   };
 
   return (
@@ -176,12 +216,30 @@ export default function SignUpScreen({ navigation }) {
           </View>
 
           {/* Social Sign In Buttons */}
-          <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
-            <Text style={styles.socialButtonText}>Continue with Apple</Text>
+          <TouchableOpacity
+            style={[styles.socialButton, socialLoading === 'apple' && styles.submitButtonDisabled]}
+            activeOpacity={0.8}
+            onPress={handleAppleSignIn}
+            disabled={socialLoading !== null}
+          >
+            {socialLoading === 'apple' ? (
+              <ActivityIndicator color={COLORS.primary} />
+            ) : (
+              <Text style={styles.socialButtonText}>Continue with Apple</Text>
+            )}
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
-            <Text style={styles.socialButtonText}>Continue with Google</Text>
+          <TouchableOpacity
+            style={[styles.socialButton, socialLoading === 'google' && styles.submitButtonDisabled]}
+            activeOpacity={0.8}
+            onPress={handleGoogleSignIn}
+            disabled={socialLoading !== null}
+          >
+            {socialLoading === 'google' ? (
+              <ActivityIndicator color={COLORS.primary} />
+            ) : (
+              <Text style={styles.socialButtonText}>Continue with Google</Text>
+            )}
           </TouchableOpacity>
         </View>
       </ScrollView>

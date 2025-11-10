@@ -6,12 +6,6 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "description": "A simple, privacy-focused expense tracking app for couples",
-    "icon": "./assets/icon.png",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#6366f1"
-    },
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -24,7 +18,6 @@
     },
     "web": {
       "bundler": "metro",
-      "favicon": "./assets/favicon.png",
       "name": "Dividela - Expense Tracker for Couples",
       "shortName": "Dividela",
       "description": "Track and split expenses with your partner effortlessly",
