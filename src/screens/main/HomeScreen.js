@@ -27,6 +27,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { collection, query, where, onSnapshot, orderBy, addDoc, serverTimestamp, writeBatch, doc, runTransaction } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useBudget } from '../../contexts/BudgetContext';
 import { COLORS, FONTS, SPACING, COMMON_STYLES } from '../../constants/theme';
 import {
   calculateBalance,
@@ -37,10 +38,10 @@ import {
   sortExpensesByDate,
   validateSettlement,
 } from '../../utils/calculations';
-import { getCategoryIcon, getCategoryColor, getCategoryName } from '../../constants/categories';
 
 export default function HomeScreen({ navigation }) {
   const { user, userDetails, getPartnerDetails } = useAuth();
+  const { categories } = useBudget();
   const [expenses, setExpenses] = useState([]);
   const [settlements, setSettlements] = useState([]); // Track settlements for balance calculation
   const [balance, setBalance] = useState(0);
@@ -387,8 +388,9 @@ export default function HomeScreen({ navigation }) {
     }
 
     const isPaidByUser = user && item.paidBy === user.uid;
-    const category = getCategoryIcon(item.category || 'other');
-    const categoryColor = getCategoryColor(item.category || 'other');
+    const categoryKey = item.category || item.categoryKey || 'other';
+    const category = categories[categoryKey]?.icon || '💡';
+    const categoryColor = COLORS.primary;
     const dateStr = item.date ? formatDate(item.date) : 'Unknown date';
     const isSettled = !!item.settledAt;
     const settledDateStr = isSettled && item.settledAt?.toDate ? item.settledAt.toDate().toLocaleDateString() : null;

@@ -4,13 +4,16 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { AuthProvider } from './src/contexts/AuthContext';
+import { BudgetProvider } from './src/contexts/BudgetContext';
 import AppNavigator from './src/navigation/AppNavigator';
 
 export default function App() {
   try {
     return (
       <AuthProvider>
-        <AppNavigator />
+        <BudgetProvider>
+          <AppNavigator />
+        </BudgetProvider>
       </AuthProvider>
     );
   } catch (error) {

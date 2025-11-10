@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING } from '../constants/theme';
-import { getCategoryIcon, getCategoryColor, getCategoryName } from '../constants/categories';
+import { useBudget } from '../contexts/BudgetContext';
 import { formatCurrency, formatDate } from '../utils/calculations';
 
 export default function ExpenseDetailModal({
@@ -26,12 +26,14 @@ export default function ExpenseDetailModal({
   partnerDetails,
   onClose,
 }) {
+  const { categories } = useBudget();
+
   if (!expense) return null;
 
-  const category = expense.category || 'other';
-  const categoryIcon = getCategoryIcon(category);
-  const categoryColor = getCategoryColor(category);
-  const categoryName = getCategoryName(category);
+  const categoryKey = expense.category || expense.categoryKey || 'other';
+  const categoryIcon = categories[categoryKey]?.icon || '💡';
+  const categoryColor = COLORS.primary;
+  const categoryName = categories[categoryKey]?.name || 'Other';
 
   const isPaidByUser = expense.paidBy === userDetails?.uid;
   const paidByName = isPaidByUser

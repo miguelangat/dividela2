@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dividela - Couples Budget Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .tab-navigation {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            background: transparent;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .tab-button.active {
+            background: white;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .budget-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .category-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 16px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s;
+        }
+
+        .category-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+        }
+
+        .category-card.manager {
+            position: relative;
+        }
+
+        .category-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .icon-button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex: 1;
+            font-weight: 600;
+        }
+
+        .icon-button.edit {
+            background: #e0e7ff;
+            color: #667eea;
+        }
+
+        .icon-button.edit:hover {
+            background: #c7d2fe;
+        }
+
+        .icon-button.delete {
+            background: #fee2e2;
+            color: #ef4444;
+        }
+
+        .icon-button.delete:hover {
+            background: #fecaca;
+        }
+
+        .category-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            background: #f0f9ff;
+            color: #0284c7;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        .category-badge.custom {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .category-icon {
+            font-size: 24px;
+        }
+
+        .category-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .budget-input-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .budget-input {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .budget-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+
+        .progress-fill.warning {
+            background: linear-gradient(90deg, #f59e0b, #f97316);
+        }
+
+        .progress-fill.danger {
+            background: linear-gradient(90deg, #ef4444, #dc2626);
+        }
+
+        .spent-amount {
+            font-size: 14px;
+            color: #666;
+            margin-top: 8px;
+        }
+
+        .button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .button-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .button-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .button-secondary {
+            background: #f8f9fa;
+            color: #333;
+        }
+
+        .button-secondary:hover {
+            background: #e9ecef;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .summary-card.success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .summary-card.warning {
+            background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+        }
+
+        .summary-label {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+
+        .summary-value {
+            font-size: 32px;
+            font-weight: 700;
+        }
+
+        .expense-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .expense-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .expense-info {
+            flex: 1;
+        }
+
+        .expense-description {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .expense-meta {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .expense-amount {
+            font-size: 18px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .add-expense-form {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .form-input,
+        .form-select {
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .form-input:focus,
+        .form-select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .breakdown-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .breakdown-row:last-child {
+            border-bottom: none;
+            margin-top: 12px;
+            padding-top: 16px;
+            border-top: 2px solid #333;
+        }
+
+        .breakdown-label {
+            color: #666;
+        }
+
+        .breakdown-amount {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .info-box {
+            background: #f0f9ff;
+            border-left: 4px solid #667eea;
+            padding: 16px;
+            border-radius: 8px;
+            margin: 16px 0;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .modal-buttons .button {
+            flex: 1;
+        }
+
+        .toggle-switch {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 16px 0;
+        }
+
+        .switch {
+            position: relative;
+            width: 50px;
+            height: 28px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.4s;
+            border-radius: 28px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(22px);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💰 Dividela Budget</h1>
+            <p>Manage your couple's budget together</p>
+        </div>
+
+        <div class="tab-navigation">
+            <button class="tab-button active" onclick="switchTab('setup')">Budget Setup</button>
+            <button class="tab-button" onclick="switchTab('dashboard')">Dashboard</button>
+            <button class="tab-button" onclick="switchTab('expenses')">Expenses</button>
+            <button class="tab-button" onclick="switchTab('settlement')">Settlement</button>
+        </div>
+
+        <!-- Budget Setup Tab -->
+        <div id="setup-tab" class="tab-content active">
+            <div class="card">
+                <h2>Manage Categories</h2>
+                
+                <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+                    <button class="button button-primary" onclick="showAddCategoryModal()">+ Add Custom Category</button>
+                    <button class="button button-secondary" onclick="resetToDefaultCategories()">Reset to Defaults</button>
+                </div>
+
+                <div id="categoryManager" class="budget-grid">
+                    <!-- Category management cards will be rendered here -->
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Monthly Budget Setup</h2>
+                
+                <div class="toggle-switch">
+                    <label class="switch">
+                        <input type="checkbox" id="budgetEnabled" onchange="toggleBudget()" checked>
+                        <span class="slider"></span>
+                    </label>
+                    <span>Enable Budget Tracking</span>
+                </div>
+
+                <div id="budgetCategories" class="budget-grid">
+                    <!-- Categories will be rendered here -->
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-top: 24px;">
+                    <button class="button button-primary" onclick="saveBudgets()">Save Budgets</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Settlement Settings</h2>
+                
+                <div class="toggle-switch">
+                    <label class="switch">
+                        <input type="checkbox" id="includeSavings" onchange="toggleSavingsInSettlement()" checked>
+                        <span class="slider"></span>
+                    </label>
+                    <span>Include budget savings in monthly settlement</span>
+                </div>
+
+                <div class="info-box">
+                    💡 When enabled, if you stay under budget, the savings will be split equally and added to your monthly settlement calculation.
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Tab -->
+        <div id="dashboard-tab" class="tab-content">
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <div class="summary-label">Total Budget</div>
+                    <div class="summary-value" id="totalBudget">$0</div>
+                </div>
+                <div class="summary-card warning">
+                    <div class="summary-label">Total Spent</div>
+                    <div class="summary-value" id="totalSpent">$0</div>
+                </div>
+                <div class="summary-card success">
+                    <div class="summary-label">Remaining</div>
+                    <div class="summary-value" id="remaining">$0</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Budget Progress by Category</h2>
+                <div id="categoryProgress" class="budget-grid">
+                    <!-- Progress cards will be rendered here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Expenses Tab -->
+        <div id="expenses-tab" class="tab-content">
+            <div class="card">
+                <h2>Add New Expense</h2>
+                <div class="add-expense-form">
+                    <div class="form-row">
+                        <input type="text" id="expenseDescription" class="form-input" placeholder="Description (e.g., Grocery shopping)">
+                        <input type="number" id="expenseAmount" class="form-input" placeholder="Amount" step="0.01">
+                        <select id="expenseCategory" class="form-select">
+                            <option value="">Select category</option>
+                        </select>
+                    </div>
+                    <button class="button button-primary" onclick="addExpense()" style="width: 100%;">Add Expense</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>This Month's Expenses</h2>
+                <div id="expenseList" class="expense-list">
+                    <!-- Expenses will be rendered here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Settlement Tab -->
+        <div id="settlement-tab" class="tab-content">
+            <div class="card">
+                <h2>Monthly Settlement Preview</h2>
+                
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <div class="summary-label">Budget Performance</div>
+                        <div class="summary-value" id="settlementSavings">$0</div>
+                    </div>
+                    <div class="summary-card success">
+                        <div class="summary-label">Split Amount</div>
+                        <div class="summary-value" id="settlementSplit">$0</div>
+                    </div>
+                </div>
+
+                <div id="settlementBreakdown">
+                    <!-- Settlement breakdown will be rendered here -->
+                </div>
+
+                <button class="button button-primary" onclick="showSettlementModal()" style="width: 100%; margin-top: 24px;">
+                    Preview & Confirm Settlement
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settlement Modal -->
+    <div id="settlementModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Confirm Monthly Settlement</div>
+            <div id="modalContent">
+                <!-- Modal content will be rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Modal -->
+    <div id="categoryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header" id="categoryModalTitle">Add Category</div>
+            <div id="categoryModalContent">
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Category Name</label>
+                    <input type="text" id="categoryName" class="form-input" placeholder="e.g., Health & Fitness" maxlength="30">
+                </div>
+                
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Icon (emoji)</label>
+                    <input type="text" id="categoryIcon" class="form-input" placeholder="e.g., 💪" maxlength="2">
+                    <div style="font-size: 12px; color: #666; margin-top: 4px;">
+                        Choose an emoji to represent this category
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Default Budget</label>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 20px; color: #667eea;">$</span>
+                        <input type="number" id="categoryDefaultBudget" class="form-input" placeholder="0" min="0" step="10">
+                    </div>
+                </div>
+
+                <div class="modal-buttons">
+                    <button class="button button-secondary" onclick="closeCategoryModal()">Cancel</button>
+                    <button class="button button-primary" onclick="saveCategoryModal()">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Default categories
+        const defaultCategories = {
+            food: { name: 'Food & Dining', icon: '🍔', defaultBudget: 500, isDefault: true },
+            groceries: { name: 'Groceries', icon: '🛒', defaultBudget: 400, isDefault: true },
+            transport: { name: 'Transport', icon: '🚗', defaultBudget: 200, isDefault: true },
+            home: { name: 'Home & Utilities', icon: '🏠', defaultBudget: 800, isDefault: true },
+            fun: { name: 'Entertainment', icon: '🎉', defaultBudget: 300, isDefault: true },
+            other: { name: 'Other', icon: '💡', defaultBudget: 200, isDefault: true }
+        };
+
+        // Data structure
+        let categories = {};
+        let budgets = {};
+        let expenses = [];
+        let budgetEnabled = true;
+        let includeSavingsInSettlement = true;
+        let editingCategoryKey = null;
+
+        // Initialize
+        function init() {
+            loadFromStorage();
+            renderCategoryManager();
+            renderBudgetSetup();
+            renderCategorySelect();
+            updateDashboard();
+            updateExpenseList();
+            updateSettlement();
+        }
+
+        // Storage functions
+        function saveToStorage() {
+            localStorage.setItem('categories', JSON.stringify(categories));
+            localStorage.setItem('budgets', JSON.stringify(budgets));
+            localStorage.setItem('expenses', JSON.stringify(expenses));
+            localStorage.setItem('budgetEnabled', JSON.stringify(budgetEnabled));
+            localStorage.setItem('includeSavingsInSettlement', JSON.stringify(includeSavingsInSettlement));
+        }
+
+        function loadFromStorage() {
+            const savedCategories = localStorage.getItem('categories');
+            const savedBudgets = localStorage.getItem('budgets');
+            const savedExpenses = localStorage.getItem('expenses');
+            const savedEnabled = localStorage.getItem('budgetEnabled');
+            const savedSettlement = localStorage.getItem('includeSavingsInSettlement');
+
+            if (savedCategories) {
+                categories = JSON.parse(savedCategories);
+            } else {
+                categories = { ...defaultCategories };
+            }
+
+            if (savedBudgets) {
+                budgets = JSON.parse(savedBudgets);
+            } else {
+                resetBudgets();
+            }
+
+            if (savedExpenses) {
+                expenses = JSON.parse(savedExpenses);
+            }
+
+            if (savedEnabled !== null) {
+                budgetEnabled = JSON.parse(savedEnabled);
+                document.getElementById('budgetEnabled').checked = budgetEnabled;
+            }
+
+            if (savedSettlement !== null) {
+                includeSavingsInSettlement = JSON.parse(savedSettlement);
+                document.getElementById('includeSavings').checked = includeSavingsInSettlement;
+            }
+        }
+
+        // Tab switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+
+            if (tabName === 'setup') {
+                renderCategoryManager();
+                renderBudgetSetup();
+            } else if (tabName === 'dashboard') {
+                updateDashboard();
+            } else if (tabName === 'expenses') {
+                updateExpenseList();
+            } else if (tabName === 'settlement') {
+                updateSettlement();
+            }
+        }
+
+        // Category Management
+        function renderCategoryManager() {
+            const container = document.getElementById('categoryManager');
+            container.innerHTML = '';
+
+            Object.keys(categories).forEach(key => {
+                const category = categories[key];
+                const expenseCount = expenses.filter(exp => exp.category === key).length;
+
+                const card = document.createElement('div');
+                card.className = 'category-card manager';
+                card.innerHTML = `
+                    <div class="category-header">
+                        <span class="category-icon">${category.icon}</span>
+                        <span class="category-name">${category.name}</span>
+                    </div>
+                    <div style="font-size: 14px; color: #666; margin: 8px 0;">
+                        Default budget: $${category.defaultBudget}
+                    </div>
+                    ${category.isDefault ? '<div class="category-badge">Default</div>' : '<div class="category-badge custom">Custom</div>'}
+                    <div style="font-size: 12px; color: #999; margin-top: 4px;">
+                        ${expenseCount} expense${expenseCount !== 1 ? 's' : ''}
+                    </div>
+                    <div class="category-actions">
+                        <button class="icon-button edit" onclick="editCategory('${key}')">
+                            ✏️ Edit
+                        </button>
+                        ${!category.isDefault ? `
+                            <button class="icon-button delete" onclick="deleteCategory('${key}')">
+                                🗑️ Delete
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function showAddCategoryModal() {
+            editingCategoryKey = null;
+            document.getElementById('categoryModalTitle').textContent = 'Add Custom Category';
+            document.getElementById('categoryName').value = '';
+            document.getElementById('categoryIcon').value = '';
+            document.getElementById('categoryDefaultBudget').value = '100';
+            document.getElementById('categoryModal').classList.add('show');
+        }
+
+        function editCategory(key) {
+            editingCategoryKey = key;
+            const category = categories[key];
+            
+            document.getElementById('categoryModalTitle').textContent = 'Edit Category';
+            document.getElementById('categoryName').value = category.name;
+            document.getElementById('categoryIcon').value = category.icon;
+            document.getElementById('categoryDefaultBudget').value = category.defaultBudget;
+            document.getElementById('categoryModal').classList.add('show');
+        }
+
+        function closeCategoryModal() {
+            document.getElementById('categoryModal').classList.remove('show');
+            editingCategoryKey = null;
+        }
+
+        function saveCategoryModal() {
+            const name = document.getElementById('categoryName').value.trim();
+            const icon = document.getElementById('categoryIcon').value.trim();
+            const defaultBudget = parseFloat(document.getElementById('categoryDefaultBudget').value) || 0;
+
+            if (!name) {
+                alert('Please enter a category name');
+                return;
+            }
+
+            if (!icon) {
+                alert('Please enter an emoji icon');
+                return;
+            }
+
+            if (editingCategoryKey) {
+                // Edit existing category
+                categories[editingCategoryKey].name = name;
+                categories[editingCategoryKey].icon = icon;
+                categories[editingCategoryKey].defaultBudget = defaultBudget;
+            } else {
+                // Add new category
+                const key = name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+                
+                // Check if key already exists
+                if (categories[key]) {
+                    alert('A category with a similar name already exists');
+                    return;
+                }
+
+                categories[key] = {
+                    name,
+                    icon,
+                    defaultBudget,
+                    isDefault: false
+                };
+
+                // Initialize budget for new category
+                budgets[key] = defaultBudget;
+            }
+
+            saveToStorage();
+            closeCategoryModal();
+            renderCategoryManager();
+            renderBudgetSetup();
+            renderCategorySelect();
+            updateDashboard();
+            alert('✅ Category saved successfully!');
+        }
+
+        function deleteCategory(key) {
+            const category = categories[key];
+            const expenseCount = expenses.filter(exp => exp.category === key).length;
+
+            if (expenseCount > 0) {
+                alert(`Cannot delete "${category.name}" because it has ${expenseCount} expense${expenseCount !== 1 ? 's' : ''}. Please delete or reassign those expenses first.`);
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to delete the category "${category.name}"?`)) {
+                return;
+            }
+
+            delete categories[key];
+            delete budgets[key];
+            saveToStorage();
+            renderCategoryManager();
+            renderBudgetSetup();
+            renderCategorySelect();
+            updateDashboard();
+            alert('✅ Category deleted successfully!');
+        }
+
+        function resetToDefaultCategories() {
+            if (!confirm('Reset all categories to defaults? This will remove custom categories (if they have no expenses) and restore default budgets.')) {
+                return;
+            }
+
+            // Keep custom categories that have expenses
+            const customCategoriesWithExpenses = Object.keys(categories).filter(key => {
+                const category = categories[key];
+                const expenseCount = expenses.filter(exp => exp.category === key).length;
+                return !category.isDefault && expenseCount > 0;
+            });
+
+            // Reset to defaults
+            categories = { ...defaultCategories };
+
+            // Add back custom categories with expenses
+            customCategoriesWithExpenses.forEach(key => {
+                const oldCategory = categories[key];
+                if (oldCategory) {
+                    categories[key] = oldCategory;
+                }
+            });
+
+            resetBudgets();
+            renderCategoryManager();
+            renderBudgetSetup();
+            renderCategorySelect();
+            updateDashboard();
+            alert('✅ Categories reset to defaults!');
+        }
+
+        // Budget Setup
+        function renderBudgetSetup() {
+            const container = document.getElementById('budgetCategories');
+            container.innerHTML = '';
+
+            Object.keys(categories).forEach(key => {
+                const category = categories[key];
+                const budget = budgets[key] || category.defaultBudget;
+
+                const card = document.createElement('div');
+                card.className = 'category-card';
+                card.innerHTML = `
+                    <div class="category-header">
+                        <span class="category-icon">${category.icon}</span>
+                        <span class="category-name">${category.name}</span>
+                    </div>
+                    <div class="budget-input-group">
+                        <span style="font-size: 20px; color: #667eea;">$</span>
+                        <input 
+                            type="number" 
+                            class="budget-input" 
+                            value="${budget}"
+                            min="0"
+                            step="10"
+                            onchange="updateBudget('${key}', this.value)"
+                        >
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function updateBudget(category, value) {
+            budgets[category] = parseFloat(value) || 0;
+        }
+
+        function saveBudgets() {
+            saveToStorage();
+            alert('✅ Budgets saved successfully!');
+            updateDashboard();
+        }
+
+        function resetBudgets() {
+            budgets = {};
+            Object.keys(categories).forEach(key => {
+                budgets[key] = categories[key].defaultBudget;
+            });
+            renderBudgetSetup();
+            saveToStorage();
+        }
+
+        function toggleBudget() {
+            budgetEnabled = document.getElementById('budgetEnabled').checked;
+            saveToStorage();
+        }
+
+        function toggleSavingsInSettlement() {
+            includeSavingsInSettlement = document.getElementById('includeSavings').checked;
+            saveToStorage();
+            updateSettlement();
+        }
+
+        // Dashboard
+        function updateDashboard() {
+            const totalBudget = Object.values(budgets).reduce((sum, val) => sum + val, 0);
+            const totalSpent = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+            const remaining = totalBudget - totalSpent;
+
+            document.getElementById('totalBudget').textContent = `$${totalBudget.toFixed(0)}`;
+            document.getElementById('totalSpent').textContent = `$${totalSpent.toFixed(0)}`;
+            document.getElementById('remaining').textContent = `$${remaining.toFixed(0)}`;
+
+            renderCategoryProgress();
+        }
+
+        function renderCategoryProgress() {
+            const container = document.getElementById('categoryProgress');
+            container.innerHTML = '';
+
+            Object.keys(categories).forEach(key => {
+                const category = categories[key];
+                const budget = budgets[key] || 0;
+                const spent = expenses
+                    .filter(exp => exp.category === key)
+                    .reduce((sum, exp) => sum + exp.amount, 0);
+                
+                const percentage = budget > 0 ? (spent / budget) * 100 : 0;
+                let progressClass = '';
+                if (percentage >= 100) progressClass = 'danger';
+                else if (percentage >= 80) progressClass = 'warning';
+
+                const card = document.createElement('div');
+                card.className = 'category-card';
+                card.innerHTML = `
+                    <div class="category-header">
+                        <span class="category-icon">${category.icon}</span>
+                        <span class="category-name">${category.name}</span>
+                    </div>
+                    <div style="font-size: 24px; font-weight: 700; color: #333; margin: 8px 0;">
+                        $${spent.toFixed(0)} <span style="font-size: 16px; color: #666;">/ $${budget.toFixed(0)}</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill ${progressClass}" style="width: ${Math.min(percentage, 100)}%"></div>
+                    </div>
+                    <div class="spent-amount">
+                        ${percentage.toFixed(0)}% used • $${(budget - spent).toFixed(0)} left
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // Expenses
+        function renderCategorySelect() {
+            const select = document.getElementById('expenseCategory');
+            select.innerHTML = '<option value="">Select category</option>';
+            
+            Object.keys(categories).forEach(key => {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = `${categories[key].icon} ${categories[key].name}`;
+                select.appendChild(option);
+            });
+        }
+
+        function addExpense() {
+            const description = document.getElementById('expenseDescription').value;
+            const amount = parseFloat(document.getElementById('expenseAmount').value);
+            const category = document.getElementById('expenseCategory').value;
+
+            if (!description || !amount || !category) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            const expense = {
+                id: Date.now(),
+                description,
+                amount,
+                category,
+                date: new Date().toISOString()
+            };
+
+            expenses.push(expense);
+            saveToStorage();
+
+            // Clear form
+            document.getElementById('expenseDescription').value = '';
+            document.getElementById('expenseAmount').value = '';
+            document.getElementById('expenseCategory').value = '';
+
+            updateExpenseList();
+            updateDashboard();
+            alert('✅ Expense added!');
+        }
+
+        function updateExpenseList() {
+            const container = document.getElementById('expenseList');
+            
+            if (expenses.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📝</div>
+                        <p>No expenses yet this month</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = '';
+            
+            // Sort by date (newest first)
+            const sortedExpenses = [...expenses].sort((a, b) => 
+                new Date(b.date) - new Date(a.date)
+            );
+
+            sortedExpenses.forEach(expense => {
+                const category = categories[expense.category];
+                const date = new Date(expense.date);
+                
+                const item = document.createElement('div');
+                item.className = 'expense-item';
+                item.innerHTML = `
+                    <div class="expense-info">
+                        <div class="expense-description">
+                            ${category.icon} ${expense.description}
+                        </div>
+                        <div class="expense-meta">
+                            ${category.name} • ${date.toLocaleDateString()}
+                        </div>
+                    </div>
+                    <div class="expense-amount">$${expense.amount.toFixed(2)}</div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // Settlement
+        function updateSettlement() {
+            const totalBudget = Object.values(budgets).reduce((sum, val) => sum + val, 0);
+            const totalSpent = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+            const savings = Math.max(0, totalBudget - totalSpent);
+            const overage = Math.max(0, totalSpent - totalBudget);
+
+            if (savings > 0) {
+                document.getElementById('settlementSavings').textContent = `+$${savings.toFixed(0)}`;
+                document.querySelector('#settlement-tab .summary-card').classList.add('success');
+            } else if (overage > 0) {
+                document.getElementById('settlementSavings').textContent = `-$${overage.toFixed(0)}`;
+                document.querySelector('#settlement-tab .summary-card').classList.add('warning');
+            } else {
+                document.getElementById('settlementSavings').textContent = '$0';
+            }
+
+            const splitAmount = includeSavingsInSettlement ? savings / 2 : 0;
+            document.getElementById('settlementSplit').textContent = `$${splitAmount.toFixed(0)}`;
+
+            renderSettlementBreakdown();
+        }
+
+        function renderSettlementBreakdown() {
+            const container = document.getElementById('settlementBreakdown');
+            const totalBudget = Object.values(budgets).reduce((sum, val) => sum + val, 0);
+            const totalSpent = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+            const savings = Math.max(0, totalBudget - totalSpent);
+
+            let html = '<div class="card" style="background: #f8f9fa; margin-top: 20px;">';
+            html += '<h3 style="margin-bottom: 16px;">Budget Breakdown</h3>';
+
+            Object.keys(categories).forEach(key => {
+                const category = categories[key];
+                const budget = budgets[key] || 0;
+                const spent = expenses
+                    .filter(exp => exp.category === key)
+                    .reduce((sum, exp) => sum + exp.amount, 0);
+                const diff = budget - spent;
+
+                html += `
+                    <div class="breakdown-row">
+                        <span class="breakdown-label">${category.icon} ${category.name}</span>
+                        <span class="breakdown-amount" style="color: ${diff >= 0 ? '#10b981' : '#ef4444'}">
+                            ${diff >= 0 ? '+' : ''}$${diff.toFixed(2)}
+                        </span>
+                    </div>
+                `;
+            });
+
+            if (includeSavingsInSettlement && savings > 0) {
+                html += `
+                    <div class="info-box" style="margin-top: 20px;">
+                        💡 <strong>Great job!</strong> You saved $${savings.toFixed(2)} this month. 
+                        This will be split equally ($${(savings / 2).toFixed(2)} each) and added to your settlement.
+                    </div>
+                `;
+            }
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function showSettlementModal() {
+            const modal = document.getElementById('settlementModal');
+            const totalBudget = Object.values(budgets).reduce((sum, val) => sum + val, 0);
+            const totalSpent = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+            const savings = Math.max(0, totalBudget - totalSpent);
+            const splitAmount = includeSavingsInSettlement ? savings / 2 : 0;
+
+            let content = '<div class="breakdown-row">';
+            content += '<span class="breakdown-label">Total Budget</span>';
+            content += `<span class="breakdown-amount">$${totalBudget.toFixed(2)}</span>`;
+            content += '</div>';
+
+            content += '<div class="breakdown-row">';
+            content += '<span class="breakdown-label">Total Spent</span>';
+            content += `<span class="breakdown-amount">$${totalSpent.toFixed(2)}</span>`;
+            content += '</div>';
+
+            if (savings > 0) {
+                content += '<div class="breakdown-row">';
+                content += '<span class="breakdown-label" style="color: #10b981;">Budget Savings</span>';
+                content += `<span class="breakdown-amount" style="color: #10b981;">+$${savings.toFixed(2)}</span>`;
+                content += '</div>';
+
+                if (includeSavingsInSettlement) {
+                    content += '<div class="breakdown-row">';
+                    content += '<span class="breakdown-label">Split Amount (50/50)</span>';
+                    content += `<span class="breakdown-amount" style="color: #667eea;">$${splitAmount.toFixed(2)} each</span>`;
+                    content += '</div>';
+
+                    content += `<div class="info-box">
+                        💡 The budget savings will be split equally between both partners and can be added to your regular settlement calculation.
+                    </div>`;
+                }
+            }
+
+            content += '<div class="modal-buttons">';
+            content += '<button class="button button-secondary" onclick="closeSettlementModal()">Cancel</button>';
+            content += '<button class="button button-primary" onclick="confirmSettlement()">Confirm Settlement</button>';
+            content += '</div>';
+
+            document.getElementById('modalContent').innerHTML = content;
+            modal.classList.add('show');
+        }
+
+        function closeSettlementModal() {
+            document.getElementById('settlementModal').classList.remove('show');
+        }
+
+        function confirmSettlement() {
+            // In a real app, this would save to database
+            alert('✅ Settlement confirmed! Starting fresh for next month.');
+            
+            // Reset expenses for new month
+            expenses = [];
+            saveToStorage();
+            
+            closeSettlementModal();
+            updateExpenseList();
+            updateDashboard();
+            updateSettlement();
+        }
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>

@@ -23,6 +23,7 @@ export default function ExportButton({
   userDetails,
   partnerDetails,
   filters,
+  categories = {},
   disabled = false,
   style,
 }) {
@@ -45,7 +46,7 @@ export default function ExportButton({
     setExporting(true);
 
     try {
-      const result = await exportExpenses(expenses, userDetails, partnerDetails, {
+      const result = await exportExpenses(expenses, userDetails, partnerDetails, categories, {
         startDate: filters?.startDate,
         endDate: filters?.endDate,
       });

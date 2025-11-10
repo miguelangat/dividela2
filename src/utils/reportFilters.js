@@ -213,37 +213,21 @@ export const groupExpensesByMonth = (expenses) => {
 /**
  * Group expenses by category
  * @param {Array} expenses - Array of expense objects
+ * @param {Object} categories - Categories object from BudgetContext
  * @returns {Object} Object with category keys and expense arrays
  */
-export const groupExpensesByCategory = (expenses) => {
+export const groupExpensesByCategory = (expenses, categories = {}) => {
   if (!Array.isArray(expenses)) return {};
-
-  // Import getCategoryName dynamically to avoid circular dependency
-  const getCategoryName = (category) => {
-    const categoryNames = {
-      groceries: 'Groceries',
-      dining: 'Dining Out',
-      utilities: 'Utilities',
-      rent: 'Rent/Mortgage',
-      transport: 'Transportation',
-      entertainment: 'Entertainment',
-      healthcare: 'Healthcare',
-      shopping: 'Shopping',
-      travel: 'Travel',
-      other: 'Other',
-    };
-    return categoryNames[category] || 'Other';
-  };
 
   const grouped = {};
 
   expenses.forEach(expense => {
-    const category = expense.category || 'other';
+    const category = expense.category || expense.categoryKey || 'other';
 
     if (!grouped[category]) {
       grouped[category] = {
         category: category,
-        label: getCategoryName(category),
+        label: categories[category]?.name || 'Other',
         expenses: [],
       };
     }

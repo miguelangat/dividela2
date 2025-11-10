@@ -25,12 +25,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { collection, addDoc, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useBudget } from '../../contexts/BudgetContext';
 import { COLORS, FONTS, SPACING, COMMON_STYLES } from '../../constants/theme';
-import { CATEGORIES } from '../../constants/categories';
 import { calculateEqualSplit, calculateSplit, roundCurrency } from '../../utils/calculations';
 
 export default function AddExpenseScreen({ navigation }) {
   const { user, userDetails } = useAuth();
+  const { categories: budgetCategories, budgetProgress, isBudgetEnabled } = useBudget();
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('food');
@@ -117,7 +118,8 @@ export default function AddExpenseScreen({ navigation }) {
       const expenseData = {
         amount: expenseAmount,
         description: description.trim(),
-        category: selectedCategory,
+        category: selectedCategory, // Legacy field for backward compatibility
+        categoryKey: selectedCategory, // New field for budget tracking
         paidBy: paidBy,
         coupleId: userDetails.coupleId,
         date: new Date().toISOString(),
@@ -200,21 +202,31 @@ export default function AddExpenseScreen({ navigation }) {
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Category</Text>
           <View style={styles.categoriesGrid}>
-            {CATEGORIES.map((category) => (
-              <TouchableOpacity
-                key={category.id}
-                style={[
-                  styles.categoryButton,
-                  selectedCategory === category.id && styles.categoryButtonSelected,
-                  { borderColor: category.color },
-                  selectedCategory === category.id && { backgroundColor: category.color + '20' },
-                ]}
-                onPress={() => setSelectedCategory(category.id)}
-              >
-                <Text style={styles.categoryIcon}>{category.icon}</Text>
-                <Text style={styles.categoryName}>{category.name}</Text>
-              </TouchableOpacity>
-            ))}
+            {Object.entries(budgetCategories).map(([key, category]) => {
+              const progress = budgetProgress?.categoryProgress[key];
+              const nearBudget = progress && progress.percentage >= 80;
+              const overBudget = progress && progress.percentage >= 100;
+
+              return (
+                <TouchableOpacity
+                  key={key}
+                  style={[
+                    styles.categoryButton,
+                    selectedCategory === key && styles.categoryButtonSelected,
+                    selectedCategory === key && { backgroundColor: COLORS.primary + '20' },
+                  ]}
+                  onPress={() => setSelectedCategory(key)}
+                >
+                  <Text style={styles.categoryIcon}>{category.icon}</Text>
+                  <Text style={styles.categoryName}>{category.name}</Text>
+                  {isBudgetEnabled && nearBudget && (
+                    <Text style={[styles.budgetWarning, overBudget && styles.budgetWarningOver]}>
+                      {overBudget ? '!' : '⚠'}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
@@ -425,6 +437,15 @@ const styles = StyleSheet.create({
     ...FONTS.small,
     color: COLORS.text,
     textAlign: 'center',
+  },
+  budgetWarning: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    fontSize: 16,
+  },
+  budgetWarningOver: {
+    fontSize: 18,
   },
   paidByContainer: {
     flexDirection: 'row',

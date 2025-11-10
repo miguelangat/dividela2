@@ -3,6 +3,7 @@
 
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Platform } from 'react-native';
 import { COLORS, FONTS } from '../constants/theme';
@@ -12,7 +13,53 @@ import HomeScreen from '../screens/main/HomeScreen';
 import StatsScreen from '../screens/main/StatsScreen';
 import SettingsScreen from '../screens/main/SettingsScreen';
 
+// Budget screens
+import BudgetDashboardScreen from '../screens/main/BudgetDashboardScreen';
+import BudgetSetupScreen from '../screens/main/BudgetSetupScreen';
+import CategoryManagerScreen from '../screens/main/CategoryManagerScreen';
+
 const Tab = createBottomTabNavigator();
+const BudgetStack = createStackNavigator();
+
+// Budget Stack Navigator
+function BudgetStackNavigator() {
+  return (
+    <BudgetStack.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: COLORS.background,
+          elevation: 0,
+          shadowOpacity: 0,
+          borderBottomWidth: 1,
+          borderBottomColor: COLORS.border,
+        },
+        headerTintColor: COLORS.primary,
+        headerTitleStyle: {
+          fontSize: FONTS.sizes.title,
+          fontWeight: FONTS.weights.semibold,
+          color: COLORS.text,
+        },
+        headerBackTitleVisible: false,
+      }}
+    >
+      <BudgetStack.Screen
+        name="BudgetDashboard"
+        component={BudgetDashboardScreen}
+        options={{ title: 'Budget' }}
+      />
+      <BudgetStack.Screen
+        name="BudgetSetup"
+        component={BudgetSetupScreen}
+        options={{ title: 'Budget Setup' }}
+      />
+      <BudgetStack.Screen
+        name="CategoryManager"
+        component={CategoryManagerScreen}
+        options={{ title: 'Manage Categories' }}
+      />
+    </BudgetStack.Navigator>
+  );
+}
 
 export default function TabNavigator() {
   return (
@@ -24,6 +71,8 @@ export default function TabNavigator() {
 
           if (route.name === 'HomeTab') {
             iconName = focused ? 'home' : 'home-outline';
+          } else if (route.name === 'BudgetTab') {
+            iconName = focused ? 'wallet' : 'wallet-outline';
           } else if (route.name === 'StatsTab') {
             iconName = focused ? 'stats-chart' : 'stats-chart-outline';
           } else if (route.name === 'SettingsTab') {
@@ -54,6 +103,13 @@ export default function TabNavigator() {
         component={HomeScreen}
         options={{
           tabBarLabel: 'Home',
+        }}
+      />
+      <Tab.Screen
+        name="BudgetTab"
+        component={BudgetStackNavigator}
+        options={{
+          tabBarLabel: 'Budget',
         }}
       />
       <Tab.Screen

@@ -6,7 +6,6 @@
  */
 
 import { Platform } from 'react-native';
-import { getCategoryName } from '../constants/categories';
 
 /**
  * Escape CSV special characters
@@ -31,12 +30,14 @@ const escapeCSVField = (field) => {
  * @param {Object} expense - Expense object
  * @param {Object} userDetails - Current user details
  * @param {Object} partnerDetails - Partner details
+ * @param {Object} categories - Categories object from BudgetContext
  * @returns {Array} Array of CSV field values
  */
-export const formatExpenseForCSV = (expense, userDetails, partnerDetails) => {
+export const formatExpenseForCSV = (expense, userDetails, partnerDetails, categories = {}) => {
   const date = expense.date ? new Date(expense.date).toLocaleDateString() : '';
   const description = expense.description || '';
-  const category = getCategoryName(expense.category || 'other');
+  const categoryKey = expense.category || expense.categoryKey || 'other';
+  const category = categories[categoryKey]?.name || 'Other';
   const amount = expense.amount ? expense.amount.toFixed(2) : '0.00';
 
   const paidBy = expense.paidBy === userDetails.uid
@@ -79,9 +80,10 @@ export const formatExpenseForCSV = (expense, userDetails, partnerDetails) => {
  * @param {Array} expenses - Array of expense objects
  * @param {Object} userDetails - Current user details
  * @param {Object} partnerDetails - Partner details
+ * @param {Object} categories - Categories object from BudgetContext
  * @returns {string} CSV formatted string
  */
-export const exportExpensesToCSV = (expenses, userDetails, partnerDetails) => {
+export const exportExpensesToCSV = (expenses, userDetails, partnerDetails, categories = {}) => {
   // CSV Header
   const headers = [
     'Date',
@@ -100,7 +102,7 @@ export const exportExpensesToCSV = (expenses, userDetails, partnerDetails) => {
 
   // Convert expenses to CSV rows
   const dataRows = expenses.map(expense => {
-    const fields = formatExpenseForCSV(expense, userDetails, partnerDetails);
+    const fields = formatExpenseForCSV(expense, userDetails, partnerDetails, categories);
     return fields.map(escapeCSVField).join(',');
   });
 
@@ -215,13 +217,14 @@ export const downloadCSV = async (csvData, filename) => {
  * @param {Array} expenses - Array of expense objects
  * @param {Object} userDetails - Current user details
  * @param {Object} partnerDetails - Partner details
+ * @param {Object} categories - Categories object from BudgetContext
  * @param {Object} options - Export options
  * @returns {Promise} Resolves when export completes
  */
-export const exportExpenses = async (expenses, userDetails, partnerDetails, options = {}) => {
+export const exportExpenses = async (expenses, userDetails, partnerDetails, categories = {}, options = {}) => {
   try {
     // Generate CSV content
-    const csvData = exportExpensesToCSV(expenses, userDetails, partnerDetails);
+    const csvData = exportExpensesToCSV(expenses, userDetails, partnerDetails, categories);
 
     // Generate filename
     const filename = generateCSVFilename(options.startDate, options.endDate);

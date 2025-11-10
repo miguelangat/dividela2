@@ -28,6 +28,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useBudget } from '../../contexts/BudgetContext';
 import { COLORS, FONTS, SPACING } from '../../constants/theme';
 import {
   calculateTotalExpenses,
@@ -36,7 +37,6 @@ import {
   formatCurrency,
   formatDate,
 } from '../../utils/calculations';
-import { getCategoryName, getCategoryIcon, getCategoryColor, CATEGORIES } from '../../constants/categories';
 import {
   applyAllFilters,
   sortExpenses,
@@ -57,6 +57,7 @@ const isLargeScreen = screenWidth >= 768;
 
 export default function StatsScreen() {
   const { user, userDetails, getPartnerDetails } = useAuth();
+  const { categories } = useBudget();
   const [expenses, setExpenses] = useState([]);
   const [settlements, setSettlements] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -201,7 +202,7 @@ export default function StatsScreen() {
   if (groupBy === 'month') {
     groupedExpenses = groupExpensesByMonth(sortedFilteredExpenses);
   } else if (groupBy === 'category') {
-    groupedExpenses = groupExpensesByCategory(sortedFilteredExpenses);
+    groupedExpenses = groupExpensesByCategory(sortedFilteredExpenses, categories);
   } else if (groupBy === 'status') {
     groupedExpenses = groupExpensesBySettlementStatus(sortedFilteredExpenses);
   }
@@ -279,8 +280,9 @@ export default function StatsScreen() {
   const renderExpenseItem = (expense) => {
     const isPaidByUser = expense.paidBy === user?.uid;
     const isSettled = !!expense.settledAt;
-    const categoryIcon = getCategoryIcon(expense.category || 'other');
-    const categoryColor = getCategoryColor(expense.category || 'other');
+    const categoryKey = expense.category || expense.categoryKey || 'other';
+    const categoryIcon = categories[categoryKey]?.icon || '💡';
+    const categoryColor = COLORS.primary;
 
     return (
       <TouchableOpacity
@@ -354,9 +356,9 @@ export default function StatsScreen() {
   );
 
   const renderCategoryItem = ([categoryKey, amount]) => {
-    const categoryName = getCategoryName(categoryKey);
-    const categoryIcon = getCategoryIcon(categoryKey);
-    const categoryColor = getCategoryColor(categoryKey);
+    const categoryName = categories[categoryKey]?.name || 'Other';
+    const categoryIcon = categories[categoryKey]?.icon || '💡';
+    const categoryColor = COLORS.primary;
     const percentage = totalExpenses > 0 ? (amount / totalExpenses) * 100 : 0;
 
     return (
@@ -482,6 +484,7 @@ export default function StatsScreen() {
                   userDetails={userDetails}
                   partnerDetails={partnerDetails}
                   filters={filters}
+                  categories={categories}
                 />
               </View>
             )}

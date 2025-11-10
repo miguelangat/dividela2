@@ -15,13 +15,23 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING } from '../constants/theme';
-import { CATEGORIES, getCategoryIcon, getCategoryColor, getCategoryName } from '../constants/categories';
+import { useBudget } from '../contexts/BudgetContext';
 import DateRangePicker, { PRESETS } from './DateRangePicker';
 import { getDefaultFilters, countActiveFilters } from '../utils/reportFilters';
 
 export default function ExpenseFilters({ onFiltersChange, initialFilters }) {
+  const { categories } = useBudget();
   const [expanded, setExpanded] = useState(false);
   const [filters, setFilters] = useState(initialFilters || getDefaultFilters());
+
+  // Convert categories object to array for rendering
+  const categoryArray = Object.entries(categories).map(([key, category]) => ({
+    id: key,
+    key: key,
+    name: category.name,
+    icon: category.icon,
+    color: COLORS.primary, // Use primary color for all custom categories
+  }));
 
   // Notify parent when filters change
   useEffect(() => {
@@ -121,17 +131,17 @@ export default function ExpenseFilters({ onFiltersChange, initialFilters }) {
             <View style={styles.filterSection}>
               <Text style={styles.filterLabel}>Categories</Text>
               <View style={styles.categoryGrid}>
-                {CATEGORIES.map(category => {
-                  const isSelected = filters.categories?.includes(category.id);
+                {categoryArray.map(category => {
+                  const isSelected = filters.categories?.includes(category.key);
                   return (
                     <TouchableOpacity
-                      key={category.id}
+                      key={category.key}
                       style={[
                         styles.categoryChip,
                         isSelected && styles.categoryChipSelected,
                         { borderColor: category.color },
                       ]}
-                      onPress={() => handleCategoryToggle(category.id)}
+                      onPress={() => handleCategoryToggle(category.key)}
                       activeOpacity={0.7}
                     >
                       <Text style={styles.categoryIcon}>{category.icon}</Text>

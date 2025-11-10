@@ -142,5 +142,67 @@ service cloud.firestore {
       // Don't allow updating or deleting settlements (immutable audit trail)
       allow update, delete: if false;
     }
+
+    // Categories collection - for budget management
+    match /categories/{categoryId} {
+      // Users can create categories for their own couple
+      allow create: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId != null &&
+        request.resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId;
+
+      // Users can read categories for their couple
+      // Allow reading non-existent documents (for subscriptions) OR documents belonging to user's couple
+      allow read: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        (!exists(/databases/$(database)/documents/categories/$(categoryId)) ||
+         resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId);
+
+      // For listing categories (queries)
+      allow list: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId != null;
+
+      // Users can update categories for their couple
+      allow update: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId;
+
+      // Users can delete categories for their couple (custom categories only, validated in code)
+      allow delete: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId;
+    }
+
+    // Budgets collection - for budget management
+    match /budgets/{budgetId} {
+      // Users can create budgets for their own couple
+      allow create: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId != null &&
+        request.resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId;
+
+      // Users can read budgets for their couple
+      // Allow reading non-existent documents (for subscriptions) OR documents belonging to user's couple
+      allow read: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        (!exists(/databases/$(database)/documents/budgets/$(budgetId)) ||
+         resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId);
+
+      // For listing budgets (queries)
+      allow list: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId != null;
+
+      // Users can update budgets for their couple
+      allow update: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId;
+
+      // Users can delete budgets for their couple
+      allow delete: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId;
+    }
   }
 }
