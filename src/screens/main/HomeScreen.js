@@ -17,11 +17,11 @@ import {
   FlatList,
   ActivityIndicator,
   RefreshControl,
-  SafeAreaView,
   Platform,
   Dimensions,
   Modal,
   Alert,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { collection, query, where, onSnapshot, orderBy, addDoc, serverTimestamp, writeBatch, doc, runTransaction } from 'firebase/firestore';
@@ -38,10 +38,12 @@ import {
   sortExpensesByDate,
   validateSettlement,
 } from '../../utils/calculations';
+import ExpenseDetailModal from '../../components/ExpenseDetailModal';
+import * as settlementService from '../../services/settlementService';
 
 export default function HomeScreen({ navigation }) {
   const { user, userDetails, getPartnerDetails } = useAuth();
-  const { categories } = useBudget();
+  const { categories, currentBudget } = useBudget();
   const [expenses, setExpenses] = useState([]);
   const [settlements, setSettlements] = useState([]); // Track settlements for balance calculation
   const [balance, setBalance] = useState(0);
@@ -52,18 +54,24 @@ export default function HomeScreen({ navigation }) {
   const [settleUpModalVisible, setSettleUpModalVisible] = useState(false);
   const [settling, setSettling] = useState(false);
   const [expenseFilter, setExpenseFilter] = useState('active'); // 'all', 'active', 'settled'
+  const [selectedExpense, setSelectedExpense] = useState(null);
+  const [expenseDetailModalVisible, setExpenseDetailModalVisible] = useState(false);
+  const [partnerDetails, setPartnerDetails] = useState(null);
 
-  // Fetch partner's name
+  // Fetch partner's name and details
   useEffect(() => {
     const fetchPartnerName = async () => {
       if (userDetails?.partnerId) {
         try {
           const partner = await getPartnerDetails();
-          if (partner && partner.displayName) {
-            setPartnerName(partner.displayName);
-          } else {
-            console.warn('Partner details not found or missing displayName');
-            setPartnerName('Partner');
+          if (partner) {
+            setPartnerDetails(partner);
+            if (partner.displayName) {
+              setPartnerName(partner.displayName);
+            } else {
+              console.warn('Partner details not found or missing displayName');
+              setPartnerName('Partner');
+            }
           }
         } catch (error) {
           console.error('Error fetching partner details:', error);
@@ -188,6 +196,21 @@ export default function HomeScreen({ navigation }) {
     navigation.navigate('AddExpense');
   };
 
+  const handleExpensePress = (expense) => {
+    setSelectedExpense(expense);
+    setExpenseDetailModalVisible(true);
+  };
+
+  const handleEditExpense = (expense) => {
+    navigation.navigate('AddExpense', { expense });
+  };
+
+  const handleDeleteExpense = (expenseId) => {
+    // The expense is already deleted by ExpenseDetailModal
+    // Just close the modal - real-time listener will update the list
+    console.log('Expense deleted:', expenseId);
+  };
+
   // Filter expenses based on selected filter
   const getFilteredExpenses = () => {
     if (expenseFilter === 'active') {
@@ -211,100 +234,37 @@ export default function HomeScreen({ navigation }) {
       return;
     }
 
-    const balanceInfo = formatBalance(balance, 'You', partnerName);
-    const whoSettled = balanceInfo.status === 'positive' ? partnerName : 'You';
-
     setSettling(true);
     try {
-      // Get all unsettled expenses (expenses without settledAt field)
-      const unsettledExpenses = expenses.filter(exp => !exp.settledAt);
-
-      console.log(`Settling up: ${unsettledExpenses.length} unsettled expenses`);
-
-      // Prepare settlement data
-      const settlementData = {
-        coupleId: userDetails.coupleId,
-        user1Id: user.uid,
-        user2Id: userDetails.partnerId,
-        amount: Math.abs(balance),
-        settledBy: user.uid, // The person clicking "Settle Up" is the one settling/paying
-        note: `You settled up`, // Updated note to reflect actual initiator
-        expensesSettledCount: unsettledExpenses.length,
-        balanceAtSettlement: balance,
-      };
-
-      // Validate settlement data before creating
-      const validation = validateSettlement(settlementData, user.uid, userDetails.coupleId);
-      if (!validation.valid) {
-        console.error('Settlement validation failed:', validation.error);
-        Alert.alert('Validation Error', validation.error);
-        setSettling(false);
-        return;
-      }
-
-      // Use Firestore transaction for atomic settlement operation
-      // This ensures that either BOTH settlement creation AND expense updates succeed,
-      // or NEITHER happens (preventing partial failures)
-      // ALSO prevents dual settlement race condition with optimistic locking
-      let settlementId;
-      await runTransaction(db, async (transaction) => {
-        // Step 1: Read couple document to check for concurrent settlements (optimistic locking)
-        const coupleRef = doc(db, 'couples', userDetails.coupleId);
-        const coupleDoc = await transaction.get(coupleRef);
-
-        if (!coupleDoc.exists()) {
-          throw new Error('Couple document not found');
-        }
-
-        const coupleData = coupleDoc.data();
-        const lastSettlementAt = coupleData.lastSettlementAt?.toDate?.() || coupleData.lastSettlementAt;
-
-        // Check if a settlement was created in the last 5 seconds
-        // This prevents both users from settling at the exact same time
-        if (lastSettlementAt) {
-          const timeSinceLastSettlement = Date.now() - (lastSettlementAt instanceof Date ? lastSettlementAt.getTime() : 0);
-          if (timeSinceLastSettlement < 5000) {
-            throw new Error('A settlement was just created. Please wait a moment and try again.');
-          }
-        }
-
-        // Step 2: Create settlement document
-        const settlementRef = doc(collection(db, 'settlements'));
-        settlementId = settlementRef.id;
-
-        const timestamp = new Date();
-        transaction.set(settlementRef, {
-          ...settlementData,
-          settledAt: timestamp,
-        });
-
-        // Step 3: Update couple document with lastSettlementAt timestamp
-        transaction.update(coupleRef, {
-          lastSettlementAt: timestamp,
-        });
-
-        // Step 4: Update all unsettled expenses within the same transaction
-        if (unsettledExpenses.length > 0) {
-          unsettledExpenses.forEach(expense => {
-            const expenseRef = doc(db, 'expenses', expense.id);
-
-            // Mark expense as settled with the settlement reference
-            transaction.update(expenseRef, {
-              settledAt: timestamp,
-              settledBySettlementId: settlementRef.id,
-            });
-          });
-        }
-
-        console.log(`Transaction: Created settlement ${settlementRef.id} and updated ${unsettledExpenses.length} expenses`);
-      });
+      // Use the settlementService with budget integration
+      const settlement = await settlementService.createSettlement(
+        userDetails.coupleId,
+        user.uid,
+        userDetails.partnerId,
+        Math.abs(balance),
+        user.uid,
+        'You settled up',
+        expenses,
+        categories,
+        currentBudget
+      );
 
       setSettleUpModalVisible(false);
-      Alert.alert(
-        'Settled Up! 💰',
-        `You paid ${formatCurrency(Math.abs(balance))}.\n\n${unsettledExpenses.length} expense${unsettledExpenses.length !== 1 ? 's' : ''} marked as settled.`,
-        [{ text: 'OK' }]
-      );
+
+      // Show success message with budget insights if available
+      let message = `You paid ${formatCurrency(Math.abs(balance))}.\n\n${settlement.expensesSettledCount} expense${settlement.expensesSettledCount !== 1 ? 's' : ''} marked as settled.`;
+
+      if (settlement.budgetSummary?.includedInBudget) {
+        const budgetStatus = settlement.budgetSummary.budgetRemaining >= 0 ? 'under budget' : 'over budget';
+        message += `\n\nYou spent ${formatCurrency(settlement.budgetSummary.totalSpent)} of your ${formatCurrency(settlement.budgetSummary.totalBudget)} budget (${budgetStatus}).`;
+      }
+
+      if (settlement.topCategories && settlement.topCategories.length > 0) {
+        const topCategory = settlement.topCategories[0];
+        message += `\n\nTop category: ${topCategory.icon} ${topCategory.categoryName} (${formatCurrency(topCategory.amount)})`;
+      }
+
+      Alert.alert('Settled Up! 💰', message, [{ text: 'OK' }]);
     } catch (error) {
       console.error('Error settling up:', error);
 
@@ -312,8 +272,6 @@ export default function HomeScreen({ navigation }) {
       let errorMessage = 'Failed to settle up. Please try again.';
       if (error.code === 'permission-denied') {
         errorMessage = 'Permission denied. Please check your account settings.';
-      } else if (error.code === 'aborted') {
-        errorMessage = 'Settlement was cancelled due to a conflict. Please try again.';
       } else if (error.message && error.message.includes('settlement')) {
         errorMessage = error.message;
       }
@@ -327,6 +285,17 @@ export default function HomeScreen({ navigation }) {
   const renderSettleUpModal = () => {
     const balanceInfo = formatBalance(balance, 'You', partnerName);
 
+    // Calculate preview data
+    const unsettledExpenses = expenses.filter(exp => !exp.settledAt);
+    const totalExpensesAmount = unsettledExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+
+    // Generate category breakdown preview
+    const categoryBreakdown = settlementService.generateCategoryBreakdown(unsettledExpenses, categories);
+    const topCategories = settlementService.identifyTopCategories(categoryBreakdown, 3);
+
+    // Generate budget summary
+    const budgetSummary = settlementService.generateBudgetSummary(unsettledExpenses, currentBudget, categories);
+
     return (
       <Modal
         visible={settleUpModalVisible}
@@ -339,19 +308,104 @@ export default function HomeScreen({ navigation }) {
             <View style={styles.modalHeader}>
               <Ionicons name="cash" size={32} color={COLORS.success} />
               <Text style={styles.modalTitle}>Settle Up</Text>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => setSettleUpModalVisible(false)}
+              >
+                <Ionicons name="close" size={24} color={COLORS.text} />
+              </TouchableOpacity>
             </View>
 
-            <Text style={styles.modalDescription}>
-              Record that {balanceInfo.status === 'positive' ? partnerName : 'you'} {balanceInfo.status === 'settled' ? 'are all settled' : 'paid'}:
-            </Text>
+            <ScrollView
+              showsVerticalScrollIndicator={true}
+              contentContainerStyle={styles.modalScrollContent}
+            >
+              <Text style={styles.modalDescription}>
+                Record that {balanceInfo.status === 'positive' ? partnerName : 'you'} {balanceInfo.status === 'settled' ? 'are all settled' : 'paid'}:
+              </Text>
 
-            <View style={styles.modalAmountContainer}>
-              <Text style={styles.modalAmount}>{formatCurrency(balanceInfo.amount)}</Text>
-            </View>
+              <View style={styles.modalAmountContainer}>
+                <Text style={styles.modalAmount}>{formatCurrency(balanceInfo.amount)}</Text>
+              </View>
 
-            <Text style={styles.modalNote}>
-              This will create a settlement record. Your expense tracking will continue with a balanced slate.
-            </Text>
+              {/* Settlement Summary */}
+              <View style={styles.settlementSummary}>
+                <View style={styles.summaryRow}>
+                  <Ionicons name="receipt-outline" size={16} color={COLORS.textSecondary} />
+                  <Text style={styles.summaryText}>
+                    Settling {unsettledExpenses.length} expense{unsettledExpenses.length !== 1 ? 's' : ''}
+                  </Text>
+                </View>
+                <View style={styles.summaryRow}>
+                  <Ionicons name="cash-outline" size={16} color={COLORS.textSecondary} />
+                  <Text style={styles.summaryText}>
+                    Total: {formatCurrency(totalExpensesAmount)}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Budget Performance */}
+              {budgetSummary.includedInBudget && (
+                <View style={styles.budgetPreview}>
+                  <Text style={styles.budgetPreviewTitle}>Budget Performance</Text>
+                  <View style={styles.budgetPreviewContent}>
+                    <View style={styles.budgetPreviewRow}>
+                      <Text style={styles.budgetPreviewLabel}>Spent</Text>
+                      <Text style={styles.budgetPreviewValue}>
+                        {formatCurrency(budgetSummary.totalSpent)}
+                      </Text>
+                    </View>
+                    <View style={styles.budgetPreviewRow}>
+                      <Text style={styles.budgetPreviewLabel}>Budget</Text>
+                      <Text style={styles.budgetPreviewValue}>
+                        {formatCurrency(budgetSummary.totalBudget)}
+                      </Text>
+                    </View>
+                    <View style={[
+                      styles.budgetPreviewRow,
+                      styles.budgetPreviewRowHighlight,
+                      budgetSummary.budgetRemaining < 0 && styles.budgetPreviewRowNegative
+                    ]}>
+                      <Text style={[
+                        styles.budgetPreviewLabel,
+                        styles.budgetPreviewLabelBold
+                      ]}>
+                        {budgetSummary.budgetRemaining >= 0 ? 'Remaining' : 'Over Budget'}
+                      </Text>
+                      <Text style={[
+                        styles.budgetPreviewValue,
+                        styles.budgetPreviewValueBold,
+                        budgetSummary.budgetRemaining < 0 && styles.budgetPreviewValueNegative
+                      ]}>
+                        {formatCurrency(Math.abs(budgetSummary.budgetRemaining))}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {/* Top Categories Preview */}
+              {topCategories.length > 0 && (
+                <View style={styles.topCategoriesPreview}>
+                  <Text style={styles.topCategoriesTitle}>Top Spending</Text>
+                  <View style={styles.topCategoriesContent}>
+                    {topCategories.slice(0, 3).map((cat, index) => (
+                      <View key={cat.categoryKey} style={styles.topCategoryPreviewItem}>
+                        <Text style={styles.topCategoryPreviewIcon}>{cat.icon}</Text>
+                        <Text style={styles.topCategoryPreviewName}>{cat.categoryName}</Text>
+                        <Text style={styles.topCategoryPreviewAmount}>
+                          {formatCurrency(cat.amount)}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              <Text style={styles.modalNote}>
+                This will create a settlement record. Your expense tracking will continue with a balanced slate.
+              </Text>
+            </ScrollView>
 
             <View style={styles.modalActions}>
               <TouchableOpacity
@@ -396,7 +450,11 @@ export default function HomeScreen({ navigation }) {
     const settledDateStr = isSettled && item.settledAt?.toDate ? item.settledAt.toDate().toLocaleDateString() : null;
 
     return (
-      <TouchableOpacity style={[styles.expenseItem, isSettled && styles.expenseItemSettled]}>
+      <TouchableOpacity
+        style={[styles.expenseItem, isSettled && styles.expenseItemSettled]}
+        onPress={() => handleExpensePress(item)}
+        activeOpacity={0.7}
+      >
         <View style={[styles.categoryIcon, { backgroundColor: categoryColor + '20' }]}>
           <Text style={styles.categoryEmoji}>{category}</Text>
         </View>
@@ -497,7 +555,7 @@ export default function HomeScreen({ navigation }) {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.contentContainer}>
         {/* Header */}
         <View style={styles.header}>
@@ -505,6 +563,12 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.greeting}>Hello, {userDetails?.displayName || 'there'}!</Text>
             <Text style={styles.subtitle}>Here's your balance with {partnerName}</Text>
           </View>
+          <TouchableOpacity
+            style={styles.historyButton}
+            onPress={() => navigation.navigate('SettlementHistory')}
+          >
+            <Ionicons name="time-outline" size={24} color={COLORS.primary} />
+          </TouchableOpacity>
         </View>
 
         {/* Balance Card */}
@@ -519,14 +583,23 @@ export default function HomeScreen({ navigation }) {
           </Text>
           <Text style={styles.balanceStatus}>{balanceInfo.text}</Text>
 
-          {balanceInfo.status !== 'settled' && (
+          <View style={styles.balanceActions}>
+            {balanceInfo.status !== 'settled' && (
+              <TouchableOpacity
+                style={styles.settleButton}
+                onPress={() => setSettleUpModalVisible(true)}
+              >
+                <Text style={styles.settleButtonText}>Settle Up</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
-              style={styles.settleButton}
-              onPress={() => setSettleUpModalVisible(true)}
+              style={[styles.historyButtonCard, balanceInfo.status === 'settled' && styles.historyButtonFull]}
+              onPress={() => navigation.navigate('SettlementHistory')}
             >
-              <Text style={styles.settleButtonText}>Settle Up</Text>
+              <Ionicons name="list-outline" size={18} color={COLORS.primary} />
+              <Text style={styles.historyButtonText}>View History</Text>
             </TouchableOpacity>
-          )}
+          </View>
         </View>
 
         {/* Error Message */}
@@ -547,6 +620,7 @@ export default function HomeScreen({ navigation }) {
           {renderFilterToggle()}
 
           <FlatList
+            style={styles.flatList}
             data={sortExpensesByDate(filteredExpenses).slice(0, 50)}
             renderItem={renderExpenseItem}
             keyExtractor={(item) => item.id}
@@ -567,8 +641,19 @@ export default function HomeScreen({ navigation }) {
 
         {/* Settle Up Modal */}
         {renderSettleUpModal()}
+
+        {/* Expense Detail Modal */}
+        <ExpenseDetailModal
+          visible={expenseDetailModalVisible}
+          expense={selectedExpense}
+          userDetails={userDetails}
+          partnerDetails={partnerDetails}
+          onClose={() => setExpenseDetailModalVisible(false)}
+          onEdit={handleEditExpense}
+          onDelete={handleDeleteExpense}
+        />
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -597,9 +682,17 @@ const styles = StyleSheet.create({
     marginTop: SPACING.base,
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: SPACING.screenPadding,
     paddingTop: Platform.OS === 'web' ? SPACING.base : 10,
     paddingBottom: SPACING.base,
+  },
+  historyButton: {
+    padding: SPACING.small,
+    borderRadius: 8,
+    backgroundColor: COLORS.primary + '15',
   },
   greeting: {
     ...FONTS.heading,
@@ -648,16 +741,45 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     marginTop: SPACING.small,
   },
+  balanceActions: {
+    flexDirection: 'row',
+    gap: SPACING.small,
+    marginTop: SPACING.base,
+    width: '100%',
+  },
   settleButton: {
+    flex: 1,
     backgroundColor: COLORS.primary,
     paddingVertical: SPACING.small,
     paddingHorizontal: SPACING.large,
     borderRadius: 8,
-    marginTop: SPACING.base,
+    alignItems: 'center',
   },
   settleButtonText: {
     ...FONTS.body,
     color: COLORS.background,
+    fontWeight: '600',
+  },
+  historyButtonCard: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: COLORS.background,
+    paddingVertical: SPACING.small,
+    paddingHorizontal: SPACING.base,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+  },
+  historyButtonFull: {
+    flex: 0,
+    minWidth: '100%',
+  },
+  historyButtonText: {
+    ...FONTS.body,
+    color: COLORS.primary,
     fontWeight: '600',
   },
   errorBanner: {
@@ -680,6 +802,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: SPACING.screenPadding,
     minHeight: 0, // Critical for scrolling to work properly
+  },
+  flatList: {
+    flex: 1,
   },
   expensesSectionHeader: {
     marginBottom: SPACING.small,
@@ -865,21 +990,33 @@ const styles = StyleSheet.create({
     padding: SPACING.large,
     maxWidth: isLargeScreen ? 500 : '100%',
     width: '100%',
+    maxHeight: '85%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 10,
   },
+  modalScrollContent: {
+    paddingBottom: SPACING.small,
+  },
   modalHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: SPACING.base,
+    position: 'relative',
+  },
+  modalCloseButton: {
+    position: 'absolute',
+    right: 0,
+    padding: SPACING.tiny,
   },
   modalTitle: {
     ...FONTS.heading,
     fontSize: 24,
     color: COLORS.text,
-    marginTop: SPACING.small,
+    marginLeft: SPACING.small,
   },
   modalDescription: {
     ...FONTS.body,
@@ -901,6 +1038,111 @@ const styles = StyleSheet.create({
     fontSize: isSmallScreen ? 36 : 48,
     color: COLORS.success,
     fontWeight: 'bold',
+  },
+  settlementSummary: {
+    backgroundColor: COLORS.backgroundSecondary,
+    borderRadius: 12,
+    padding: SPACING.base,
+    marginBottom: SPACING.base,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.small,
+    marginVertical: SPACING.tiny,
+  },
+  summaryText: {
+    ...FONTS.body,
+    color: COLORS.text,
+  },
+  budgetPreview: {
+    backgroundColor: COLORS.primary + '10',
+    borderRadius: 12,
+    padding: SPACING.base,
+    marginBottom: SPACING.base,
+    borderWidth: 1,
+    borderColor: COLORS.primary + '30',
+  },
+  budgetPreviewTitle: {
+    ...FONTS.body,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: SPACING.small,
+  },
+  budgetPreviewContent: {
+    gap: SPACING.tiny,
+  },
+  budgetPreviewRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  budgetPreviewRowHighlight: {
+    marginTop: SPACING.tiny,
+    paddingTop: SPACING.small,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  budgetPreviewRowNegative: {
+    backgroundColor: COLORS.error + '10',
+    marginHorizontal: -SPACING.small,
+    paddingHorizontal: SPACING.small,
+    paddingVertical: SPACING.small,
+    borderRadius: 6,
+  },
+  budgetPreviewLabel: {
+    ...FONTS.small,
+    color: COLORS.textSecondary,
+  },
+  budgetPreviewLabelBold: {
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  budgetPreviewValue: {
+    ...FONTS.small,
+    color: COLORS.text,
+  },
+  budgetPreviewValueBold: {
+    ...FONTS.body,
+    fontWeight: '600',
+  },
+  budgetPreviewValueNegative: {
+    color: COLORS.error,
+  },
+  topCategoriesPreview: {
+    backgroundColor: COLORS.backgroundSecondary,
+    borderRadius: 12,
+    padding: SPACING.base,
+    marginBottom: SPACING.base,
+  },
+  topCategoriesTitle: {
+    ...FONTS.body,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: SPACING.small,
+  },
+  topCategoriesContent: {
+    gap: SPACING.small,
+  },
+  topCategoryPreviewItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: SPACING.tiny,
+  },
+  topCategoryPreviewIcon: {
+    fontSize: 20,
+    marginRight: SPACING.small,
+  },
+  topCategoryPreviewName: {
+    ...FONTS.small,
+    color: COLORS.text,
+    flex: 1,
+  },
+  topCategoryPreviewAmount: {
+    ...FONTS.small,
+    color: COLORS.textSecondary,
+    fontWeight: '600',
   },
   modalNote: {
     ...FONTS.small,

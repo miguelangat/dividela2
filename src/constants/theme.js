@@ -17,13 +17,15 @@ export const COLORS = {
   // Text colors
   text: '#333333',
   textSecondary: '#666666',
+  textTertiary: '#999999',
   textLight: '#999999',
   textWhite: '#ffffff',
-  
+
   // Background colors
   background: '#ffffff',
   backgroundSecondary: '#f8f9fa',
   backgroundLight: '#f0f1f3',
+  cardBackground: '#ffffff',
   
   // Status colors
   success: '#4caf50',

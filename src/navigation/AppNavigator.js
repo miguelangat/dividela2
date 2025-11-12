@@ -20,6 +20,8 @@ import SuccessScreen from '../screens/auth/SuccessScreen';
 // Main app screens
 import TabNavigator from './TabNavigator';
 import AddExpenseScreen from '../screens/main/AddExpenseScreen';
+import SettlementHistoryScreen from '../screens/main/SettlementHistoryScreen';
+import SettlementDetailScreen from '../screens/main/SettlementDetailScreen';
 
 const Stack = createStackNavigator();
 
@@ -72,6 +74,48 @@ export default function AppNavigator() {
               component={AddExpenseScreen}
               options={{
                 presentation: 'modal',
+              }}
+            />
+            <Stack.Screen
+              name="SettlementHistory"
+              component={SettlementHistoryScreen}
+              options={{
+                headerShown: true,
+                title: 'Settlement History',
+                headerStyle: {
+                  backgroundColor: COLORS.background,
+                  elevation: 0,
+                  shadowOpacity: 0,
+                  borderBottomWidth: 1,
+                  borderBottomColor: COLORS.border,
+                },
+                headerTintColor: COLORS.primary,
+                headerTitleStyle: {
+                  fontSize: 20,
+                  fontWeight: '600',
+                  color: COLORS.text,
+                },
+              }}
+            />
+            <Stack.Screen
+              name="SettlementDetail"
+              component={SettlementDetailScreen}
+              options={{
+                headerShown: true,
+                title: 'Settlement Details',
+                headerStyle: {
+                  backgroundColor: COLORS.background,
+                  elevation: 0,
+                  shadowOpacity: 0,
+                  borderBottomWidth: 1,
+                  borderBottomColor: COLORS.border,
+                },
+                headerTintColor: COLORS.primary,
+                headerTitleStyle: {
+                  fontSize: 20,
+                  fontWeight: '600',
+                  color: COLORS.text,
+                },
               }}
             />
           </>

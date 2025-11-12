@@ -9,7 +9,7 @@
  * - Split options (50/50 or custom)
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -22,16 +22,22 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { collection, addDoc, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
+import { updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBudget } from '../../contexts/BudgetContext';
 import { COLORS, FONTS, SPACING, COMMON_STYLES } from '../../constants/theme';
 import { calculateEqualSplit, calculateSplit, roundCurrency } from '../../utils/calculations';
+import * as expenseService from '../../services/expenseService';
 
-export default function AddExpenseScreen({ navigation }) {
+export default function AddExpenseScreen({ navigation, route }) {
   const { user, userDetails } = useAuth();
   const { categories: budgetCategories, budgetProgress, isBudgetEnabled } = useBudget();
+
+  // Check if we're editing an existing expense
+  const editingExpense = route.params?.expense;
+  const isEditMode = !!editingExpense;
+
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('food');
@@ -40,6 +46,25 @@ export default function AddExpenseScreen({ navigation }) {
   const [userSplitPercentage, setUserSplitPercentage] = useState('50');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Pre-populate form when editing
+  useEffect(() => {
+    if (editingExpense) {
+      setAmount(editingExpense.amount.toString());
+      setDescription(editingExpense.description);
+      setSelectedCategory(editingExpense.categoryKey || editingExpense.category || 'food');
+      setPaidBy(editingExpense.paidBy);
+
+      // Determine split type from split details
+      const userPercentage = editingExpense.splitDetails?.user1Percentage || 50;
+      if (userPercentage === 50) {
+        setSplitType('equal');
+      } else {
+        setSplitType('custom');
+        setUserSplitPercentage(userPercentage.toString());
+      }
+    }
+  }, [editingExpense]);
 
   const handleAmountChange = (text) => {
     // Only allow numbers and one decimal point
@@ -119,39 +144,60 @@ export default function AddExpenseScreen({ navigation }) {
         splitDetails = calculateSplit(expenseAmount, userPercentage, partnerPercentage);
       }
 
-      // Create expense document
-      const expenseData = {
-        amount: expenseAmount,
-        description: description.trim(),
-        category: selectedCategory, // Legacy field for backward compatibility
-        categoryKey: selectedCategory, // New field for budget tracking
-        paidBy: paidBy,
-        coupleId: userDetails.coupleId,
-        date: new Date().toISOString(),
-        createdAt: serverTimestamp(),
-        splitDetails: {
-          user1Amount: roundCurrency(paidBy === user.uid ? splitDetails.user1Amount : splitDetails.user2Amount),
-          user2Amount: roundCurrency(paidBy === user.uid ? splitDetails.user2Amount : splitDetails.user1Amount),
-          user1Percentage: paidBy === user.uid ? splitDetails.user1Percentage : splitDetails.user2Percentage,
-          user2Percentage: paidBy === user.uid ? splitDetails.user2Percentage : splitDetails.user1Percentage,
-        },
-      };
+      if (isEditMode) {
+        // Update existing expense
+        const updates = {
+          amount: expenseAmount,
+          description: description.trim(),
+          category: selectedCategory,
+          categoryKey: selectedCategory,
+          paidBy: paidBy,
+          splitDetails: {
+            user1Amount: roundCurrency(paidBy === user.uid ? splitDetails.user1Amount : splitDetails.user2Amount),
+            user2Amount: roundCurrency(paidBy === user.uid ? splitDetails.user2Amount : splitDetails.user1Amount),
+            user1Percentage: paidBy === user.uid ? splitDetails.user1Percentage : splitDetails.user2Percentage,
+            user2Percentage: paidBy === user.uid ? splitDetails.user2Percentage : splitDetails.user1Percentage,
+          },
+        };
 
-      console.log('Creating expense:', expenseData);
-      await addDoc(collection(db, 'expenses'), expenseData);
+        console.log('Updating expense:', editingExpense.id, updates);
+        await expenseService.updateExpense(editingExpense.id, updates);
+
+        console.log('✓ Expense updated successfully');
+      } else {
+        // Create new expense
+        const expenseData = {
+          amount: expenseAmount,
+          description: description.trim(),
+          category: selectedCategory, // Legacy field for backward compatibility
+          categoryKey: selectedCategory, // New field for budget tracking
+          paidBy: paidBy,
+          coupleId: userDetails.coupleId,
+          date: new Date().toISOString(),
+          splitDetails: {
+            user1Amount: roundCurrency(paidBy === user.uid ? splitDetails.user1Amount : splitDetails.user2Amount),
+            user2Amount: roundCurrency(paidBy === user.uid ? splitDetails.user2Amount : splitDetails.user1Amount),
+            user1Percentage: paidBy === user.uid ? splitDetails.user1Percentage : splitDetails.user2Percentage,
+            user2Percentage: paidBy === user.uid ? splitDetails.user2Percentage : splitDetails.user1Percentage,
+          },
+        };
+
+        console.log('Creating expense:', expenseData);
+        await expenseService.addExpense(expenseData);
+
+        console.log('✓ Expense created successfully');
+      }
 
       // Update couple's lastActivity
       await updateDoc(doc(db, 'couples', userDetails.coupleId), {
         lastActivity: serverTimestamp(),
       });
 
-      console.log('✓ Expense created successfully');
-
       // Navigate back to home
       navigation.goBack();
     } catch (err) {
-      console.error('Error creating expense:', err);
-      setError(err.message || 'Failed to create expense. Please try again.');
+      console.error(`Error ${isEditMode ? 'updating' : 'creating'} expense:`, err);
+      setError(err.message || `Failed to ${isEditMode ? 'update' : 'create'} expense. Please try again.`);
     } finally {
       setLoading(false);
     }
@@ -165,15 +211,15 @@ export default function AddExpenseScreen({ navigation }) {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'web' ? undefined : Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={COLORS.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Add Expense</Text>
+          <Text style={styles.headerTitle}>{isEditMode ? 'Edit Expense' : 'Add Expense'}</Text>
           <View style={{ width: 24 }} />
         </View>
 
@@ -348,7 +394,9 @@ export default function AddExpenseScreen({ navigation }) {
           {loading ? (
             <ActivityIndicator color={COLORS.background} />
           ) : (
-            <Text style={COMMON_STYLES.primaryButtonText}>Add Expense</Text>
+            <Text style={COMMON_STYLES.primaryButtonText}>
+              {isEditMode ? 'Save Changes' : 'Add Expense'}
+            </Text>
           )}
         </TouchableOpacity>
       </ScrollView>
@@ -361,8 +409,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  scrollView: {
+    flex: 1,
+  },
   scrollContent: {
     padding: SPACING.screenPadding,
+    flexGrow: 1,
   },
   header: {
     flexDirection: 'row',

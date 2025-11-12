@@ -5,7 +5,7 @@
  * Shows full expense details, split breakdown, and settlement status
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -13,11 +13,14 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING } from '../constants/theme';
 import { useBudget } from '../contexts/BudgetContext';
 import { formatCurrency, formatDate } from '../utils/calculations';
+import * as expenseService from '../services/expenseService';
 
 export default function ExpenseDetailModal({
   visible,
@@ -25,8 +28,11 @@ export default function ExpenseDetailModal({
   userDetails,
   partnerDetails,
   onClose,
+  onEdit,
+  onDelete,
 }) {
   const { categories } = useBudget();
+  const [deleting, setDeleting] = useState(false);
 
   if (!expense) return null;
 
@@ -54,6 +60,53 @@ export default function ExpenseDetailModal({
   const user2Percentage = expense.splitDetails?.user2Percentage || 50;
   const userPercentage = isPaidByUser ? user1Percentage : user2Percentage;
   const partnerPercentage = isPaidByUser ? user2Percentage : user1Percentage;
+
+  // Check permissions
+  const canEdit = expenseService.canEditExpense(expense, userDetails?.uid);
+  const deleteCheck = expenseService.canDeleteExpense(expense, userDetails?.uid, userDetails?.coupleId);
+  const canDelete = deleteCheck.canDelete;
+
+  const handleEdit = () => {
+    if (onEdit) {
+      onEdit(expense);
+      onClose();
+    }
+  };
+
+  const handleDelete = () => {
+    const warningMessage = deleteCheck.isSettled
+      ? `This expense is part of a settlement. Deleting it may affect your balance history.\n\nAre you sure you want to delete this expense?`
+      : 'Are you sure you want to delete this expense? This cannot be undone.';
+
+    Alert.alert(
+      'Delete Expense',
+      warningMessage,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setDeleting(true);
+              await expenseService.deleteExpense(expense.id);
+              if (onDelete) {
+                onDelete(expense.id);
+              }
+              onClose();
+            } catch (error) {
+              Alert.alert('Error', error.message || 'Failed to delete expense');
+              setDeleting(false);
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
 
   return (
     <Modal
@@ -185,6 +238,44 @@ export default function ExpenseDetailModal({
 
           {/* Footer */}
           <View style={styles.footer}>
+            {!isSettled && (canEdit || canDelete) && (
+              <View style={styles.actionButtons}>
+                {canEdit && (
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.editButton]}
+                    onPress={handleEdit}
+                    disabled={deleting}
+                  >
+                    <Ionicons name="pencil" size={20} color={COLORS.primary} />
+                    <Text style={[styles.actionButtonText, styles.editButtonText]}>Edit</Text>
+                  </TouchableOpacity>
+                )}
+                {canDelete && (
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.deleteButton]}
+                    onPress={handleDelete}
+                    disabled={deleting}
+                  >
+                    {deleting ? (
+                      <ActivityIndicator size="small" color={COLORS.error} />
+                    ) : (
+                      <>
+                        <Ionicons name="trash-outline" size={20} color={COLORS.error} />
+                        <Text style={[styles.actionButtonText, styles.deleteButtonText]}>Delete</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+            {isSettled && (
+              <View style={styles.settledWarning}>
+                <Ionicons name="lock-closed" size={16} color={COLORS.textSecondary} />
+                <Text style={styles.settledWarningText}>
+                  This expense is part of a settlement and cannot be edited
+                </Text>
+              </View>
+            )}
             <TouchableOpacity style={styles.closeFooterButton} onPress={onClose}>
               <Text style={styles.closeFooterButtonText}>Close</Text>
             </TouchableOpacity>
@@ -346,6 +437,53 @@ const styles = StyleSheet.create({
     padding: SPACING.large,
     borderTopWidth: 1,
     borderTopColor: COLORS.border || '#E5E5E5',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: SPACING.base,
+    marginBottom: SPACING.base,
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SPACING.base,
+    borderRadius: 12,
+    gap: SPACING.small,
+    borderWidth: 2,
+  },
+  editButton: {
+    backgroundColor: COLORS.primary + '10',
+    borderColor: COLORS.primary,
+  },
+  deleteButton: {
+    backgroundColor: COLORS.error + '10',
+    borderColor: COLORS.error,
+  },
+  actionButtonText: {
+    ...FONTS.body,
+    fontWeight: '600',
+  },
+  editButtonText: {
+    color: COLORS.primary,
+  },
+  deleteButtonText: {
+    color: COLORS.error,
+  },
+  settledWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.small,
+    backgroundColor: COLORS.backgroundSecondary,
+    padding: SPACING.base,
+    borderRadius: 8,
+    marginBottom: SPACING.base,
+  },
+  settledWarningText: {
+    ...FONTS.small,
+    color: COLORS.textSecondary,
+    flex: 1,
   },
   closeFooterButton: {
     backgroundColor: COLORS.primary,

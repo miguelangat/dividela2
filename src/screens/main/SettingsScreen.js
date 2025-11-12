@@ -18,7 +18,6 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
-  SafeAreaView,
   Platform,
   Dimensions,
   Modal,
@@ -280,7 +279,7 @@ export default function SettingsScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -362,7 +361,7 @@ export default function SettingsScreen() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -376,6 +375,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 40,
+    flexGrow: 1,
   },
   header: {
     paddingHorizontal: SPACING.screenPadding,

@@ -598,3 +598,5 @@ After completing this roadmap:
 - Optional payment method field
 - Unlink account option
 - Delete account option
+- Read bank statements
+-

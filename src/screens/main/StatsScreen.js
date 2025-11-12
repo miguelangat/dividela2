@@ -19,7 +19,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-  SafeAreaView,
   Platform,
   Dimensions,
   FlatList,
@@ -110,9 +109,9 @@ export default function StatsScreen() {
 
     const unsubscribe = onSnapshot(
       expensesQuery,
-      (snapshot) => {
+      snapshot => {
         const expensesList = [];
-        snapshot.forEach((doc) => {
+        snapshot.forEach(doc => {
           expensesList.push({ id: doc.id, ...doc.data() });
         });
 
@@ -122,7 +121,7 @@ export default function StatsScreen() {
         setLoading(false);
         setRefreshing(false);
       },
-      (error) => {
+      error => {
         console.error('Error fetching expenses for stats:', error);
         setError('Failed to load statistics. Pull down to retry.');
         setLoading(false);
@@ -149,16 +148,16 @@ export default function StatsScreen() {
 
     const unsubscribe = onSnapshot(
       settlementsQuery,
-      (snapshot) => {
+      snapshot => {
         const settlementsList = [];
-        snapshot.forEach((doc) => {
+        snapshot.forEach(doc => {
           settlementsList.push({ id: doc.id, ...doc.data() });
         });
 
         console.log(`Stats: Loaded ${settlementsList.length} settlements`);
         setSettlements(settlementsList);
       },
-      (error) => {
+      error => {
         console.error('Error fetching settlements for stats:', error);
         // Don't show error to user for settlements - non-critical
       }
@@ -172,11 +171,11 @@ export default function StatsScreen() {
   };
 
   // Handler functions for new features
-  const handleFiltersChange = (newFilters) => {
+  const handleFiltersChange = newFilters => {
     setFilters(newFilters);
   };
 
-  const handleExpenseTap = (expense) => {
+  const handleExpenseTap = expense => {
     setSelectedExpense(expense);
     setShowDetailModal(true);
   };
@@ -208,8 +207,7 @@ export default function StatsScreen() {
   }
 
   // Sort categories by total amount
-  const sortedCategories = Object.entries(categoryTotals)
-    .sort(([, a], [, b]) => b - a);
+  const sortedCategories = Object.entries(categoryTotals).sort(([, a], [, b]) => b - a);
 
   // Render sorting controls
   const renderSortingControls = () => (
@@ -221,7 +219,9 @@ export default function StatsScreen() {
             style={[styles.sortButton, sortBy === 'date-desc' && styles.sortButtonActive]}
             onPress={() => setSortBy('date-desc')}
           >
-            <Text style={[styles.sortButtonText, sortBy === 'date-desc' && styles.sortButtonTextActive]}>
+            <Text
+              style={[styles.sortButtonText, sortBy === 'date-desc' && styles.sortButtonTextActive]}
+            >
               Latest
             </Text>
           </TouchableOpacity>
@@ -229,7 +229,12 @@ export default function StatsScreen() {
             style={[styles.sortButton, sortBy === 'amount-desc' && styles.sortButtonActive]}
             onPress={() => setSortBy('amount-desc')}
           >
-            <Text style={[styles.sortButtonText, sortBy === 'amount-desc' && styles.sortButtonTextActive]}>
+            <Text
+              style={[
+                styles.sortButtonText,
+                sortBy === 'amount-desc' && styles.sortButtonTextActive,
+              ]}
+            >
               Highest
             </Text>
           </TouchableOpacity>
@@ -237,7 +242,9 @@ export default function StatsScreen() {
             style={[styles.sortButton, sortBy === 'category' && styles.sortButtonActive]}
             onPress={() => setSortBy('category')}
           >
-            <Text style={[styles.sortButtonText, sortBy === 'category' && styles.sortButtonTextActive]}>
+            <Text
+              style={[styles.sortButtonText, sortBy === 'category' && styles.sortButtonTextActive]}
+            >
               Category
             </Text>
           </TouchableOpacity>
@@ -251,7 +258,9 @@ export default function StatsScreen() {
             style={[styles.sortButton, groupBy === 'none' && styles.sortButtonActive]}
             onPress={() => setGroupBy('none')}
           >
-            <Text style={[styles.sortButtonText, groupBy === 'none' && styles.sortButtonTextActive]}>
+            <Text
+              style={[styles.sortButtonText, groupBy === 'none' && styles.sortButtonTextActive]}
+            >
               None
             </Text>
           </TouchableOpacity>
@@ -259,7 +268,9 @@ export default function StatsScreen() {
             style={[styles.sortButton, groupBy === 'month' && styles.sortButtonActive]}
             onPress={() => setGroupBy('month')}
           >
-            <Text style={[styles.sortButtonText, groupBy === 'month' && styles.sortButtonTextActive]}>
+            <Text
+              style={[styles.sortButtonText, groupBy === 'month' && styles.sortButtonTextActive]}
+            >
               Month
             </Text>
           </TouchableOpacity>
@@ -267,7 +278,9 @@ export default function StatsScreen() {
             style={[styles.sortButton, groupBy === 'status' && styles.sortButtonActive]}
             onPress={() => setGroupBy('status')}
           >
-            <Text style={[styles.sortButtonText, groupBy === 'status' && styles.sortButtonTextActive]}>
+            <Text
+              style={[styles.sortButtonText, groupBy === 'status' && styles.sortButtonTextActive]}
+            >
               Status
             </Text>
           </TouchableOpacity>
@@ -277,7 +290,7 @@ export default function StatsScreen() {
   );
 
   // Render individual expense item
-  const renderExpenseItem = (expense) => {
+  const renderExpenseItem = expense => {
     const isPaidByUser = expense.paidBy === user?.uid;
     const isSettled = !!expense.settledAt;
     const categoryKey = expense.category || expense.categoryKey || 'other';
@@ -388,7 +401,7 @@ export default function StatsScreen() {
     );
   };
 
-  const renderSettlementItem = (settlement) => {
+  const renderSettlementItem = settlement => {
     const settledAt = settlement.settledAt?.toDate ? settlement.settledAt.toDate() : new Date();
     const dateStr = settledAt.toLocaleDateString();
     const timeStr = settledAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -428,23 +441,21 @@ export default function StatsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
           <Text style={styles.loadingText}>Loading statistics...</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         showsVerticalScrollIndicator={true}
       >
         {/* Header */}
@@ -470,10 +481,7 @@ export default function StatsScreen() {
 
             {/* Filters Panel */}
             <View style={styles.section}>
-              <ExpenseFilters
-                onFiltersChange={handleFiltersChange}
-                initialFilters={filters}
-              />
+              <ExpenseFilters onFiltersChange={handleFiltersChange} initialFilters={filters} />
             </View>
 
             {/* Export Button */}
@@ -547,9 +555,7 @@ export default function StatsScreen() {
             {settlements.length > 0 && (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Settlement History</Text>
-                <Text style={styles.sectionSubtitle}>
-                  Record of when balances were settled
-                </Text>
+                <Text style={styles.sectionSubtitle}>Record of when balances were settled</Text>
                 {settlements.map(renderSettlementItem)}
               </View>
             )}
@@ -565,7 +571,7 @@ export default function StatsScreen() {
           onClose={handleCloseModal}
         />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -579,6 +585,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 20,
+    flexGrow: 1,
   },
   loadingContainer: {
     flex: 1,

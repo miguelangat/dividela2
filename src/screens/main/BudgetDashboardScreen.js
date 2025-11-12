@@ -17,6 +17,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES } from '../../constants/theme';
 import BudgetProgressCard from '../../components/BudgetProgressCard';
 import * as expenseService from '../../services/expenseService';
+import * as settlementService from '../../services/settlementService';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function BudgetDashboardScreen({ navigation }) {
   const {
@@ -29,13 +31,45 @@ export default function BudgetDashboardScreen({ navigation }) {
   const { userDetails } = useAuth();
 
   const [refreshing, setRefreshing] = useState(false);
+  const [recentSettlements, setRecentSettlements] = useState([]);
+  const [loadingSettlements, setLoadingSettlements] = useState(false);
 
   const coupleId = userDetails?.coupleId;
 
-  const handleRefresh = () => {
-    // Budget progress updates automatically via context subscription
-    // Just provide visual feedback for pull-to-refresh
+  // Load recent settlements
+  useEffect(() => {
+    const loadRecentSettlements = async () => {
+      if (!coupleId) return;
+
+      try {
+        setLoadingSettlements(true);
+        const settlements = await settlementService.getSettlements(coupleId);
+        // Get the 3 most recent settlements
+        setRecentSettlements(settlements.slice(0, 3));
+      } catch (error) {
+        console.error('Error loading recent settlements:', error);
+      } finally {
+        setLoadingSettlements(false);
+      }
+    };
+
+    loadRecentSettlements();
+  }, [coupleId]);
+
+  const handleRefresh = async () => {
     setRefreshing(true);
+
+    // Reload settlements
+    if (coupleId) {
+      try {
+        const settlements = await settlementService.getSettlements(coupleId);
+        setRecentSettlements(settlements.slice(0, 3));
+      } catch (error) {
+        console.error('Error refreshing settlements:', error);
+      }
+    }
+
+    // Budget progress updates automatically via context subscription
     setTimeout(() => setRefreshing(false), 500);
   };
 
@@ -160,6 +194,83 @@ export default function BudgetDashboardScreen({ navigation }) {
           )}
         </View>
 
+        {/* Recent Settlements Insights */}
+        {recentSettlements.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Recent Settlements</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('SettlementHistory')}>
+                <Text style={styles.viewAllText}>View All</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.settlementsContainer}>
+              {recentSettlements.map((settlement) => {
+                const settledDate = settlement.settledAt?.toDate
+                  ? settlement.settledAt.toDate()
+                  : new Date(settlement.settledAt);
+                const budgetSummary = settlement.budgetSummary || {};
+                const topCategory = settlement.topCategories?.[0];
+
+                return (
+                  <TouchableOpacity
+                    key={settlement.id}
+                    style={styles.settlementCard}
+                    onPress={() => navigation.navigate('SettlementDetail', { settlementId: settlement.id })}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.settlementHeader}>
+                      <View style={styles.settlementDateContainer}>
+                        <Ionicons name="calendar-outline" size={16} color={COLORS.textSecondary} />
+                        <Text style={styles.settlementDate}>
+                          {settledDate.toLocaleDateString()}
+                        </Text>
+                      </View>
+                      <View style={styles.settlementAmount}>
+                        <Text style={styles.settlementAmountText}>
+                          ${settlement.amount?.toFixed(0) || 0}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.settlementDetails}>
+                      <View style={styles.settlementStat}>
+                        <Ionicons name="receipt-outline" size={14} color={COLORS.textTertiary} />
+                        <Text style={styles.settlementStatText}>
+                          {settlement.expensesSettledCount || 0} expenses
+                        </Text>
+                      </View>
+
+                      {budgetSummary.includedInBudget && (
+                        <View style={[
+                          styles.budgetBadgeSmall,
+                          budgetSummary.budgetRemaining >= 0 ? styles.budgetBadgeSuccess : styles.budgetBadgeError
+                        ]}>
+                          <Text style={[
+                            styles.budgetBadgeText,
+                            budgetSummary.budgetRemaining >= 0 ? styles.budgetBadgeTextSuccess : styles.budgetBadgeTextError
+                          ]}>
+                            {budgetSummary.budgetRemaining >= 0 ? 'Under Budget' : 'Over Budget'}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {topCategory && (
+                      <View style={styles.topCategorySmall}>
+                        <Text style={styles.topCategoryIcon}>{topCategory.icon}</Text>
+                        <Text style={styles.topCategoryText}>
+                          Top: {topCategory.categoryName} (${topCategory.amount?.toFixed(0) || 0})
+                        </Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
         {/* Quick Actions */}
         <View style={styles.actions}>
           <TouchableOpacity
@@ -226,6 +337,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: SPACING.screenPadding,
     paddingBottom: SPACING.xxlarge,
+    flexGrow: 1,
   },
   header: {
     marginBottom: SPACING.large,
@@ -291,6 +403,104 @@ const styles = StyleSheet.create({
   emptyStateSubtext: {
     fontSize: FONTS.sizes.body,
     color: COLORS.textTertiary,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.medium,
+  },
+  viewAllText: {
+    fontSize: FONTS.sizes.body,
+    color: COLORS.primary,
+    fontWeight: FONTS.weights.semibold,
+  },
+  settlementsContainer: {
+    gap: SPACING.medium,
+  },
+  settlementCard: {
+    backgroundColor: COLORS.cardBackground,
+    borderRadius: SIZES.borderRadius.medium,
+    padding: SPACING.medium,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  settlementHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.small,
+  },
+  settlementDateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  settlementDate: {
+    fontSize: FONTS.sizes.small,
+    color: COLORS.textSecondary,
+  },
+  settlementAmount: {
+    backgroundColor: COLORS.primary + '15',
+    paddingHorizontal: SPACING.small,
+    paddingVertical: 4,
+    borderRadius: SIZES.borderRadius.small,
+  },
+  settlementAmountText: {
+    fontSize: FONTS.sizes.body,
+    fontWeight: FONTS.weights.bold,
+    color: COLORS.primary,
+  },
+  settlementDetails: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.small,
+    marginBottom: SPACING.small,
+  },
+  settlementStat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  settlementStatText: {
+    fontSize: FONTS.sizes.small,
+    color: COLORS.textTertiary,
+  },
+  budgetBadgeSmall: {
+    paddingHorizontal: SPACING.small,
+    paddingVertical: 3,
+    borderRadius: SIZES.borderRadius.small,
+  },
+  budgetBadgeSuccess: {
+    backgroundColor: COLORS.success + '15',
+  },
+  budgetBadgeError: {
+    backgroundColor: COLORS.error + '15',
+  },
+  budgetBadgeText: {
+    fontSize: FONTS.sizes.small,
+    fontWeight: FONTS.weights.semibold,
+  },
+  budgetBadgeTextSuccess: {
+    color: COLORS.success,
+  },
+  budgetBadgeTextError: {
+    color: COLORS.error,
+  },
+  topCategorySmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingTop: SPACING.small,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  topCategoryIcon: {
+    fontSize: 16,
+  },
+  topCategoryText: {
+    fontSize: FONTS.sizes.small,
+    color: COLORS.textSecondary,
   },
   actions: {
     flexDirection: 'row',
