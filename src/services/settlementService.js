@@ -247,7 +247,7 @@ export const getSettlements = async (coupleId) => {
 /**
  * Subscribe to real-time settlement updates
  */
-export const subscribeToSettlements = (coupleId, callback) => {
+export const subscribeToSettlements = (coupleId, callback, errorCallback) => {
   const settlementsQuery = query(
     collection(db, 'settlements'),
     where('coupleId', '==', coupleId),
@@ -269,6 +269,9 @@ export const subscribeToSettlements = (coupleId, callback) => {
     },
     (error) => {
       console.error('Error in settlements subscription:', error);
+      if (errorCallback) {
+        errorCallback(error);
+      }
     }
   );
 };

@@ -13,7 +13,6 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING } from '../../constants/theme';
@@ -21,6 +20,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useBudget } from '../../contexts/BudgetContext';
 import { formatCurrency, formatDate } from '../../utils/calculations';
 import * as settlementService from '../../services/settlementService';
+import SettlementFilters from '../../components/SettlementFilters';
+import {
+  getDefaultSettlementFilters,
+  applyAllSettlementFilters,
+} from '../../utils/settlementFilters';
 
 export default function SettlementHistoryScreen({ navigation }) {
   const { user, userDetails } = useAuth();
@@ -28,29 +32,43 @@ export default function SettlementHistoryScreen({ navigation }) {
   const [settlements, setSettlements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(null);
+  const [filters, setFilters] = useState(getDefaultSettlementFilters());
 
+  // Real-time subscription to settlements
   useEffect(() => {
-    if (userDetails?.coupleId) {
-      loadSettlements();
+    if (!userDetails?.coupleId) {
+      setLoading(false);
+      return;
     }
+
+    setLoading(true);
+    setError(null);
+
+    // Subscribe to real-time updates
+    const unsubscribe = settlementService.subscribeToSettlements(
+      userDetails.coupleId,
+      (fetchedSettlements) => {
+        setSettlements(fetchedSettlements);
+        setLoading(false);
+        setRefreshing(false);
+      },
+      (error) => {
+        console.error('Error in settlements subscription:', error);
+        setError('Failed to load settlements. Please try again.');
+        setLoading(false);
+        setRefreshing(false);
+      }
+    );
+
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
   }, [userDetails?.coupleId]);
 
-  const loadSettlements = async () => {
-    try {
-      setLoading(true);
-      const fetchedSettlements = await settlementService.getSettlements(userDetails.coupleId);
-      setSettlements(fetchedSettlements);
-    } catch (error) {
-      console.error('Error loading settlements:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const onRefresh = async () => {
+  const onRefresh = () => {
     setRefreshing(true);
-    await loadSettlements();
-    setRefreshing(false);
+    setError(null);
+    // Real-time listener will update the data automatically
   };
 
   const handleSettlementPress = settlement => {
@@ -176,6 +194,25 @@ export default function SettlementHistoryScreen({ navigation }) {
     );
   }
 
+  if (error) {
+    return (
+      <View style={styles.centerContainer}>
+        <Ionicons name="alert-circle-outline" size={64} color={COLORS.error} />
+        <Text style={styles.errorTitle}>Unable to Load Settlements</Text>
+        <Text style={styles.errorSubtitle}>{error}</Text>
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={() => {
+            setError(null);
+            setLoading(true);
+          }}
+        >
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   if (settlements.length === 0) {
     return (
       <View style={styles.centerContainer}>
@@ -188,41 +225,61 @@ export default function SettlementHistoryScreen({ navigation }) {
     );
   }
 
-  return (
-    <View style={styles.container}>
-      {/* Header Stats */}
+  // Apply filters to settlements
+  const filteredSettlements = applyAllSettlementFilters(settlements, filters, user?.uid);
+
+  const handleFiltersChange = (newFilters) => {
+    setFilters(newFilters);
+  };
+
+  const renderListHeader = () => {
+    if (filteredSettlements.length === 0) {
+      return null;
+    }
+
+    return (
       <View style={styles.headerStats}>
         <View style={styles.headerStatItem}>
-          <Text style={styles.headerStatValue}>{settlements.length}</Text>
+          <Text style={styles.headerStatValue}>{filteredSettlements.length}</Text>
           <Text style={styles.headerStatLabel}>Total Settlements</Text>
         </View>
         <View style={styles.headerStatDivider} />
         <View style={styles.headerStatItem}>
           <Text style={styles.headerStatValue}>
-            {formatCurrency(settlements.reduce((sum, s) => sum + (s.amount || 0), 0))}
+            {formatCurrency(filteredSettlements.reduce((sum, s) => sum + (s.amount || 0), 0))}
           </Text>
           <Text style={styles.headerStatLabel}>Total Amount</Text>
         </View>
       </View>
+    );
+  };
+
+  const renderEmptyState = () => (
+    <View style={styles.emptyContainer}>
+      <Ionicons name="filter-outline" size={64} color={COLORS.textSecondary} />
+      <Text style={styles.emptyTitle}>No Settlements Found</Text>
+      <Text style={styles.emptySubtitle}>
+        Try adjusting your filters to see more results.
+      </Text>
+    </View>
+  );
+
+  return (
+    <View style={styles.container}>
+      {/* Filter Panel */}
+      <SettlementFilters onFiltersChange={handleFiltersChange} initialFilters={filters} />
 
       {/* Settlement List */}
       <FlatList
-        style={styles.flatList}
-        data={settlements}
+        data={filteredSettlements}
         renderItem={renderSettlementItem}
-        keyExtractor={item => item.id}
-        contentContainerStyle={styles.listContent}
+        keyExtractor={(item) => item.id}
+        ListHeaderComponent={renderListHeader}
+        ListEmptyComponent={renderEmptyState}
+        contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={true}
-        scrollEnabled={true}
-        nestedScrollEnabled={true}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={COLORS.primary}
-            colors={[COLORS.primary]}
-          />
-        }
+        refreshing={refreshing}
+        onRefresh={onRefresh}
       />
     </View>
   );
@@ -232,6 +289,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  contentContainer: {
+    paddingHorizontal: SPACING.base,
+    paddingBottom: 20,
   },
   centerContainer: {
     flex: 1,
@@ -244,6 +305,11 @@ const styles = StyleSheet.create({
     ...FONTS.body,
     color: COLORS.textSecondary,
     marginTop: SPACING.base,
+  },
+  emptyContainer: {
+    padding: SPACING.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyTitle: {
     ...FONTS.heading,
@@ -258,15 +324,44 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     maxWidth: 280,
   },
-  flatList: {
-    flex: 1,
+  errorTitle: {
+    ...FONTS.heading,
+    fontSize: 20,
+    color: COLORS.error,
+    marginTop: SPACING.large,
+    marginBottom: SPACING.small,
+  },
+  errorSubtitle: {
+    ...FONTS.body,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    maxWidth: 280,
+    marginBottom: SPACING.large,
+  },
+  retryButton: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: SPACING.xl,
+    paddingVertical: SPACING.base,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    ...FONTS.body,
+    color: COLORS.background,
+    fontWeight: '600',
   },
   headerStats: {
     flexDirection: 'row',
     backgroundColor: COLORS.cardBackground,
     padding: SPACING.large,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    marginBottom: SPACING.base,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   headerStatItem: {
     flex: 1,
@@ -288,10 +383,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.border,
     marginHorizontal: SPACING.base,
   },
-  listContent: {
-    padding: SPACING.base,
-    paddingBottom: SPACING.large,
-  },
   settlementCard: {
     backgroundColor: COLORS.cardBackground,
     borderRadius: 12,
@@ -299,6 +390,12 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.base,
     borderWidth: 1,
     borderColor: COLORS.border,
+    // Add subtle shadow for depth
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   settlementHeader: {
     marginBottom: SPACING.base,

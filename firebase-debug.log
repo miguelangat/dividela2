@@ -1,0 +1,16 @@
+[debug] [2025-11-13T19:58:41.962Z] ----------------------------------------------------------------------
+[debug] [2025-11-13T19:58:41.965Z] Command:       /home/mg/.nvm/versions/node/v22.17.0/bin/node /home/mg/.nvm/versions/node/v22.17.0/bin/firebase deploy --only hosting
+[debug] [2025-11-13T19:58:41.966Z] CLI Version:   14.23.0
+[debug] [2025-11-13T19:58:41.966Z] Platform:      linux
+[debug] [2025-11-13T19:58:41.966Z] Node Version:  v22.17.0
+[debug] [2025-11-13T19:58:41.966Z] Time:          Thu Nov 13 2025 14:58:41 GMT-0500 (Colombia Standard Time)
+[debug] [2025-11-13T19:58:41.966Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-11-13T19:58:42.337Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-11-13T19:58:42.338Z] > authorizing via signed-in user (miguelangat@gmail.com)
+[debug] [2025-11-13T19:58:42.339Z] [iam] checking project dividela-76aba for permissions ["firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2025-11-13T19:58:42.340Z] Checked if tokens are valid: true, expires at: 1763065113534
+[debug] [2025-11-13T19:58:42.340Z] Checked if tokens are valid: true, expires at: 1763065113534
+[debug] [2025-11-13T19:58:42.341Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/dividela-76aba:testIamPermissions [none]
+[debug] [2025-11-13T19:58:42.342Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/dividela-76aba:testIamPermissions x-goog-quota-user=projects/dividela-76aba
+[debug] [2025-11-13T19:58:42.342Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/dividela-76aba:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}

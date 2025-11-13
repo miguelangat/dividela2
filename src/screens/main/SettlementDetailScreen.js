@@ -29,6 +29,7 @@ export default function SettlementDetailScreen({ route, navigation }) {
   const [settlement, setSettlement] = useState(null);
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     loadSettlementDetails();
@@ -37,6 +38,7 @@ export default function SettlementDetailScreen({ route, navigation }) {
   const loadSettlementDetails = async () => {
     try {
       setLoading(true);
+      setError(null);
       const [settlementData, expenseData] = await Promise.all([
         settlementService.getSettlementById(settlementId),
         settlementService.getExpensesForSettlement(settlementId),
@@ -45,6 +47,7 @@ export default function SettlementDetailScreen({ route, navigation }) {
       setExpenses(expenseData);
     } catch (error) {
       console.error('Error loading settlement details:', error);
+      setError(error.message || 'Failed to load settlement details. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -59,11 +62,28 @@ export default function SettlementDetailScreen({ route, navigation }) {
     );
   }
 
+  if (error) {
+    return (
+      <View style={styles.centerContainer}>
+        <Ionicons name="alert-circle-outline" size={64} color={COLORS.error} />
+        <Text style={styles.errorTitle}>Unable to Load Settlement</Text>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={loadSettlementDetails}
+        >
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   if (!settlement) {
     return (
       <View style={styles.centerContainer}>
         <Ionicons name="alert-circle-outline" size={64} color={COLORS.error} />
-        <Text style={styles.errorText}>Settlement not found</Text>
+        <Text style={styles.errorTitle}>Settlement Not Found</Text>
+        <Text style={styles.errorText}>This settlement may have been deleted.</Text>
       </View>
     );
   }
@@ -325,10 +345,31 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginTop: SPACING.base,
   },
+  errorTitle: {
+    ...FONTS.heading,
+    fontSize: 20,
+    color: COLORS.error,
+    marginTop: SPACING.large,
+    marginBottom: SPACING.small,
+  },
   errorText: {
     ...FONTS.body,
-    color: COLORS.error,
-    marginTop: SPACING.base,
+    color: COLORS.textSecondary,
+    marginTop: SPACING.small,
+    textAlign: 'center',
+    maxWidth: 280,
+    marginBottom: SPACING.large,
+  },
+  retryButton: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: SPACING.xl,
+    paddingVertical: SPACING.base,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    ...FONTS.body,
+    color: COLORS.background,
+    fontWeight: '600',
   },
   headerCard: {
     backgroundColor: COLORS.cardBackground,

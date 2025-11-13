@@ -565,7 +565,7 @@ export default function HomeScreen({ navigation }) {
           </View>
           <TouchableOpacity
             style={styles.historyButton}
-            onPress={() => navigation.navigate('SettlementHistory')}
+            onPress={() => navigation.navigate('SettlementsTab')}
           >
             <Ionicons name="time-outline" size={24} color={COLORS.primary} />
           </TouchableOpacity>
@@ -594,7 +594,7 @@ export default function HomeScreen({ navigation }) {
             )}
             <TouchableOpacity
               style={[styles.historyButtonCard, balanceInfo.status === 'settled' && styles.historyButtonFull]}
-              onPress={() => navigation.navigate('SettlementHistory')}
+              onPress={() => navigation.navigate('SettlementsTab')}
             >
               <Ionicons name="list-outline" size={18} color={COLORS.primary} />
               <Text style={styles.historyButtonText}>View History</Text>

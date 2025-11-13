@@ -18,8 +18,13 @@ import BudgetDashboardScreen from '../screens/main/BudgetDashboardScreen';
 import BudgetSetupScreen from '../screens/main/BudgetSetupScreen';
 import CategoryManagerScreen from '../screens/main/CategoryManagerScreen';
 
+// Settlement screens
+import SettlementHistoryScreen from '../screens/main/SettlementHistoryScreen';
+import SettlementDetailScreen from '../screens/main/SettlementDetailScreen';
+
 const Tab = createBottomTabNavigator();
 const BudgetStack = createStackNavigator();
+const SettlementStack = createStackNavigator();
 
 // Budget Stack Navigator
 function BudgetStackNavigator() {
@@ -61,6 +66,41 @@ function BudgetStackNavigator() {
   );
 }
 
+// Settlement Stack Navigator
+function SettlementStackNavigator() {
+  return (
+    <SettlementStack.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: COLORS.background,
+          elevation: 0,
+          shadowOpacity: 0,
+          borderBottomWidth: 1,
+          borderBottomColor: COLORS.border,
+        },
+        headerTintColor: COLORS.primary,
+        headerTitleStyle: {
+          fontSize: FONTS.sizes.title,
+          fontWeight: FONTS.weights.semibold,
+          color: COLORS.text,
+        },
+        headerBackTitleVisible: false,
+      }}
+    >
+      <SettlementStack.Screen
+        name="SettlementHistory"
+        component={SettlementHistoryScreen}
+        options={{ title: 'Settlement History' }}
+      />
+      <SettlementStack.Screen
+        name="SettlementDetail"
+        component={SettlementDetailScreen}
+        options={{ title: 'Settlement Details' }}
+      />
+    </SettlementStack.Navigator>
+  );
+}
+
 export default function TabNavigator() {
   return (
     <Tab.Navigator
@@ -71,6 +111,8 @@ export default function TabNavigator() {
 
           if (route.name === 'HomeTab') {
             iconName = focused ? 'home' : 'home-outline';
+          } else if (route.name === 'SettlementsTab') {
+            iconName = focused ? 'receipt' : 'receipt-outline';
           } else if (route.name === 'BudgetTab') {
             iconName = focused ? 'wallet' : 'wallet-outline';
           } else if (route.name === 'StatsTab') {
@@ -103,6 +145,13 @@ export default function TabNavigator() {
         component={HomeScreen}
         options={{
           tabBarLabel: 'Home',
+        }}
+      />
+      <Tab.Screen
+        name="SettlementsTab"
+        component={SettlementStackNavigator}
+        options={{
+          tabBarLabel: 'Settlements',
         }}
       />
       <Tab.Screen
