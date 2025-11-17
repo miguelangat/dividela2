@@ -322,7 +322,6 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   scrollContent: {
-    flexGrow: 1,
     padding: SPACING.screenPadding,
     paddingTop: SPACING.huge,
     alignItems: 'center',
