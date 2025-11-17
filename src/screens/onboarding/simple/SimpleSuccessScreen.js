@@ -10,7 +10,9 @@ import {
   Animated,
   ScrollView,
   ActivityIndicator,
+  SafeAreaView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES, SHADOWS } from '../../../constants/theme';
 import { useOnboarding } from '../../../contexts/OnboardingContext';
@@ -18,6 +20,7 @@ import { useBudget } from '../../../contexts/BudgetContext';
 import { DEFAULT_CATEGORIES } from '../../../constants/defaultCategories';
 
 export default function SimpleSuccessScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const { budgetStyle, totalBudget, completeOnboarding, loading: onboardingLoading } = useOnboarding();
   const { currentBudget, totalBudget: budgetTotal, categories } = useBudget();
   const [completing, setCompleting] = useState(false);
@@ -93,7 +96,7 @@ export default function SimpleSuccessScreen({ navigation }) {
   const summary = getBudgetSummary();
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -193,7 +196,7 @@ export default function SimpleSuccessScreen({ navigation }) {
       </ScrollView>
 
       {/* Footer */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, SPACING.base) }]}>
         {/* Primary Button */}
         <TouchableOpacity
           style={[COMMON_STYLES.primaryButton, completing && styles.buttonDisabled]}
@@ -216,7 +219,7 @@ export default function SimpleSuccessScreen({ navigation }) {
           <Text style={styles.settingsLinkText}>View Budget Settings</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

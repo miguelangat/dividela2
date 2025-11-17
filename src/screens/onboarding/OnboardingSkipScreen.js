@@ -9,13 +9,16 @@ import {
   TouchableOpacity,
   Animated,
   ActivityIndicator,
+  SafeAreaView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES } from '../../constants/theme';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 
 export default function OnboardingSkipScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const { completeOnboarding, loading: onboardingLoading } = useOnboarding();
   const [completing, setCompleting] = useState(false);
 
@@ -64,10 +67,10 @@ export default function OnboardingSkipScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar style="dark" />
-      
-      <View style={styles.content}>
+
+      <View style={[styles.content, { paddingBottom: Math.max(insets.bottom, SPACING.base) }]}>
         {/* Animated Success Checkmark */}
         <Animated.View
           style={[
@@ -116,7 +119,7 @@ export default function OnboardingSkipScreen({ navigation }) {
           )}
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

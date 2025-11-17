@@ -12,10 +12,13 @@ import {
   Modal,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES, SHADOWS } from '../../../constants/theme';
 import { DEFAULT_CATEGORIES } from '../../../constants/defaultCategories';
 
 export default function AdvancedCategoriesScreen({ navigation, route }) {
+  const insets = useSafeAreaInsets();
   const { timeframeData, strategyData } = route.params || {};
   const [useCommonCategories, setUseCommonCategories] = useState(true);
   const [selectedCategories, setSelectedCategories] = useState(
@@ -89,7 +92,7 @@ export default function AdvancedCategoriesScreen({ navigation, route }) {
   const commonIcons = ['🍔', '🛒', '🚗', '🏠', '🎉', '💡', '✈️', '🏥', '📚', '👕'];
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar style="dark" />
 
       <ScrollView
@@ -194,7 +197,7 @@ export default function AdvancedCategoriesScreen({ navigation, route }) {
       </ScrollView>
 
       {/* Continue Button */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, SPACING.base) }]}>
         <TouchableOpacity
           style={[
             styles.continueButton,
@@ -269,7 +272,7 @@ export default function AdvancedCategoriesScreen({ navigation, route }) {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 

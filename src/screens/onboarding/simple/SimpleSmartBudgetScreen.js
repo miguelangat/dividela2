@@ -10,6 +10,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES, SHADOWS } from '../../../constants/theme';
 import ProgressStepper from '../../../components/onboarding/ProgressStepper';
 import { useOnboarding } from '../../../contexts/OnboardingContext';
@@ -18,6 +20,7 @@ import { DEFAULT_CATEGORIES } from '../../../constants/defaultCategories';
 import * as onboardingService from '../../../services/onboardingService';
 
 export default function SimpleSmartBudgetScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const { userDetails } = useAuth();
   const { setBudgetStyle, setIsComplete } = useOnboarding();
   const [loading, setLoading] = useState(false);
@@ -51,15 +54,15 @@ export default function SimpleSmartBudgetScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Progress Stepper */}
-      <ProgressStepper currentStep={2} totalSteps={2} />
-
+    <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Progress Stepper */}
+        <ProgressStepper currentStep={2} totalSteps={2} style={styles.progressStepper} />
+
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>All Set! Here's the plan:</Text>
@@ -116,7 +119,7 @@ export default function SimpleSmartBudgetScreen({ navigation }) {
       </ScrollView>
 
       {/* Footer */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, SPACING.base) }]}>
         {/* Primary Button */}
         <TouchableOpacity
           style={[COMMON_STYLES.primaryButton, loading && styles.buttonDisabled]}
@@ -139,7 +142,7 @@ export default function SimpleSmartBudgetScreen({ navigation }) {
           <Text style={styles.secondaryLinkText}>Customize These Amounts</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -154,6 +157,9 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: SPACING.screenPadding,
     paddingBottom: SPACING.xxlarge,
+  },
+  progressStepper: {
+    marginBottom: SPACING.base,
   },
   header: {
     marginTop: SPACING.base,

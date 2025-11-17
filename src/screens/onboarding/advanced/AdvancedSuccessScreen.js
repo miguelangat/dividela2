@@ -10,13 +10,16 @@ import {
   ScrollView,
   Animated,
   ActivityIndicator,
+  SafeAreaView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES, SHADOWS } from '../../../constants/theme';
 import { useOnboarding } from '../../../contexts/OnboardingContext';
 import { useBudget } from '../../../contexts/BudgetContext';
 
 export default function AdvancedSuccessScreen({ navigation, route }) {
+  const insets = useSafeAreaInsets();
   const { finalData } = route.params || {};
   const { completeOnboarding, loading: onboardingLoading } = useOnboarding();
   const { categories: budgetCategories } = useBudget();
@@ -148,7 +151,7 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
   ];
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar style="dark" />
 
       {/* Confetti Animation */}
@@ -179,7 +182,7 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom, SPACING.base) }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Animated Checkmark */}
@@ -297,7 +300,7 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
           </TouchableOpacity>
         </Animated.View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

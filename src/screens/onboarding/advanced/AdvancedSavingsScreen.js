@@ -11,9 +11,12 @@ import {
   Switch,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES, SHADOWS } from '../../../constants/theme';
 
 export default function AdvancedSavingsScreen({ navigation, route }) {
+  const insets = useSafeAreaInsets();
   const { allocationData } = route.params || {};
   const [includeSavings, setIncludeSavings] = useState(true);
   const [showSecondaryOption, setShowSecondaryOption] = useState(false);
@@ -35,7 +38,7 @@ export default function AdvancedSavingsScreen({ navigation, route }) {
   const exampleSplit = exampleSavings / 2;
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar style="dark" />
 
       <ScrollView
@@ -169,7 +172,7 @@ export default function AdvancedSavingsScreen({ navigation, route }) {
       </ScrollView>
 
       {/* Finish Button */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, SPACING.base) }]}>
         <TouchableOpacity
           style={styles.finishButton}
           onPress={handleFinish}
@@ -178,7 +181,7 @@ export default function AdvancedSavingsScreen({ navigation, route }) {
           <Text style={styles.finishButtonText}>Finish Setup</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

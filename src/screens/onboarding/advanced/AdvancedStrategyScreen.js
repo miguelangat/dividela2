@@ -10,9 +10,12 @@ import {
   ScrollView,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES, SHADOWS } from '../../../constants/theme';
 
 export default function AdvancedStrategyScreen({ navigation, route }) {
+  const insets = useSafeAreaInsets();
   const { timeframeData } = route.params || {};
   const [selectedStrategy, setSelectedStrategy] = useState('equal'); // 'equal', 'seasonal', 'custom'
 
@@ -53,7 +56,7 @@ export default function AdvancedStrategyScreen({ navigation, route }) {
   ];
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar style="dark" />
 
       <ScrollView
@@ -126,7 +129,7 @@ export default function AdvancedStrategyScreen({ navigation, route }) {
       </ScrollView>
 
       {/* Continue Button */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, SPACING.base) }]}>
         <TouchableOpacity
           style={styles.continueButton}
           onPress={handleContinue}
@@ -135,7 +138,7 @@ export default function AdvancedStrategyScreen({ navigation, route }) {
           <Text style={styles.continueButtonText}>Continue</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

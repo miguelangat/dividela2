@@ -9,7 +9,9 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  SafeAreaView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES, SHADOWS } from '../../../constants/theme';
 import ProgressStepper from '../../../components/onboarding/ProgressStepper';
 import BudgetAmountInput from '../../../components/onboarding/BudgetAmountInput';
@@ -19,6 +21,7 @@ import { DEFAULT_CATEGORIES } from '../../../constants/defaultCategories';
 import * as onboardingService from '../../../services/onboardingService';
 
 export default function SimpleFixedBudgetScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const { userDetails } = useAuth();
   const { totalBudget, setTotalBudget, setCategoryBudgets, setIsComplete } = useOnboarding();
   const [amount, setAmount] = useState(totalBudget || 2400);
@@ -76,7 +79,7 @@ export default function SimpleFixedBudgetScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Progress Stepper */}
       <ProgressStepper currentStep={2} totalSteps={2} />
 
@@ -141,7 +144,7 @@ export default function SimpleFixedBudgetScreen({ navigation }) {
       </ScrollView>
 
       {/* Footer */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, SPACING.base) }]}>
         {/* Primary Button */}
         <TouchableOpacity
           style={[
@@ -169,7 +172,7 @@ export default function SimpleFixedBudgetScreen({ navigation }) {
           </TouchableOpacity>
         )}
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

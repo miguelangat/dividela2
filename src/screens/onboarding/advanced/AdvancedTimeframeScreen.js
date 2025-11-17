@@ -11,9 +11,12 @@ import {
   ScrollView,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES, SHADOWS } from '../../../constants/theme';
 
 export default function AdvancedTimeframeScreen({ navigation, route }) {
+  const insets = useSafeAreaInsets();
   const [selectedMode, setSelectedMode] = useState('annual'); // 'annual' or 'monthly'
   const [annualAmount, setAnnualAmount] = useState('24000');
   const [monthlyAmount, setMonthlyAmount] = useState('2000');
@@ -43,7 +46,7 @@ export default function AdvancedTimeframeScreen({ navigation, route }) {
     : monthlyAmount;
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar style="dark" />
 
       <ScrollView
@@ -179,7 +182,7 @@ export default function AdvancedTimeframeScreen({ navigation, route }) {
       </ScrollView>
 
       {/* Continue Button */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, SPACING.base) }]}>
         <TouchableOpacity
           style={styles.continueButton}
           onPress={handleContinue}
@@ -188,7 +191,7 @@ export default function AdvancedTimeframeScreen({ navigation, route }) {
           <Text style={styles.continueButtonText}>Continue</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

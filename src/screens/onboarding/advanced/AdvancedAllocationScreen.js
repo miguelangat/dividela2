@@ -9,12 +9,15 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
+  SafeAreaView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import Slider from '@react-native-community/slider';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES, SHADOWS } from '../../../constants/theme';
 
 export default function AdvancedAllocationScreen({ navigation, route }) {
+  const insets = useSafeAreaInsets();
   const { categoriesData } = route.params || {};
   const { mode, annualAmount, monthlyAmount, selectedCategories } = categoriesData || {};
 
@@ -87,7 +90,7 @@ export default function AdvancedAllocationScreen({ navigation, route }) {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar style="dark" />
 
       <View style={styles.header}>
@@ -210,7 +213,7 @@ export default function AdvancedAllocationScreen({ navigation, route }) {
       </ScrollView>
 
       {/* Continue Button */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, SPACING.base) }]}>
         <TouchableOpacity
           style={[
             styles.continueButton,
@@ -223,7 +226,7 @@ export default function AdvancedAllocationScreen({ navigation, route }) {
           <Text style={styles.continueButtonText}>Continue</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

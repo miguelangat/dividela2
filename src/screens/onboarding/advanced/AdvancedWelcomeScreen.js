@@ -12,9 +12,12 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES } from '../../../constants/theme';
 
 export default function AdvancedWelcomeScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
@@ -70,7 +73,7 @@ export default function AdvancedWelcomeScreen({ navigation }) {
   ];
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar style="light" />
 
       <LinearGradient
@@ -138,7 +141,7 @@ export default function AdvancedWelcomeScreen({ navigation }) {
         </ScrollView>
 
         {/* Buttons */}
-        <View style={styles.footer}>
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, SPACING.base) }]}>
           <TouchableOpacity
             style={styles.primaryButton}
             onPress={handleGetStarted}
@@ -156,7 +159,7 @@ export default function AdvancedWelcomeScreen({ navigation }) {
           </TouchableOpacity>
         </View>
       </LinearGradient>
-    </View>
+    </SafeAreaView>
   );
 }
 
