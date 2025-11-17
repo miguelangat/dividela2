@@ -10,9 +10,8 @@ import {
   ScrollView,
   Animated,
   ActivityIndicator,
-  SafeAreaView,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES, SHADOWS } from '../../../constants/theme';
 import { useOnboarding } from '../../../contexts/OnboardingContext';

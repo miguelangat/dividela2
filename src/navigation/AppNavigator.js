@@ -42,6 +42,20 @@ export default function AppNavigator() {
     checkOnboardingStatus();
   }, [user, userDetails?.coupleId]);
 
+  // Poll for onboarding status changes (for when completeOnboarding is called)
+  useEffect(() => {
+    if (!user || !userDetails?.coupleId) {
+      return;
+    }
+
+    // Set up interval to check onboarding status (in case it's updated)
+    const interval = setInterval(() => {
+      checkOnboardingStatus();
+    }, 1000); // Check every second
+
+    return () => clearInterval(interval);
+  }, [user, userDetails?.coupleId]);
+
   const checkOnboardingStatus = async () => {
     try {
       if (!user || !userDetails?.coupleId) {

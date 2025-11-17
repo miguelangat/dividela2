@@ -9,9 +9,8 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  SafeAreaView,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES, SHADOWS } from '../../../constants/theme';
 import ProgressStepper from '../../../components/onboarding/ProgressStepper';
 import BudgetAmountInput from '../../../components/onboarding/BudgetAmountInput';
