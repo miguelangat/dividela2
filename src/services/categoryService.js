@@ -31,6 +31,8 @@ export const initializeCategoriesForCouple = async (coupleId) => {
         name: category.name,
         icon: category.icon,
         defaultBudget: category.defaultBudget,
+        frequency: category.frequency || 'monthly', // 'monthly', 'annual', or 'both'
+        annualBudget: category.annualBudget || category.defaultBudget * 12,
         isDefault: true,
         createdAt: new Date(),
       };
@@ -104,7 +106,7 @@ export const subscribeToCategoriesForCouple = (coupleId, callback) => {
 /**
  * Add a custom category
  */
-export const addCustomCategory = async (coupleId, { name, icon, defaultBudget }) => {
+export const addCustomCategory = async (coupleId, { name, icon, defaultBudget, frequency = 'monthly', annualBudget }) => {
   try {
     // Generate unique key from name
     const key = generateCategoryKey(name);
@@ -117,13 +119,17 @@ export const addCustomCategory = async (coupleId, { name, icon, defaultBudget })
       throw new Error('A category with a similar name already exists');
     }
 
+    const monthlyBudget = parseFloat(defaultBudget) || 0;
+
     // Create new category
     const categoryDoc = {
       coupleId,
       key,
       name,
       icon,
-      defaultBudget: parseFloat(defaultBudget) || 0,
+      defaultBudget: monthlyBudget,
+      frequency, // 'monthly', 'annual', or 'both'
+      annualBudget: annualBudget || (frequency === 'annual' ? monthlyBudget : monthlyBudget * 12),
       isDefault: false,
       createdAt: new Date(),
     };
@@ -157,6 +163,10 @@ export const updateCategory = async (coupleId, key, updates) => {
     if (updates.icon !== undefined) allowedUpdates.icon = updates.icon;
     if (updates.defaultBudget !== undefined) {
       allowedUpdates.defaultBudget = parseFloat(updates.defaultBudget) || 0;
+    }
+    if (updates.frequency !== undefined) allowedUpdates.frequency = updates.frequency;
+    if (updates.annualBudget !== undefined) {
+      allowedUpdates.annualBudget = parseFloat(updates.annualBudget) || 0;
     }
 
     await setDoc(categoryDocRef, {
@@ -299,5 +309,58 @@ export const categoryExists = async (coupleId, key) => {
   } catch (error) {
     console.error('Error checking category existence:', error);
     return false;
+  }
+};
+
+/**
+ * Get categories filtered by frequency
+ *
+ * @param {string} coupleId - The couple ID
+ * @param {string} frequency - Filter by 'monthly', 'annual', or 'both'
+ * @returns {Object} Filtered categories
+ */
+export const getCategoriesByFrequency = async (coupleId, frequency) => {
+  try {
+    const allCategories = await getCategoriesForCouple(coupleId);
+
+    const filtered = {};
+    Object.entries(allCategories).forEach(([key, category]) => {
+      if (category.frequency === frequency || category.frequency === 'both') {
+        filtered[key] = category;
+      }
+    });
+
+    return filtered;
+  } catch (error) {
+    console.error('Error getting categories by frequency:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get annual-only categories
+ */
+export const getAnnualCategories = async (coupleId) => {
+  return getCategoriesByFrequency(coupleId, 'annual');
+};
+
+/**
+ * Get monthly categories (including 'both')
+ */
+export const getMonthlyCategories = async (coupleId) => {
+  try {
+    const allCategories = await getCategoriesForCouple(coupleId);
+
+    const filtered = {};
+    Object.entries(allCategories).forEach(([key, category]) => {
+      if (category.frequency === 'monthly' || category.frequency === 'both') {
+        filtered[key] = category;
+      }
+    });
+
+    return filtered;
+  } catch (error) {
+    console.error('Error getting monthly categories:', error);
+    throw error;
   }
 };

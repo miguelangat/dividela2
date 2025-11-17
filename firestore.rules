@@ -204,5 +204,90 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
         resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId;
     }
+
+    // Couple Settings collection - for fiscal year and budget preferences
+    match /coupleSettings/{coupleId} {
+      // Users can create settings for their own couple
+      allow create: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId != null &&
+        coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId;
+
+      // Users can read settings for their couple
+      allow read: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        (!exists(/databases/$(database)/documents/coupleSettings/$(coupleId)) ||
+         coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId);
+
+      // Users can update settings for their couple
+      allow update: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId;
+
+      // Users can delete settings for their couple
+      allow delete: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId;
+    }
+
+    // Annual Budgets collection - for annual budget management
+    match /annualBudgets/{budgetId} {
+      // Users can create annual budgets for their own couple
+      allow create: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId != null &&
+        request.resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId;
+
+      // Users can read annual budgets for their couple
+      allow read: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        (!exists(/databases/$(database)/documents/annualBudgets/$(budgetId)) ||
+         resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId);
+
+      // For listing annual budgets (queries)
+      allow list: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId != null;
+
+      // Users can update annual budgets for their couple
+      allow update: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId;
+
+      // Users can delete annual budgets for their couple
+      allow delete: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId;
+    }
+
+    // Savings Targets collection - for savings goal tracking
+    match /savingsTargets/{targetId} {
+      // Users can create savings targets for their own couple
+      allow create: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId != null &&
+        request.resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId;
+
+      // Users can read savings targets for their couple
+      allow read: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        (!exists(/databases/$(database)/documents/savingsTargets/$(targetId)) ||
+         resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId);
+
+      // For listing savings targets (queries)
+      allow list: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId != null;
+
+      // Users can update savings targets for their couple
+      allow update: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId;
+
+      // Users can delete savings targets for their couple
+      allow delete: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId;
+    }
   }
 }

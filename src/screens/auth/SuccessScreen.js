@@ -79,10 +79,8 @@ export default function SuccessScreen({ navigation, route }) {
   };
 
   const handleContinue = () => {
-    // Navigate to main app
-    // Since we've updated userDetails.partnerId via updatePartnerInfo(),
-    // AppNavigator will automatically show the main app stack
-    navigation.replace('MainTabs');
+    // Navigate to fiscal year setup screen
+    navigation.navigate('FiscalYearSetup');
   };
 
   if (loading) {

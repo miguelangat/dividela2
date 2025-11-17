@@ -288,6 +288,14 @@ export default function BudgetDashboardScreen({ navigation }) {
           >
             <Text style={styles.actionButtonText}>📁 Manage Categories</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionButton, styles.annualBudgetButton]}
+            onPress={() => navigation.navigate('AnnualBudgetSetup')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.actionButtonText}>📅 Annual Budget</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>

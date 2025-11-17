@@ -16,6 +16,7 @@ import ConnectScreen from '../screens/auth/ConnectScreen';
 import InviteScreen from '../screens/auth/InviteScreen';
 import JoinScreen from '../screens/auth/JoinScreen';
 import SuccessScreen from '../screens/auth/SuccessScreen';
+import FiscalYearSetupScreen from '../screens/auth/FiscalYearSetupScreen';
 
 // Main app screens
 import TabNavigator from './TabNavigator';
@@ -62,6 +63,7 @@ export default function AppNavigator() {
             <Stack.Screen name="Invite" component={InviteScreen} />
             <Stack.Screen name="Join" component={JoinScreen} />
             <Stack.Screen name="Success" component={SuccessScreen} />
+            <Stack.Screen name="FiscalYearSetup" component={FiscalYearSetupScreen} />
           </>
         ) : (
           // Main App Stack - User logged in with partner

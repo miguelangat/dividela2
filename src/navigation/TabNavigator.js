@@ -17,6 +17,7 @@ import SettingsScreen from '../screens/main/SettingsScreen';
 import BudgetDashboardScreen from '../screens/main/BudgetDashboardScreen';
 import BudgetSetupScreen from '../screens/main/BudgetSetupScreen';
 import CategoryManagerScreen from '../screens/main/CategoryManagerScreen';
+import AnnualBudgetSetupScreen from '../screens/main/AnnualBudgetSetupScreen';
 
 // Settlement screens
 import SettlementHistoryScreen from '../screens/main/SettlementHistoryScreen';
@@ -61,6 +62,11 @@ function BudgetStackNavigator() {
         name="CategoryManager"
         component={CategoryManagerScreen}
         options={{ title: 'Manage Categories' }}
+      />
+      <BudgetStack.Screen
+        name="AnnualBudgetSetup"
+        component={AnnualBudgetSetupScreen}
+        options={{ title: 'Annual Budget' }}
       />
     </BudgetStack.Navigator>
   );
