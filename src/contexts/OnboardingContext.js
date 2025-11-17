@@ -33,6 +33,7 @@ export const OnboardingProvider = ({ children }) => {
   // Onboarding state
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedMode, setSelectedMode] = useState(null);
+  const [budgetStyle, setBudgetStyle] = useState('smart'); // 'smart' or 'fixed' for simple mode
   const [budgetData, setBudgetData] = useState({
     monthlyIncome: 0,
     categoryBudgets: {},
@@ -347,6 +348,7 @@ export const OnboardingProvider = ({ children }) => {
   const resetOnboarding = useCallback(async () => {
     setCurrentStep(0);
     setSelectedMode(null);
+    setBudgetStyle('smart');
     setBudgetData({
       monthlyIncome: 0,
       categoryBudgets: {},
@@ -398,6 +400,7 @@ export const OnboardingProvider = ({ children }) => {
         const state = {
           currentStep,
           selectedMode,
+          budgetStyle,
           budgetData,
           timestamp: new Date().toISOString(),
         };
@@ -409,7 +412,7 @@ export const OnboardingProvider = ({ children }) => {
       }
     };
     persistState();
-  }, [currentStep, selectedMode, budgetData]);
+  }, [currentStep, selectedMode, budgetStyle, budgetData]);
 
   // Recover state from AsyncStorage on mount
   useEffect(() => {
@@ -426,6 +429,7 @@ export const OnboardingProvider = ({ children }) => {
           if (hoursSince < 24 && !completion.isComplete) {
             setCurrentStep(parsed.currentStep);
             setSelectedMode(parsed.selectedMode);
+            if (parsed.budgetStyle) setBudgetStyle(parsed.budgetStyle);
             setBudgetData(parsed.budgetData);
             console.log('✅ Recovered onboarding state from AsyncStorage');
           }
@@ -455,6 +459,7 @@ export const OnboardingProvider = ({ children }) => {
     // State
     currentStep,
     selectedMode,
+    budgetStyle,
     budgetData,
     categories,
     completion,
@@ -471,6 +476,7 @@ export const OnboardingProvider = ({ children }) => {
     getProgress,
 
     // Budget data management
+    setBudgetStyle,
     updateBudgetData,
     setMonthlyIncome,
     setCategoryBudgets,
