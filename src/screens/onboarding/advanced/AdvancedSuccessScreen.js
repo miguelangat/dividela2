@@ -1,0 +1,475 @@
+// src/screens/onboarding/advanced/AdvancedSuccessScreen.js
+// Advanced Mode Success Screen - Step 7/7
+
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Animated,
+  ActivityIndicator,
+} from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES, SHADOWS } from '../../../constants/theme';
+import { useOnboarding } from '../../../contexts/OnboardingContext';
+import { useBudget } from '../../../contexts/BudgetContext';
+
+export default function AdvancedSuccessScreen({ navigation, route }) {
+  const { finalData } = route.params || {};
+  const { completeOnboarding, loading: onboardingLoading } = useOnboarding();
+  const { categories: budgetCategories } = useBudget();
+  const [completing, setCompleting] = useState(false);
+
+  const {
+    mode,
+    totalBudget,
+    selectedCategories,
+    includeSavings,
+    allocations,
+  } = finalData || {};
+
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0)).current;
+  const checkmarkScale = useRef(new Animated.Value(0)).current;
+  const confettiAnims = useRef(
+    Array.from({ length: 20 }, () => ({
+      x: new Animated.Value(0),
+      y: new Animated.Value(0),
+      rotate: new Animated.Value(0),
+      opacity: new Animated.Value(1),
+    }))
+  ).current;
+
+  useEffect(() => {
+    // Animate checkmark
+    Animated.sequence([
+      Animated.delay(200),
+      Animated.spring(checkmarkScale, {
+        toValue: 1,
+        tension: 50,
+        friction: 5,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Animate content
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        delay: 400,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        delay: 400,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Animate confetti
+    confettiAnims.forEach((anim, index) => {
+      const delay = index * 50;
+      const randomX = (Math.random() - 0.5) * 200;
+      const randomRotate = Math.random() * 720;
+
+      Animated.parallel([
+        Animated.timing(anim.x, {
+          toValue: randomX,
+          duration: 2000,
+          delay,
+          useNativeDriver: true,
+        }),
+        Animated.timing(anim.y, {
+          toValue: 600,
+          duration: 2000,
+          delay,
+          useNativeDriver: true,
+        }),
+        Animated.timing(anim.rotate, {
+          toValue: randomRotate,
+          duration: 2000,
+          delay,
+          useNativeDriver: true,
+        }),
+        Animated.timing(anim.opacity, {
+          toValue: 0,
+          duration: 2000,
+          delay,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    });
+  }, []);
+
+  const handleGoToDashboard = async () => {
+    setCompleting(true);
+    try {
+      // Complete onboarding and save budget
+      const success = await completeOnboarding(budgetCategories);
+
+      if (success) {
+        // AppNavigator will automatically navigate to MainTabs
+        // after onboarding is marked as complete
+        console.log('Advanced onboarding completed successfully');
+      }
+    } catch (error) {
+      console.error('Error completing advanced onboarding:', error);
+    } finally {
+      setCompleting(false);
+    }
+  };
+
+  const handleEditBudget = () => {
+    // Navigate back to allocation screen to edit
+    navigation.goBack();
+  };
+
+  const formatCurrency = (value) => {
+    return Math.round(value || 0).toLocaleString('en-US');
+  };
+
+  const monthlyBudget = mode === 'annual' ? totalBudget / 12 : totalBudget;
+
+  // Get first 3 categories for preview
+  const previewCategories = selectedCategories?.slice(0, 3) || [];
+
+  const confettiColors = [
+    COLORS.primary,
+    COLORS.secondary,
+    COLORS.success,
+    COLORS.warning,
+    COLORS.info,
+  ];
+
+  return (
+    <View style={styles.container}>
+      <StatusBar style="dark" />
+
+      {/* Confetti Animation */}
+      <View style={styles.confettiContainer}>
+        {confettiAnims.map((anim, index) => (
+          <Animated.View
+            key={index}
+            style={[
+              styles.confetti,
+              {
+                backgroundColor:
+                  confettiColors[index % confettiColors.length],
+                transform: [
+                  { translateX: anim.x },
+                  { translateY: anim.y },
+                  {
+                    rotate: anim.rotate.interpolate({
+                      inputRange: [0, 720],
+                      outputRange: ['0deg', '720deg'],
+                    }),
+                  },
+                ],
+                opacity: anim.opacity,
+              },
+            ]}
+          />
+        ))}
+      </View>
+
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Animated Checkmark */}
+        <Animated.View
+          style={[
+            styles.checkmarkContainer,
+            {
+              transform: [{ scale: checkmarkScale }],
+            },
+          ]}
+        >
+          <View style={styles.checkmarkCircle}>
+            <Text style={styles.checkmarkText}>✓</Text>
+          </View>
+        </Animated.View>
+
+        {/* Title and Content */}
+        <Animated.View
+          style={[
+            styles.content,
+            {
+              opacity: fadeAnim,
+              transform: [{ scale: scaleAnim }],
+            },
+          ]}
+        >
+          <Text style={styles.title}>Your Budget is Ready!</Text>
+          <Text style={styles.subtitle}>
+            You're all set to start tracking and managing your shared finances
+          </Text>
+
+          {/* Summary Stats */}
+          <View style={styles.statsContainer}>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>
+                ${formatCurrency(totalBudget)}
+              </Text>
+              <Text style={styles.statLabel}>
+                {mode === 'annual' ? 'Annual Budget' : 'Monthly Budget'}
+              </Text>
+            </View>
+
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>
+                {selectedCategories?.length || 0}
+              </Text>
+              <Text style={styles.statLabel}>Categories</Text>
+            </View>
+
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>
+                {includeSavings ? 'Yes' : 'No'}
+              </Text>
+              <Text style={styles.statLabel}>Split Savings</Text>
+            </View>
+          </View>
+
+          {/* Preview Card */}
+          <View style={styles.previewCard}>
+            <View style={styles.previewHeader}>
+              <Text style={styles.previewTitle}>First Month Breakdown</Text>
+              <Text style={styles.previewAmount}>
+                ${formatCurrency(monthlyBudget)}
+              </Text>
+            </View>
+
+            <View style={styles.previewDivider} />
+
+            {previewCategories.map((category) => {
+              const allocation = allocations?.[category.key] || 0;
+              const monthlyAllocation =
+                mode === 'annual' ? allocation / 12 : allocation;
+
+              return (
+                <View key={category.key} style={styles.previewItem}>
+                  <View style={styles.previewItemLeft}>
+                    <Text style={styles.previewIcon}>{category.icon}</Text>
+                    <Text style={styles.previewName}>{category.name}</Text>
+                  </View>
+                  <Text style={styles.previewValue}>
+                    ${formatCurrency(monthlyAllocation)}
+                  </Text>
+                </View>
+              );
+            })}
+
+            {selectedCategories?.length > 3 && (
+              <Text style={styles.previewMore}>
+                + {selectedCategories.length - 3} more categories
+              </Text>
+            )}
+          </View>
+
+          {/* Action Buttons */}
+          <TouchableOpacity
+            style={[styles.primaryButton, completing && styles.buttonDisabled]}
+            onPress={handleGoToDashboard}
+            activeOpacity={0.8}
+            disabled={completing}
+          >
+            {completing ? (
+              <ActivityIndicator size="small" color={COLORS.background} />
+            ) : (
+              <Text style={styles.primaryButtonText}>Go to Dashboard</Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={handleEditBudget}
+            activeOpacity={0.7}
+            disabled={completing}
+          >
+            <Text style={styles.secondaryButtonText}>Edit Budget</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    ...COMMON_STYLES.container,
+  },
+  confettiContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 200,
+    alignItems: 'center',
+    zIndex: 10,
+    pointerEvents: 'none',
+  },
+  confetti: {
+    position: 'absolute',
+    width: 10,
+    height: 10,
+    borderRadius: 2,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    padding: SPACING.screenPadding,
+    paddingTop: SPACING.huge,
+    alignItems: 'center',
+  },
+  checkmarkContainer: {
+    marginBottom: SPACING.xlarge,
+    marginTop: SPACING.xlarge,
+  },
+  checkmarkCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: COLORS.success,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOWS.large,
+  },
+  checkmarkText: {
+    fontSize: 60,
+    color: COLORS.textWhite,
+    fontWeight: FONTS.weights.bold,
+  },
+  content: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: FONTS.sizes.xlarge,
+    fontWeight: FONTS.weights.bold,
+    color: COLORS.text,
+    marginBottom: SPACING.small,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: FONTS.sizes.body,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginBottom: SPACING.xxlarge,
+    maxWidth: 300,
+    lineHeight: 22,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    width: '100%',
+    marginBottom: SPACING.xlarge,
+    gap: SPACING.small,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: COLORS.backgroundLight,
+    borderRadius: SIZES.borderRadius.medium,
+    padding: SPACING.base,
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: FONTS.sizes.heading,
+    fontWeight: FONTS.weights.bold,
+    color: COLORS.primary,
+    marginBottom: SPACING.tiny,
+  },
+  statLabel: {
+    fontSize: FONTS.sizes.tiny,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+  },
+  previewCard: {
+    width: '100%',
+    backgroundColor: COLORS.background,
+    borderRadius: SIZES.borderRadius.large,
+    padding: SPACING.large,
+    marginBottom: SPACING.xlarge,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...SHADOWS.card,
+  },
+  previewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.base,
+  },
+  previewTitle: {
+    fontSize: FONTS.sizes.title,
+    fontWeight: FONTS.weights.semibold,
+    color: COLORS.text,
+  },
+  previewAmount: {
+    fontSize: FONTS.sizes.title,
+    fontWeight: FONTS.weights.bold,
+    color: COLORS.primary,
+  },
+  previewDivider: {
+    height: 1,
+    backgroundColor: COLORS.borderLight,
+    marginBottom: SPACING.base,
+  },
+  previewItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: SPACING.small,
+  },
+  previewItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  previewIcon: {
+    fontSize: 24,
+    marginRight: SPACING.small,
+  },
+  previewName: {
+    fontSize: FONTS.sizes.body,
+    color: COLORS.text,
+    flex: 1,
+  },
+  previewValue: {
+    fontSize: FONTS.sizes.body,
+    fontWeight: FONTS.weights.semibold,
+    color: COLORS.textSecondary,
+  },
+  previewMore: {
+    fontSize: FONTS.sizes.small,
+    color: COLORS.textSecondary,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: SPACING.small,
+  },
+  primaryButton: {
+    ...COMMON_STYLES.primaryButton,
+    width: '100%',
+    marginBottom: SPACING.base,
+  },
+  primaryButtonText: {
+    ...COMMON_STYLES.primaryButtonText,
+  },
+  secondaryButton: {
+    paddingVertical: SPACING.medium,
+    paddingHorizontal: SPACING.large,
+    alignItems: 'center',
+  },
+  secondaryButtonText: {
+    fontSize: FONTS.sizes.body,
+    color: COLORS.primary,
+    fontWeight: FONTS.weights.medium,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+});

@@ -79,10 +79,10 @@ export default function SuccessScreen({ navigation, route }) {
   };
 
   const handleContinue = () => {
-    // Navigate to main app
     // Since we've updated userDetails.partnerId via updatePartnerInfo(),
-    // AppNavigator will automatically show the main app stack
-    navigation.replace('MainTabs');
+    // AppNavigator will automatically show the budget onboarding or main app
+    // No need to navigate - AppNavigator handles routing based on state
+    // The component will unmount and AppNavigator will show the appropriate screen
   };
 
   if (loading) {
@@ -140,27 +140,29 @@ export default function SuccessScreen({ navigation, route }) {
             </View>
           </View>
 
-          {/* Features Preview */}
+          {/* Next Steps */}
           <View style={styles.featuresContainer}>
+            <Text style={styles.nextStepsTitle}>Next: Set Up Your Budget</Text>
             <View style={styles.featureItem}>
               <Ionicons name="wallet-outline" size={20} color={COLORS.primary} />
               <Text style={styles.featureText}>Track shared expenses</Text>
             </View>
             <View style={styles.featureItem}>
               <Ionicons name="pie-chart-outline" size={20} color={COLORS.primary} />
-              <Text style={styles.featureText}>See spending insights</Text>
+              <Text style={styles.featureText}>Monitor your budget together</Text>
             </View>
             <View style={styles.featureItem}>
               <Ionicons name="sync-outline" size={20} color={COLORS.primary} />
-              <Text style={styles.featureText}>Auto-sync in real-time</Text>
+              <Text style={styles.featureText}>Stay on track with goals</Text>
             </View>
           </View>
         </Animated.View>
 
         {/* Continue Button */}
         <TouchableOpacity style={COMMON_STYLES.primaryButton} onPress={handleContinue}>
-          <Text style={COMMON_STYLES.primaryButtonText}>Continue to App</Text>
+          <Text style={COMMON_STYLES.primaryButtonText}>Set Up Budget</Text>
         </TouchableOpacity>
+        <Text style={styles.skipText}>You can skip this step later if you prefer</Text>
       </View>
     </View>
   );
@@ -265,6 +267,18 @@ const styles = StyleSheet.create({
     padding: SPACING.base,
     marginBottom: SPACING.xl,
     gap: SPACING.small,
+  },
+  nextStepsTitle: {
+    ...FONTS.title,
+    color: COLORS.text,
+    marginBottom: SPACING.small,
+    textAlign: 'center',
+  },
+  skipText: {
+    ...FONTS.small,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginTop: SPACING.small,
   },
   featureItem: {
     flexDirection: 'row',

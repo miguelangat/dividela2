@@ -22,6 +22,7 @@ import {
   Dimensions,
   Modal,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
@@ -34,7 +35,7 @@ const isSmallScreen = screenWidth < 375;
 const isMediumScreen = screenWidth >= 375 && screenWidth < 768;
 const isLargeScreen = screenWidth >= 768;
 
-export default function SettingsScreen() {
+export default function SettingsScreen({ navigation }) {
   const { user, userDetails, signOut, getPartnerDetails } = useAuth();
   const [editingName, setEditingName] = useState(false);
   const [displayName, setDisplayName] = useState(userDetails?.displayName || '');
@@ -220,6 +221,36 @@ export default function SettingsScreen() {
     </View>
   );
 
+  const handleRestartOnboarding = async () => {
+    Alert.alert(
+      'Restart Budget Onboarding',
+      'This will take you through the budget setup process again. Your current budget will be replaced.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Restart',
+          style: 'default',
+          onPress: async () => {
+            try {
+              // Clear the onboarding completion flag
+              const key = `onboarding_completed_${userDetails?.coupleId}`;
+              await AsyncStorage.removeItem(key);
+
+              // Navigate to onboarding
+              navigation.navigate('Onboarding');
+            } catch (error) {
+              console.error('Error restarting onboarding:', error);
+              Alert.alert('Error', 'Failed to restart onboarding. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const renderPreferencesSection = () => (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Preferences</Text>
@@ -235,7 +266,7 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        <View style={[styles.settingRow, styles.settingRowLast]}>
+        <View style={styles.settingRow}>
           <View style={styles.settingIcon}>
             <Ionicons name="pie-chart" size={20} color={COLORS.primary} />
           </View>
@@ -244,6 +275,21 @@ export default function SettingsScreen() {
             <Text style={styles.settingValue}>50 / 50</Text>
           </View>
         </View>
+
+        <TouchableOpacity
+          style={[styles.settingRow, styles.settingRowLast]}
+          onPress={handleRestartOnboarding}
+          activeOpacity={0.6}
+        >
+          <View style={styles.settingIcon}>
+            <Ionicons name="refresh" size={20} color={COLORS.primary} />
+          </View>
+          <View style={styles.settingContent}>
+            <Text style={styles.settingLabel}>Budget Setup</Text>
+            <Text style={styles.settingValue}>Restart onboarding</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+        </TouchableOpacity>
       </View>
     </View>
   );
