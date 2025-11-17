@@ -57,6 +57,7 @@ export default function AdvancedStrategyScreen({ navigation, route }) {
       <StatusBar style="dark" />
 
       <ScrollView
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
@@ -122,8 +123,10 @@ export default function AdvancedStrategyScreen({ navigation, route }) {
             Don't worry, you can change this later in settings
           </Text>
         </View>
+      </ScrollView>
 
-        {/* Continue Button */}
+      {/* Continue Button */}
+      <View style={styles.footer}>
         <TouchableOpacity
           style={styles.continueButton}
           onPress={handleContinue}
@@ -131,7 +134,7 @@ export default function AdvancedStrategyScreen({ navigation, route }) {
         >
           <Text style={styles.continueButtonText}>Continue</Text>
         </TouchableOpacity>
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -140,10 +143,14 @@ const styles = StyleSheet.create({
   container: {
     ...COMMON_STYLES.container,
   },
+  scrollView: {
+    flex: 1,
+  },
   scrollContent: {
     flexGrow: 1,
     padding: SPACING.screenPadding,
     paddingTop: SPACING.huge,
+    paddingBottom: SPACING.xxlarge,
   },
   progressContainer: {
     marginBottom: SPACING.xlarge,
@@ -276,9 +283,14 @@ const styles = StyleSheet.create({
     fontSize: FONTS.sizes.small,
     color: COLORS.textSecondary,
   },
+  footer: {
+    padding: SPACING.screenPadding,
+    backgroundColor: COLORS.background,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
   continueButton: {
     ...COMMON_STYLES.primaryButton,
-    marginTop: 'auto',
   },
   continueButtonText: {
     ...COMMON_STYLES.primaryButtonText,

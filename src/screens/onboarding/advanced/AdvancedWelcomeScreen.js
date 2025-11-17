@@ -80,6 +80,7 @@ export default function AdvancedWelcomeScreen({ navigation }) {
         end={{ x: 1, y: 1 }}
       >
         <ScrollView
+          style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
@@ -134,26 +135,26 @@ export default function AdvancedWelcomeScreen({ navigation }) {
               </Animated.View>
             ))}
           </View>
-
-          {/* Buttons */}
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={styles.primaryButton}
-              onPress={handleGetStarted}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.primaryButtonText}>Let's Get Started</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.linkButton}
-              onPress={handleBackToSimple}
-              activeOpacity={0.6}
-            >
-              <Text style={styles.linkButtonText}>Back to Simple Mode</Text>
-            </TouchableOpacity>
-          </View>
         </ScrollView>
+
+        {/* Buttons */}
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={handleGetStarted}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.primaryButtonText}>Let's Get Started</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.linkButton}
+            onPress={handleBackToSimple}
+            activeOpacity={0.6}
+          >
+            <Text style={styles.linkButtonText}>Back to Simple Mode</Text>
+          </TouchableOpacity>
+        </View>
       </LinearGradient>
     </View>
   );
@@ -166,10 +167,14 @@ const styles = StyleSheet.create({
   gradient: {
     flex: 1,
   },
+  scrollView: {
+    flex: 1,
+  },
   scrollContent: {
     flexGrow: 1,
     padding: SPACING.screenPadding,
     paddingTop: SPACING.huge,
+    paddingBottom: SPACING.xxlarge,
   },
   progressContainer: {
     marginBottom: SPACING.xlarge,
@@ -235,8 +240,8 @@ const styles = StyleSheet.create({
     color: COLORS.textWhite,
     flex: 1,
   },
-  buttonContainer: {
-    marginTop: 'auto',
+  footer: {
+    padding: SPACING.screenPadding,
     paddingTop: SPACING.xlarge,
   },
   primaryButton: {

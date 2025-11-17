@@ -93,6 +93,7 @@ export default function AdvancedCategoriesScreen({ navigation, route }) {
       <StatusBar style="dark" />
 
       <ScrollView
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
@@ -190,8 +191,10 @@ export default function AdvancedCategoriesScreen({ navigation, route }) {
             Most couples track 5-7 categories
           </Text>
         </View>
+      </ScrollView>
 
-        {/* Continue Button */}
+      {/* Continue Button */}
+      <View style={styles.footer}>
         <TouchableOpacity
           style={[
             styles.continueButton,
@@ -203,7 +206,7 @@ export default function AdvancedCategoriesScreen({ navigation, route }) {
         >
           <Text style={styles.continueButtonText}>Continue</Text>
         </TouchableOpacity>
-      </ScrollView>
+      </View>
 
       {/* Add Custom Category Modal */}
       <Modal
@@ -274,10 +277,14 @@ const styles = StyleSheet.create({
   container: {
     ...COMMON_STYLES.container,
   },
+  scrollView: {
+    flex: 1,
+  },
   scrollContent: {
     flexGrow: 1,
     padding: SPACING.screenPadding,
     paddingTop: SPACING.huge,
+    paddingBottom: SPACING.xxlarge,
   },
   progressContainer: {
     marginBottom: SPACING.xlarge,
@@ -453,6 +460,12 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: FONTS.sizes.small,
     color: COLORS.textSecondary,
+  },
+  footer: {
+    padding: SPACING.screenPadding,
+    backgroundColor: COLORS.background,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
   },
   continueButton: {
     ...COMMON_STYLES.primaryButton,

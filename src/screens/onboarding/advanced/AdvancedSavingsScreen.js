@@ -39,6 +39,7 @@ export default function AdvancedSavingsScreen({ navigation, route }) {
       <StatusBar style="dark" />
 
       <ScrollView
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
@@ -165,8 +166,10 @@ export default function AdvancedSavingsScreen({ navigation, route }) {
             You can change this setting anytime in budget preferences
           </Text>
         </View>
+      </ScrollView>
 
-        {/* Finish Button */}
+      {/* Finish Button */}
+      <View style={styles.footer}>
         <TouchableOpacity
           style={styles.finishButton}
           onPress={handleFinish}
@@ -174,7 +177,7 @@ export default function AdvancedSavingsScreen({ navigation, route }) {
         >
           <Text style={styles.finishButtonText}>Finish Setup</Text>
         </TouchableOpacity>
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -183,10 +186,14 @@ const styles = StyleSheet.create({
   container: {
     ...COMMON_STYLES.container,
   },
+  scrollView: {
+    flex: 1,
+  },
   scrollContent: {
     flexGrow: 1,
     padding: SPACING.screenPadding,
     paddingTop: SPACING.huge,
+    paddingBottom: SPACING.xxlarge,
   },
   progressContainer: {
     marginBottom: SPACING.xlarge,
@@ -396,6 +403,12 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: FONTS.sizes.small,
     color: COLORS.textSecondary,
+  },
+  footer: {
+    padding: SPACING.screenPadding,
+    backgroundColor: COLORS.background,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
   },
   finishButton: {
     ...COMMON_STYLES.primaryButton,
