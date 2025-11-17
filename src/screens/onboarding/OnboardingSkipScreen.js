@@ -20,6 +20,8 @@ export default function OnboardingSkipScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { completeOnboarding, loading: onboardingLoading } = useOnboarding();
   const [completing, setCompleting] = useState(false);
+  const [completionAttempted, setCompletionAttempted] = useState(false);
+  const completionTimeoutRef = React.useRef(null);
 
   // Animation values
   const scaleAnim = new Animated.Value(0);
@@ -27,6 +29,13 @@ export default function OnboardingSkipScreen({ navigation }) {
 
   useEffect(() => {
     startAnimation();
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (completionTimeoutRef.current) {
+        clearTimeout(completionTimeoutRef.current);
+      }
+    };
   }, []);
 
   const startAnimation = () => {
@@ -48,7 +57,15 @@ export default function OnboardingSkipScreen({ navigation }) {
   };
 
   const handleContinue = async () => {
+    // Double-tap prevention: Check if already completing or recently completed
+    if (completing || completionAttempted) {
+      console.log('Preventing duplicate skip completion attempt');
+      return;
+    }
+
     setCompleting(true);
+    setCompletionAttempted(true);
+
     try {
       // Complete onboarding in skip mode
       const success = await completeOnboarding(null);
@@ -57,19 +74,40 @@ export default function OnboardingSkipScreen({ navigation }) {
         // AppNavigator will automatically navigate to MainTabs
         // after onboarding is marked as complete
         console.log('Onboarding skipped successfully');
+
+        // Keep completion flag set to prevent further attempts
+        // Don't reset completing state to keep UI disabled
+      } else {
+        // Reset if not successful to allow retry
+        setCompleting(false);
+        setCompletionAttempted(false);
       }
     } catch (error) {
       console.error('Error completing skip onboarding:', error);
-    } finally {
+      // Reset on error to allow retry
       setCompleting(false);
+
+      // Reset completion attempted after a delay to allow retry
+      completionTimeoutRef.current = setTimeout(() => {
+        setCompletionAttempted(false);
+      }, 2000);
     }
   };
+
+  // Safe area insets with proper fallbacks
+  const safeBottomInset = React.useMemo(() => {
+    // Guard against undefined, null, NaN, or negative values
+    if (!insets || typeof insets.bottom !== 'number' || isNaN(insets.bottom) || insets.bottom < 0) {
+      return SPACING.base;
+    }
+    return Math.max(insets.bottom, SPACING.base);
+  }, [insets]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar style="dark" />
 
-      <View style={[styles.content, { paddingBottom: Math.max(insets.bottom, SPACING.base) }]}>
+      <View style={[styles.content, { paddingBottom: safeBottomInset }]}>
         {/* Animated Success Checkmark */}
         <Animated.View
           style={[
@@ -105,9 +143,9 @@ export default function OnboardingSkipScreen({ navigation }) {
 
         {/* Continue Button */}
         <TouchableOpacity
-          style={[COMMON_STYLES.primaryButton, completing && styles.buttonDisabled]}
+          style={[COMMON_STYLES.primaryButton, (completing || completionAttempted) && styles.buttonDisabled]}
           onPress={handleContinue}
-          disabled={completing}
+          disabled={completing || completionAttempted}
         >
           {completing ? (
             <ActivityIndicator size="small" color={COLORS.background} />

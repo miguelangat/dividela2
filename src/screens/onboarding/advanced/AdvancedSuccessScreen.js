@@ -23,7 +23,10 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
   const { completeOnboarding, loading: onboardingLoading } = useOnboarding();
   const { categories: budgetCategories } = useBudget();
   const [completing, setCompleting] = useState(false);
+  const [completionAttempted, setCompletionAttempted] = useState(false);
+  const completionTimeoutRef = useRef(null);
 
+  // Validate and sanitize navigation params
   const {
     mode,
     totalBudget,
@@ -31,6 +34,27 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
     includeSavings,
     allocations,
   } = finalData || {};
+
+  // Validate critical data
+  const isDataValid = React.useMemo(() => {
+    if (!finalData) {
+      console.error('AdvancedSuccessScreen: No finalData provided');
+      return false;
+    }
+    if (!mode || (mode !== 'monthly' && mode !== 'annual')) {
+      console.error('AdvancedSuccessScreen: Invalid mode:', mode);
+      return false;
+    }
+    if (typeof totalBudget !== 'number' || totalBudget <= 0 || isNaN(totalBudget)) {
+      console.error('AdvancedSuccessScreen: Invalid totalBudget:', totalBudget);
+      return false;
+    }
+    if (!Array.isArray(selectedCategories) || selectedCategories.length === 0) {
+      console.error('AdvancedSuccessScreen: Invalid selectedCategories:', selectedCategories);
+      return false;
+    }
+    return true;
+  }, [finalData, mode, totalBudget, selectedCategories]);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -46,6 +70,14 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
   ).current;
 
   useEffect(() => {
+    // Check if data is valid before proceeding
+    if (!isDataValid) {
+      console.error('Invalid data detected - navigation back to previous screen');
+      // Could navigate back or show error
+      // For now, just log - animations won't run
+      return;
+    }
+
     // Animate checkmark
     Animated.sequence([
       Animated.delay(200),
@@ -107,10 +139,31 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
         }),
       ]).start();
     });
-  }, []);
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (completionTimeoutRef.current) {
+        clearTimeout(completionTimeoutRef.current);
+      }
+    };
+  }, [isDataValid]);
 
   const handleGoToDashboard = async () => {
+    // Double-tap prevention: Check if already completing or recently completed
+    if (completing || completionAttempted) {
+      console.log('Preventing duplicate completion attempt');
+      return;
+    }
+
+    // Validate data before attempting completion
+    if (!isDataValid) {
+      console.error('Cannot complete onboarding with invalid data');
+      return;
+    }
+
     setCompleting(true);
+    setCompletionAttempted(true);
+
     try {
       // Complete onboarding and save budget
       const success = await completeOnboarding(budgetCategories);
@@ -119,27 +172,58 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
         // AppNavigator will automatically navigate to MainTabs
         // after onboarding is marked as complete
         console.log('Advanced onboarding completed successfully');
+
+        // Keep completion flag set to prevent further attempts
+        // Don't reset completing state to keep UI disabled
+      } else {
+        // Reset if not successful to allow retry
+        setCompleting(false);
+        setCompletionAttempted(false);
       }
     } catch (error) {
       console.error('Error completing advanced onboarding:', error);
-    } finally {
+      // Reset on error to allow retry
       setCompleting(false);
+
+      // Reset completion attempted after a delay to allow retry
+      completionTimeoutRef.current = setTimeout(() => {
+        setCompletionAttempted(false);
+      }, 2000);
     }
   };
 
   const handleEditBudget = () => {
+    // Prevent navigation if completing
+    if (completing || completionAttempted) {
+      console.log('Preventing navigation during completion');
+      return;
+    }
+
     // Navigate back to allocation screen to edit
     navigation.goBack();
   };
 
   const formatCurrency = (value) => {
-    return Math.round(value || 0).toLocaleString('en-US');
+    // Guard against invalid values
+    if (typeof value !== 'number' || isNaN(value)) {
+      return '0';
+    }
+    return Math.round(value).toLocaleString('en-US');
   };
 
-  const monthlyBudget = mode === 'annual' ? totalBudget / 12 : totalBudget;
+  const monthlyBudget = mode === 'annual' ? (totalBudget || 0) / 12 : (totalBudget || 0);
 
   // Get first 3 categories for preview
   const previewCategories = selectedCategories?.slice(0, 3) || [];
+
+  // Safe area insets with proper fallbacks
+  const safeBottomInset = React.useMemo(() => {
+    // Guard against undefined, null, NaN, or negative values
+    if (!insets || typeof insets.bottom !== 'number' || isNaN(insets.bottom) || insets.bottom < 0) {
+      return SPACING.base;
+    }
+    return Math.max(insets.bottom, SPACING.base);
+  }, [insets]);
 
   const confettiColors = [
     COLORS.primary,
@@ -181,7 +265,7 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
       </View>
 
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom, SPACING.base) }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: safeBottomInset }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Animated Checkmark */}
@@ -277,10 +361,10 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
 
           {/* Action Buttons */}
           <TouchableOpacity
-            style={[styles.primaryButton, completing && styles.buttonDisabled]}
+            style={[styles.primaryButton, (completing || completionAttempted || !isDataValid) && styles.buttonDisabled]}
             onPress={handleGoToDashboard}
             activeOpacity={0.8}
-            disabled={completing}
+            disabled={completing || completionAttempted || !isDataValid}
           >
             {completing ? (
               <ActivityIndicator size="small" color={COLORS.background} />
@@ -290,12 +374,12 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.secondaryButton}
+            style={[styles.secondaryButton, (completing || completionAttempted) && styles.buttonDisabled]}
             onPress={handleEditBudget}
             activeOpacity={0.7}
-            disabled={completing}
+            disabled={completing || completionAttempted}
           >
-            <Text style={styles.secondaryButtonText}>Edit Budget</Text>
+            <Text style={[styles.secondaryButtonText, (completing || completionAttempted) && styles.textDisabled]}>Edit Budget</Text>
           </TouchableOpacity>
         </Animated.View>
       </ScrollView>
@@ -472,5 +556,8 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.6,
+  },
+  textDisabled: {
+    opacity: 0.5,
   },
 });

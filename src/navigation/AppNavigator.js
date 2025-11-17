@@ -6,7 +6,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useAuth } from '../contexts/AuthContext';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { onboardingStorage } from '../utils/storage';
 import { COLORS } from '../constants/theme';
 
 // Auth screens
@@ -31,6 +31,8 @@ export default function AppNavigator() {
   const { user, userDetails, loading } = useAuth();
   const [onboardingCompleted, setOnboardingCompleted] = useState(null);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+  const checkTimeoutRef = React.useRef(null);
 
   // Debug logging
   console.log('AppNavigator - user:', user?.uid);
@@ -43,20 +45,38 @@ export default function AppNavigator() {
   }, [user, userDetails?.coupleId]);
 
   // Poll for onboarding status changes (for when completeOnboarding is called)
+  // Using a more efficient polling strategy with debouncing
   useEffect(() => {
     if (!user || !userDetails?.coupleId) {
       return;
     }
 
     // Set up interval to check onboarding status (in case it's updated)
+    // Reduced frequency to 2 seconds and added debouncing
     const interval = setInterval(() => {
-      checkOnboardingStatus();
-    }, 1000); // Check every second
+      // Only check if not already checking (prevents race conditions)
+      if (!isCheckingStatus) {
+        checkOnboardingStatus();
+      }
+    }, 2000); // Check every 2 seconds instead of 1
 
-    return () => clearInterval(interval);
-  }, [user, userDetails?.coupleId]);
+    return () => {
+      clearInterval(interval);
+      // Clear any pending timeout on unmount
+      if (checkTimeoutRef.current) {
+        clearTimeout(checkTimeoutRef.current);
+      }
+    };
+  }, [user, userDetails?.coupleId, isCheckingStatus]);
 
   const checkOnboardingStatus = async () => {
+    // Debounce: prevent multiple simultaneous checks
+    if (isCheckingStatus) {
+      return;
+    }
+
+    setIsCheckingStatus(true);
+
     try {
       if (!user || !userDetails?.coupleId) {
         setOnboardingCompleted(null);
@@ -64,20 +84,26 @@ export default function AppNavigator() {
         return;
       }
 
-      // Check if onboarding was completed or skipped
-      const key = `onboarding_completed_${userDetails.coupleId}`;
-      const completed = await AsyncStorage.getItem(key);
+      // Check if onboarding was completed or skipped using safe storage utility
+      const completed = await onboardingStorage.getCompleted(userDetails.coupleId);
 
       // Also check userDetails for budgetOnboardingCompleted flag
-      const completedFlag = userDetails?.budgetOnboardingCompleted || completed === 'true';
+      const completedFlag = userDetails?.budgetOnboardingCompleted || completed;
 
       setOnboardingCompleted(completedFlag);
       console.log('AppNavigator - onboarding completed:', completedFlag);
     } catch (error) {
       console.error('Error checking onboarding status:', error);
-      setOnboardingCompleted(false);
+      // Don't set to false on error - maintain current state to prevent unwanted navigation
+      if (onboardingCompleted === null) {
+        setOnboardingCompleted(false);
+      }
     } finally {
       setCheckingOnboarding(false);
+      // Use a timeout to reset the checking flag to prevent rapid successive calls
+      checkTimeoutRef.current = setTimeout(() => {
+        setIsCheckingStatus(false);
+      }, 100);
     }
   };
 

@@ -2,8 +2,8 @@
 // Context for managing budget onboarding state and flow
 
 import React, { createContext, useState, useContext, useCallback, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './AuthContext';
+import { onboardingStorage, StorageError, StorageErrorType } from '../utils/storage';
 import {
   getRecommendedMode,
   calculateSmartBudgets,
@@ -292,9 +292,24 @@ export const OnboardingProvider = ({ children }) => {
           completedAt: new Date(),
         });
 
-        // Persist completion to AsyncStorage
-        await AsyncStorage.setItem(`onboarding_completed_${coupleId}`, 'true');
-        console.log('✅ Onboarding skipped/completed');
+        // Persist completion to AsyncStorage with error handling
+        try {
+          await onboardingStorage.setCompleted(coupleId);
+          console.log('✅ Onboarding skipped/completed');
+        } catch (storageError) {
+          // Log error but don't fail the entire operation
+          console.error('Failed to save onboarding completion to storage:', storageError);
+          if (storageError instanceof StorageError) {
+            if (storageError.type === StorageErrorType.QUOTA_EXCEEDED) {
+              setError('Storage full - please free up space and try again');
+            } else if (storageError.type === StorageErrorType.PERMISSION_DENIED) {
+              setError('Storage permission denied - please check app permissions');
+            } else {
+              setError('Failed to save completion status');
+            }
+          }
+          // Still return true if the main operation succeeded
+        }
         setLoading(false);
         return true;
       }
@@ -307,36 +322,57 @@ export const OnboardingProvider = ({ children }) => {
         return false;
       }
 
-      // Save budget with complexity mode
+      // Save budget with complexity mode (network operation)
       const { month, year } = getCurrentMonthYear();
-      await saveBudget(
-        coupleId,
-        month,
-        year,
-        budgetData.categoryBudgets,
-        {
-          enabled: true,
-          complexity: selectedMode,
-          autoCalculated: budgetData.autoCalculated || false,
-          onboardingMode: selectedMode,
-          canAutoAdjust: false,
+      try {
+        await saveBudget(
+          coupleId,
+          month,
+          year,
+          budgetData.categoryBudgets,
+          {
+            enabled: true,
+            complexity: selectedMode,
+            autoCalculated: budgetData.autoCalculated || false,
+            onboardingMode: selectedMode,
+            canAutoAdjust: false,
+          }
+        );
+      } catch (budgetError) {
+        console.error('Failed to save budget:', budgetError);
+        // Check if it's a network error
+        if (budgetError.message?.includes('network') || budgetError.message?.includes('offline')) {
+          setError('Network error - please check your connection and try again');
+        } else {
+          setError(`Failed to save budget: ${budgetError.message}`);
         }
-      );
+        setLoading(false);
+        return false;
+      }
 
       setCompletion({
         isComplete: true,
         completedAt: new Date(),
       });
 
-      // Persist completion to AsyncStorage
-      await AsyncStorage.setItem(`onboarding_completed_${coupleId}`, 'true');
+      // Persist completion to AsyncStorage with error handling
+      try {
+        await onboardingStorage.setCompleted(coupleId);
+        console.log('✅ Onboarding completed successfully');
+      } catch (storageError) {
+        // Log error but don't fail since budget was saved successfully
+        console.error('Failed to save completion status to storage:', storageError);
+        if (storageError instanceof StorageError) {
+          console.warn(`Storage error type: ${storageError.type}`);
+        }
+        // Still consider it successful since the budget was saved to Firebase
+      }
 
-      console.log('✅ Onboarding completed successfully');
       setLoading(false);
       return true;
     } catch (err) {
       console.error('Error completing onboarding:', err);
-      setError(err.message);
+      setError(err.message || 'Unknown error occurred');
       setLoading(false);
       return false;
     }
@@ -364,14 +400,14 @@ export const OnboardingProvider = ({ children }) => {
     // Clear completion flag from AsyncStorage
     if (coupleId) {
       try {
-        await AsyncStorage.removeItem(`onboarding_completed_${coupleId}`);
-        await AsyncStorage.removeItem('onboarding_state');
+        await onboardingStorage.clearCompleted(coupleId);
+        await onboardingStorage.clearState();
+        console.log('✅ Onboarding reset');
       } catch (err) {
         console.error('Error clearing onboarding storage:', err);
+        // Don't fail the reset operation
       }
     }
-
-    console.log('✅ Onboarding reset');
   }, [coupleId]);
 
   /**
@@ -402,12 +438,12 @@ export const OnboardingProvider = ({ children }) => {
           selectedMode,
           budgetStyle,
           budgetData,
-          timestamp: new Date().toISOString(),
         };
         try {
-          await AsyncStorage.setItem('onboarding_state', JSON.stringify(state));
+          await onboardingStorage.saveState(state);
         } catch (err) {
           console.error('Error persisting onboarding state:', err);
+          // Non-critical error, continue silently
         }
       }
     };
@@ -418,24 +454,36 @@ export const OnboardingProvider = ({ children }) => {
   useEffect(() => {
     const recoverState = async () => {
       try {
-        const savedState = await AsyncStorage.getItem('onboarding_state');
-        if (savedState) {
-          const parsed = JSON.parse(savedState);
-          const savedTime = new Date(parsed.timestamp);
+        const savedState = await onboardingStorage.getState();
+        if (savedState && savedState.timestamp) {
+          const savedTime = new Date(savedState.timestamp);
           const now = new Date();
           const hoursSince = (now - savedTime) / (1000 * 60 * 60);
 
           // Only recover if less than 24 hours old
           if (hoursSince < 24 && !completion.isComplete) {
-            setCurrentStep(parsed.currentStep);
-            setSelectedMode(parsed.selectedMode);
-            if (parsed.budgetStyle) setBudgetStyle(parsed.budgetStyle);
-            setBudgetData(parsed.budgetData);
-            console.log('✅ Recovered onboarding state from AsyncStorage');
+            if (typeof savedState.currentStep === 'number') {
+              setCurrentStep(savedState.currentStep);
+            }
+            if (savedState.selectedMode) {
+              setSelectedMode(savedState.selectedMode);
+            }
+            if (savedState.budgetStyle) {
+              setBudgetStyle(savedState.budgetStyle);
+            }
+            if (savedState.budgetData) {
+              setBudgetData(savedState.budgetData);
+            }
+            console.log('✅ Recovered onboarding state from storage');
+          } else if (hoursSince >= 24) {
+            // Clean up old state
+            await onboardingStorage.clearState();
+            console.log('Cleared old onboarding state (>24h old)');
           }
         }
       } catch (err) {
         console.error('Error recovering onboarding state:', err);
+        // Non-critical error, continue with fresh state
       }
     };
     recoverState();
@@ -446,9 +494,10 @@ export const OnboardingProvider = ({ children }) => {
     const clearState = async () => {
       if (completion.isComplete) {
         try {
-          await AsyncStorage.removeItem('onboarding_state');
+          await onboardingStorage.clearState();
         } catch (err) {
           console.error('Error clearing onboarding state:', err);
+          // Non-critical error
         }
       }
     };

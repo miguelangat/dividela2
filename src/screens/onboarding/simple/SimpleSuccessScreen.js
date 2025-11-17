@@ -23,6 +23,8 @@ export default function SimpleSuccessScreen({ navigation }) {
   const { budgetStyle, totalBudget, completeOnboarding, loading: onboardingLoading } = useOnboarding();
   const { currentBudget, totalBudget: budgetTotal, categories } = useBudget();
   const [completing, setCompleting] = useState(false);
+  const [completionAttempted, setCompletionAttempted] = useState(false);
+  const completionTimeoutRef = React.useRef(null);
 
   // Animation values
   const scaleAnim = new Animated.Value(0);
@@ -30,6 +32,13 @@ export default function SimpleSuccessScreen({ navigation }) {
 
   useEffect(() => {
     startAnimation();
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (completionTimeoutRef.current) {
+        clearTimeout(completionTimeoutRef.current);
+      }
+    };
   }, []);
 
   const startAnimation = () => {
@@ -51,7 +60,15 @@ export default function SimpleSuccessScreen({ navigation }) {
   };
 
   const handleGoToDashboard = async () => {
+    // Double-tap prevention: Check if already completing or recently completed
+    if (completing || completionAttempted) {
+      console.log('Preventing duplicate completion attempt');
+      return;
+    }
+
     setCompleting(true);
+    setCompletionAttempted(true);
+
     try {
       // Complete onboarding and save budget
       const success = await completeOnboarding(categories);
@@ -60,15 +77,33 @@ export default function SimpleSuccessScreen({ navigation }) {
         // AppNavigator will automatically navigate to MainTabs
         // after onboarding is marked as complete
         console.log('Simple onboarding completed successfully');
+
+        // Keep completion flag set to prevent further attempts
+        // Don't reset completing state to keep UI disabled
+      } else {
+        // Reset if not successful to allow retry
+        setCompleting(false);
+        setCompletionAttempted(false);
       }
     } catch (error) {
       console.error('Error completing simple onboarding:', error);
-    } finally {
+      // Reset on error to allow retry
       setCompleting(false);
+
+      // Reset completion attempted after a delay to allow retry
+      completionTimeoutRef.current = setTimeout(() => {
+        setCompletionAttempted(false);
+      }, 2000);
     }
   };
 
   const handleViewSettings = async () => {
+    // Prevent double-tap on settings button too
+    if (completing || completionAttempted) {
+      console.log('Preventing duplicate settings navigation');
+      return;
+    }
+
     // Complete onboarding first, then navigate to budget settings
     await handleGoToDashboard();
     // Note: After completion, AppNavigator will show MainTabs
@@ -93,6 +128,15 @@ export default function SimpleSuccessScreen({ navigation }) {
   };
 
   const summary = getBudgetSummary();
+
+  // Safe area insets with proper fallbacks
+  const safeBottomInset = React.useMemo(() => {
+    // Guard against undefined, null, NaN, or negative values
+    if (!insets || typeof insets.bottom !== 'number' || isNaN(insets.bottom) || insets.bottom < 0) {
+      return SPACING.base;
+    }
+    return Math.max(insets.bottom, SPACING.base);
+  }, [insets]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -195,12 +239,12 @@ export default function SimpleSuccessScreen({ navigation }) {
       </ScrollView>
 
       {/* Footer */}
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, SPACING.base) }]}>
+      <View style={[styles.footer, { paddingBottom: safeBottomInset }]}>
         {/* Primary Button */}
         <TouchableOpacity
-          style={[COMMON_STYLES.primaryButton, completing && styles.buttonDisabled]}
+          style={[COMMON_STYLES.primaryButton, (completing || completionAttempted) && styles.buttonDisabled]}
           onPress={handleGoToDashboard}
-          disabled={completing}
+          disabled={completing || completionAttempted}
         >
           {completing ? (
             <ActivityIndicator size="small" color={COLORS.background} />
@@ -213,9 +257,9 @@ export default function SimpleSuccessScreen({ navigation }) {
         <TouchableOpacity
           style={styles.settingsLink}
           onPress={handleViewSettings}
-          disabled={completing}
+          disabled={completing || completionAttempted}
         >
-          <Text style={styles.settingsLinkText}>View Budget Settings</Text>
+          <Text style={[styles.settingsLinkText, (completing || completionAttempted) && styles.linkDisabled]}>View Budget Settings</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -392,5 +436,8 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.6,
+  },
+  linkDisabled: {
+    opacity: 0.5,
   },
 });
