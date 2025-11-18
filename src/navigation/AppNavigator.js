@@ -33,6 +33,7 @@ export default function AppNavigator() {
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [forceCheckCounter, setForceCheckCounter] = useState(0);
+  const [isRestarting, setIsRestarting] = useState(false);
   const checkTimeoutRef = React.useRef(null);
   const navigationRef = useNavigationContainerRef();
   const hasNavigatedToOnboarding = useRef(false);
@@ -60,11 +61,11 @@ export default function AppNavigator() {
     // Set up interval to check onboarding status (in case it's updated)
     const interval = setInterval(() => {
       console.log('⏰ Polling tick - checking onboarding status...');
-      // Only check if not already checking (prevents race conditions)
-      if (!isCheckingStatus) {
+      // Only check if not already checking and not restarting (prevents race conditions)
+      if (!isCheckingStatus && !isRestarting) {
         checkOnboardingStatus();
       } else {
-        console.log('⏭️  Skipping check - already checking');
+        console.log('⏭️  Skipping check - already checking or restarting');
       }
     }, 2000); // Check every 2 seconds
 
@@ -97,8 +98,17 @@ export default function AppNavigator() {
   useEffect(() => {
     if (!navigationRef.isReady()) return;
     if (!user || !userDetails?.partnerId) return;
-    if (loading || checkingOnboarding || isCheckingStatus) return; // Prevent race conditions
+    if (loading || checkingOnboarding || isRestarting) return; // Prevent race conditions during restart
     if (onboardingCompleted === null) return; // Still checking
+
+    // Debug logging for state
+    console.log('🔄 Effect #2 (Auto-navigation) state:', {
+      onboardingCompleted,
+      hasNavigatedToOnboarding: hasNavigatedToOnboarding.current,
+      willOpenModal: !onboardingCompleted && !hasNavigatedToOnboarding.current,
+      willCloseModal: onboardingCompleted && hasNavigatedToOnboarding.current,
+      isRestarting,
+    });
 
     // Navigate to onboarding modal if not completed and haven't navigated yet
     if (!onboardingCompleted && !hasNavigatedToOnboarding.current) {
@@ -145,6 +155,9 @@ export default function AppNavigator() {
       if (currentRoute?.name === 'Onboarding' && currentRoute?.params?.restartMode === true) {
         console.log('🔄 Restart mode detected! Forcing immediate state refresh...');
 
+        // Set restarting flag to prevent polling interference
+        setIsRestarting(true);
+
         // Reset the navigation flag to allow the onboarding to stay open
         hasNavigatedToOnboarding.current = true; // Mark as navigated so auto-nav doesn't interfere
 
@@ -156,15 +169,18 @@ export default function AppNavigator() {
 
         console.log('✅ State refreshed for restart');
 
-        // Clear the restartMode param to prevent repeated triggers
+        // Clear the restartMode param and isRestarting flag
         // Use setTimeout to avoid mutating during render
         setTimeout(() => {
           try {
             navigationRef.setParams({ restartMode: false });
+            setIsRestarting(false); // Re-enable polling after restart completes
+            console.log('✅ Restart flag cleared, polling re-enabled');
           } catch (error) {
             console.log('⚠️  Could not clear restartMode param:', error.message);
+            setIsRestarting(false); // Clear flag even on error
           }
-        }, 100);
+        }, 500); // Increased timeout for stability
       }
     });
 

@@ -245,12 +245,30 @@ export default function SettingsScreen({ navigation }) {
                 console.log('✅ Cleared onboarding storage');
               }
 
-              // Navigate to onboarding modal (React Navigation finds it in parent Stack)
-              // SettingsScreen is in TabNavigator, but 'Onboarding' route exists in parent Stack
-              // React Navigation automatically searches parent navigators
-              navigation.navigate('Onboarding', { restartMode: true });
+              // Log navigation state for debugging
+              console.log('📍 Navigation state before restart:', {
+                hasNavigation: !!navigation,
+                hasParent: !!navigation.getParent,
+                hasGetParent: typeof navigation.getParent === 'function',
+              });
 
-              console.log('🎯 Navigated to onboarding modal');
+              // Navigate to onboarding modal
+              // CRITICAL: SettingsScreen is in TabNavigator, 'Onboarding' is in parent Stack
+              // Must explicitly access parent navigator
+              try {
+                const parentNav = navigation.getParent();
+                if (parentNav) {
+                  console.log('🎯 Navigating via parent navigator');
+                  parentNav.navigate('Onboarding', { restartMode: true });
+                } else {
+                  console.log('🎯 Navigating directly (no parent found)');
+                  navigation.navigate('Onboarding', { restartMode: true });
+                }
+                console.log('✅ Navigation command executed');
+              } catch (navError) {
+                console.error('❌ Navigation error:', navError);
+                throw navError;
+              }
             } catch (error) {
               console.error('❌ Error restarting onboarding:', error);
               Alert.alert('Error', 'Failed to restart onboarding. Please try again.');
