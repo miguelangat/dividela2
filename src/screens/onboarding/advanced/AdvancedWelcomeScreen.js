@@ -62,7 +62,7 @@ export default function AdvancedWelcomeScreen({ navigation }) {
   };
 
   const handleBackToSimple = () => {
-    navigation.navigate('SimpleWelcome'); // or wherever simple mode starts
+    navigation.navigate('SimpleChooseStyle');
   };
 
   const checklistItems = [
