@@ -25,7 +25,6 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
-import { CommonActions } from '@react-navigation/native';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { onboardingStorage } from '../../utils/storage';
@@ -246,22 +245,12 @@ export default function SettingsScreen({ navigation }) {
                 console.log('✅ Cleared onboarding storage');
               }
 
-              // Navigate to onboarding with reset action to ensure fresh state
-              // This resets the navigator to show onboarding modal on top of MainTabs
-              navigation.dispatch(
-                CommonActions.reset({
-                  index: 1,
-                  routes: [
-                    { name: 'MainTabs' },
-                    {
-                      name: 'Onboarding',
-                      params: { restartMode: true }, // Flag to indicate manual restart
-                    },
-                  ],
-                })
-              );
+              // Navigate to onboarding modal (React Navigation finds it in parent Stack)
+              // SettingsScreen is in TabNavigator, but 'Onboarding' route exists in parent Stack
+              // React Navigation automatically searches parent navigators
+              navigation.navigate('Onboarding', { restartMode: true });
 
-              console.log('🎯 Navigated to onboarding');
+              console.log('🎯 Navigated to onboarding modal');
             } catch (error) {
               console.error('❌ Error restarting onboarding:', error);
               Alert.alert('Error', 'Failed to restart onboarding. Please try again.');
