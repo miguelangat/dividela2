@@ -17,32 +17,31 @@ import ProgressStepper from '../../../components/onboarding/ProgressStepper';
 import { useOnboarding } from '../../../contexts/OnboardingContext';
 import { useAuth } from '../../../contexts/AuthContext';
 import { DEFAULT_CATEGORIES } from '../../../constants/defaultCategories';
-import * as onboardingService from '../../../services/onboardingService';
 
 export default function SimpleSmartBudgetScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { userDetails } = useAuth();
-  const { setBudgetStyle, setIsComplete } = useOnboarding();
+  const { setBudgetStyle } = useOnboarding();
   const [loading, setLoading] = useState(false);
 
-  const defaultBudgets = onboardingService.getDefaultBudgetConfiguration();
-  const totalBudget = Object.values(defaultBudgets).reduce((sum, amount) => sum + amount, 0);
+  // Calculate total budget from default categories
+  const totalBudget = Object.values(DEFAULT_CATEGORIES).reduce(
+    (sum, category) => sum + category.defaultBudget,
+    0
+  );
 
   const handleStartTracking = async () => {
     try {
       setLoading(true);
-      
-      // Save smart budget configuration
-      await onboardingService.saveSmartBudgetConfiguration(userDetails.coupleId);
-      
-      // Mark onboarding as complete
-      setIsComplete(true);
-      
-      // Navigate to success screen
+
+      // Set budget style to smart for simple mode
+      setBudgetStyle('smart');
+
+      // Navigate to success screen which will handle completion
       navigation.navigate('SimpleSuccess');
     } catch (error) {
-      console.error('Error saving smart budget:', error);
-      alert('Failed to save budget configuration. Please try again.');
+      console.error('Error navigating to success screen:', error);
+      alert('Failed to proceed. Please try again.');
     } finally {
       setLoading(false);
     }

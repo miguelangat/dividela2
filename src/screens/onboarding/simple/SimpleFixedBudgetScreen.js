@@ -17,20 +17,37 @@ import BudgetAmountInput from '../../../components/onboarding/BudgetAmountInput'
 import { useOnboarding } from '../../../contexts/OnboardingContext';
 import { useAuth } from '../../../contexts/AuthContext';
 import { DEFAULT_CATEGORIES } from '../../../constants/defaultCategories';
-import * as onboardingService from '../../../services/onboardingService';
 
 export default function SimpleFixedBudgetScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { userDetails } = useAuth();
-  const { totalBudget, setTotalBudget, setCategoryBudgets, setIsComplete } = useOnboarding();
+  const { totalBudget, setTotalBudget, setCategoryBudgets, setBudgetStyle } = useOnboarding();
   const [amount, setAmount] = useState(totalBudget || 2400);
   const [distributedBudget, setDistributedBudget] = useState({});
   const [loading, setLoading] = useState(false);
 
+  // Helper function to distribute budget proportionally across categories
+  const calculateDistributedBudget = (totalAmount) => {
+    // Calculate total of default budgets
+    const defaultTotal = Object.values(DEFAULT_CATEGORIES).reduce(
+      (sum, category) => sum + category.defaultBudget,
+      0
+    );
+
+    // Distribute proportionally
+    const distributed = {};
+    Object.entries(DEFAULT_CATEGORIES).forEach(([key, category]) => {
+      const percentage = category.defaultBudget / defaultTotal;
+      distributed[key] = Math.round(totalAmount * percentage);
+    });
+
+    return distributed;
+  };
+
   // Calculate distributed budget whenever amount changes
   useEffect(() => {
     if (amount > 0) {
-      const distributed = onboardingService.calculateDistributedBudget(amount);
+      const distributed = calculateDistributedBudget(amount);
       setDistributedBudget(distributed);
     } else {
       setDistributedBudget({});
@@ -45,26 +62,17 @@ export default function SimpleFixedBudgetScreen({ navigation }) {
 
     try {
       setLoading(true);
-      
+
       // Save to context
       setTotalBudget(amount);
       setCategoryBudgets(distributedBudget);
-      
-      // Save fixed budget configuration
-      await onboardingService.saveFixedBudgetConfiguration(
-        userDetails.coupleId,
-        amount,
-        distributedBudget
-      );
-      
-      // Mark onboarding as complete
-      setIsComplete(true);
-      
-      // Navigate to success screen
+      setBudgetStyle('fixed');
+
+      // Navigate to success screen which will handle completion
       navigation.navigate('SimpleSuccess');
     } catch (error) {
-      console.error('Error saving fixed budget:', error);
-      alert('Failed to save budget configuration. Please try again.');
+      console.error('Error navigating to success screen:', error);
+      alert('Failed to proceed. Please try again.');
     } finally {
       setLoading(false);
     }
