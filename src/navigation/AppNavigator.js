@@ -97,7 +97,7 @@ export default function AppNavigator() {
   useEffect(() => {
     if (!navigationRef.isReady()) return;
     if (!user || !userDetails?.partnerId) return;
-    if (loading || checkingOnboarding) return;
+    if (loading || checkingOnboarding || isCheckingStatus) return; // Prevent race conditions
     if (onboardingCompleted === null) return; // Still checking
 
     // Navigate to onboarding modal if not completed and haven't navigated yet
@@ -197,8 +197,10 @@ export default function AppNavigator() {
       console.log(`📦 AsyncStorage result: ${completed}`);
       console.log(`👤 userDetails.budgetOnboardingCompleted: ${userDetails?.budgetOnboardingCompleted}`);
 
-      // Also check userDetails for budgetOnboardingCompleted flag
-      const completedFlag = userDetails?.budgetOnboardingCompleted || completed;
+      // Use AsyncStorage as the source of truth (not Firestore field)
+      // The budgetOnboardingCompleted field in userDetails may be stale or undefined
+      // AsyncStorage is managed by our onboarding flow and is reliable
+      const completedFlag = completed;
 
       console.log(`✅ Final onboarding completed status: ${completedFlag}`);
 
