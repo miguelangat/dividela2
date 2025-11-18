@@ -32,17 +32,19 @@ export default function AppNavigator() {
   const [onboardingCompleted, setOnboardingCompleted] = useState(null);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+  const [forceCheckCounter, setForceCheckCounter] = useState(0);
   const checkTimeoutRef = React.useRef(null);
 
   // Debug logging
   console.log('AppNavigator - user:', user?.uid);
   console.log('AppNavigator - userDetails:', userDetails);
   console.log('AppNavigator - loading:', loading);
+  console.log('AppNavigator - onboardingCompleted:', onboardingCompleted);
 
   // Check if budget onboarding has been completed
   useEffect(() => {
     checkOnboardingStatus();
-  }, [user, userDetails?.coupleId]);
+  }, [user, userDetails?.coupleId, forceCheckCounter]);
 
   // Poll for onboarding status changes (for when completeOnboarding is called)
   // Using a more efficient polling strategy with debouncing
@@ -51,49 +53,83 @@ export default function AppNavigator() {
       return;
     }
 
+    console.log('🔄 Setting up onboarding status polling (every 2 seconds)');
+
     // Set up interval to check onboarding status (in case it's updated)
-    // Reduced frequency to 2 seconds and added debouncing
     const interval = setInterval(() => {
+      console.log('⏰ Polling tick - checking onboarding status...');
       // Only check if not already checking (prevents race conditions)
       if (!isCheckingStatus) {
         checkOnboardingStatus();
+      } else {
+        console.log('⏭️  Skipping check - already checking');
       }
-    }, 2000); // Check every 2 seconds instead of 1
+    }, 2000); // Check every 2 seconds
 
     return () => {
+      console.log('🛑 Cleaning up onboarding status polling');
       clearInterval(interval);
       // Clear any pending timeout on unmount
       if (checkTimeoutRef.current) {
         clearTimeout(checkTimeoutRef.current);
       }
     };
-  }, [user, userDetails?.coupleId, isCheckingStatus]);
+  }, [user, userDetails?.coupleId]); // Removed isCheckingStatus from dependencies!
+
+  // Listen for storage events (in case completion happens in same session)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleStorageChange = (e) => {
+      if (e.key && e.key.includes('onboarding_completed')) {
+        console.log('🔔 Storage change detected! Force checking onboarding status...');
+        setForceCheckCounter(prev => prev + 1);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   const checkOnboardingStatus = async () => {
     // Debounce: prevent multiple simultaneous checks
     if (isCheckingStatus) {
+      console.log('⚠️  Already checking onboarding status, skipping...');
       return;
     }
 
     setIsCheckingStatus(true);
+    console.log('🔍 Checking onboarding status...');
 
     try {
       if (!user || !userDetails?.coupleId) {
+        console.log('❌ No user or coupleId, setting onboarding to null');
         setOnboardingCompleted(null);
         setCheckingOnboarding(false);
         return;
       }
 
+      console.log(`📦 Checking AsyncStorage for key: onboarding_completed_${userDetails.coupleId}`);
+
       // Check if onboarding was completed or skipped using safe storage utility
       const completed = await onboardingStorage.getCompleted(userDetails.coupleId);
+
+      console.log(`📦 AsyncStorage result: ${completed}`);
+      console.log(`👤 userDetails.budgetOnboardingCompleted: ${userDetails?.budgetOnboardingCompleted}`);
 
       // Also check userDetails for budgetOnboardingCompleted flag
       const completedFlag = userDetails?.budgetOnboardingCompleted || completed;
 
+      console.log(`✅ Final onboarding completed status: ${completedFlag}`);
+
+      if (completedFlag && !onboardingCompleted) {
+        console.log('🎉 ONBOARDING DETECTED AS COMPLETE! Updating state to navigate to MainTabs');
+      }
+
       setOnboardingCompleted(completedFlag);
-      console.log('AppNavigator - onboarding completed:', completedFlag);
     } catch (error) {
-      console.error('Error checking onboarding status:', error);
+      console.error('❌ Error checking onboarding status:', error);
+      console.error('Error details:', error.message, error.stack);
       // Don't set to false on error - maintain current state to prevent unwanted navigation
       if (onboardingCompleted === null) {
         setOnboardingCompleted(false);
@@ -103,6 +139,7 @@ export default function AppNavigator() {
       // Use a timeout to reset the checking flag to prevent rapid successive calls
       checkTimeoutRef.current = setTimeout(() => {
         setIsCheckingStatus(false);
+        console.log('✓ Check complete, ready for next poll');
       }, 100);
     }
   };
