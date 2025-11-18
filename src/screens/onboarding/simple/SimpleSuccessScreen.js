@@ -18,13 +18,21 @@ import { useOnboarding } from '../../../contexts/OnboardingContext';
 import { useBudget } from '../../../contexts/BudgetContext';
 import { DEFAULT_CATEGORIES } from '../../../constants/defaultCategories';
 
-export default function SimpleSuccessScreen({ navigation }) {
+export default function SimpleSuccessScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
-  const { budgetStyle, totalBudget, completeOnboarding, loading: onboardingLoading } = useOnboarding();
+  const { budgetStyle: contextBudgetStyle, budgetData: contextBudgetData, selectedMode, completeOnboarding, loading: onboardingLoading, setCategoryBudgets, setMonthlyIncome, setBudgetStyle } = useOnboarding();
   const { currentBudget, totalBudget: budgetTotal, categories } = useBudget();
   const [completing, setCompleting] = useState(false);
   const [completionAttempted, setCompletionAttempted] = useState(false);
   const completionTimeoutRef = React.useRef(null);
+
+  // Get budget data from route params (fallback if context is empty)
+  const paramsBudgetData = route?.params?.budgetData;
+  const paramsBudgetStyle = route?.params?.budgetStyle;
+
+  // Use params data if context data is empty (timing issue workaround)
+  const budgetData = contextBudgetData?.monthlyIncome > 0 ? contextBudgetData : paramsBudgetData;
+  const budgetStyle = contextBudgetStyle || paramsBudgetStyle;
 
   // Animation values
   const scaleAnim = new Animated.Value(0);
@@ -32,6 +40,24 @@ export default function SimpleSuccessScreen({ navigation }) {
 
   useEffect(() => {
     startAnimation();
+
+    // Log budget data on mount to diagnose issues
+    console.log('=== SimpleSuccessScreen Mounted ===');
+    console.log('Context Budget Data:', JSON.stringify(contextBudgetData, null, 2));
+    console.log('Params Budget Data:', JSON.stringify(paramsBudgetData, null, 2));
+    console.log('Using Budget Data:', JSON.stringify(budgetData, null, 2));
+    console.log('Budget Style:', budgetStyle);
+    console.log('Selected Mode:', selectedMode);
+
+    // If context data is empty but params data exists, set it in context
+    if (paramsBudgetData && (!contextBudgetData || !contextBudgetData.monthlyIncome)) {
+      console.log('⚠️ Context data empty, setting from params...');
+      setCategoryBudgets(paramsBudgetData.categoryBudgets);
+      setMonthlyIncome(paramsBudgetData.monthlyIncome);
+      if (paramsBudgetStyle) {
+        setBudgetStyle(paramsBudgetStyle);
+      }
+    }
 
     // Cleanup timeout on unmount
     return () => {
@@ -67,41 +93,61 @@ export default function SimpleSuccessScreen({ navigation }) {
     }
 
     console.log('=== Starting onboarding completion ===');
-    console.log('Budget style:', budgetStyle);
-    console.log('Categories from BudgetContext:', categories);
+    console.log('Budget Data:', JSON.stringify(budgetData, null, 2));
+    console.log('Budget Style:', budgetStyle);
+    console.log('Selected Mode:', selectedMode);
+
+    // CRITICAL: Validate budget data exists before attempting completion
+    if (!budgetData || !budgetData.categoryBudgets || Object.keys(budgetData.categoryBudgets).length === 0) {
+      console.error('❌ Budget data is empty!');
+      console.error('This usually means state updates from previous screen did not propagate.');
+      alert('Budget data not set. This is likely a timing issue. Please go back and try again.');
+      return;
+    }
+
+    if (!budgetData.monthlyIncome || budgetData.monthlyIncome === 0) {
+      console.error('❌ Monthly income is not set!');
+      alert('Monthly income not set. Please go back and set a budget amount.');
+      return;
+    }
+
+    console.log('✅ Budget data validation passed');
 
     setCompleting(true);
     setCompletionAttempted(true);
 
     try {
-      // Complete onboarding and save budget
-      // Note: categories parameter is not actually used in completeOnboarding
-      // The budget data comes from OnboardingContext.budgetData
-      const success = await completeOnboarding(categories);
+      // Add 30-second timeout to prevent infinite hanging
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Completion timed out after 30 seconds')), 30000)
+      );
+
+      // Complete onboarding with timeout protection
+      const success = await Promise.race([
+        completeOnboarding(categories),
+        timeoutPromise
+      ]);
 
       console.log('Onboarding completion result:', success);
 
       if (success) {
-        // AppNavigator will automatically navigate to MainTabs
-        // after onboarding is marked as complete
         console.log('✅ Simple onboarding completed successfully');
-
+        console.log('⏳ Waiting for AppNavigator to detect completion (polls every 2 seconds)...');
         // Keep completion flag set to prevent further attempts
-        // Don't reset completing state to keep UI disabled
       } else {
         console.error('❌ Onboarding completion returned false');
-        alert('Failed to complete onboarding. Please try again.');
-        // Reset if not successful to allow retry
+        console.error('Likely causes: validation failed, Firebase save failed, or AsyncStorage failed');
+        alert('Failed to complete onboarding. Validation may have failed. Check console logs for details.');
         setCompleting(false);
         setCompletionAttempted(false);
       }
     } catch (error) {
       console.error('❌ Error completing simple onboarding:', error);
+      console.error('Error stack:', error.stack);
       alert(`Error: ${error.message || 'Failed to complete onboarding'}`);
-      // Reset on error to allow retry
       setCompleting(false);
 
-      // Reset completion attempted after a delay to allow retry
+      // Reset completion attempted after delay to allow retry
       completionTimeoutRef.current = setTimeout(() => {
         setCompletionAttempted(false);
       }, 2000);
@@ -123,17 +169,21 @@ export default function SimpleSuccessScreen({ navigation }) {
 
   // Get budget summary
   const getBudgetSummary = () => {
+    // Get total from budgetData (most accurate)
+    const dataTotal = budgetData?.monthlyIncome || 0;
+    const fallbackTotal = budgetTotal || 2400;
+
     if (budgetStyle === 'smart') {
       return {
         type: 'Smart Budget',
         description: 'Industry averages, adjusts to your spending',
-        total: budgetTotal || 2400,
+        total: dataTotal || fallbackTotal,
       };
     } else {
       return {
         type: 'Fixed Budget',
         description: 'Custom amount distributed across categories',
-        total: totalBudget || budgetTotal || 2400,
+        total: dataTotal || fallbackTotal,
       };
     }
   };
@@ -287,7 +337,8 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: SPACING.screenPadding,
-    paddingVertical: SPACING.large,
+    paddingTop: SPACING.large,
+    paddingBottom: SPACING.xxlarge * 2, // Extra padding to ensure content is scrollable
     alignItems: 'center',
   },
   checkmarkContainer: {

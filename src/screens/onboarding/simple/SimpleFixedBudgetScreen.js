@@ -63,6 +63,7 @@ export default function SimpleFixedBudgetScreen({ navigation }) {
     try {
       setLoading(true);
 
+      console.log('Setting budget data in context...');
       // Save to context (required for validation in completeOnboarding)
       setMonthlyIncome(amount); // Set the total as monthly income
       setCategoryBudgets(distributedBudget);
@@ -70,8 +71,17 @@ export default function SimpleFixedBudgetScreen({ navigation }) {
 
       console.log('Fixed budget set:', { amount, distributedBudget });
 
-      // Navigate to success screen which will handle completion
-      navigation.navigate('SimpleSuccess');
+      // Wait briefly for state to propagate (React batches updates)
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Navigate to success screen with budget data as backup in params
+      navigation.navigate('SimpleSuccess', {
+        budgetData: {
+          categoryBudgets: distributedBudget,
+          monthlyIncome: amount,
+        },
+        budgetStyle: 'fixed',
+      });
     } catch (error) {
       console.error('Error navigating to success screen:', error);
       alert('Failed to proceed. Please try again.');

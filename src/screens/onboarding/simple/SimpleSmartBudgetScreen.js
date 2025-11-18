@@ -43,6 +43,7 @@ export default function SimpleSmartBudgetScreen({ navigation }) {
     try {
       setLoading(true);
 
+      console.log('Setting budget data in context...');
       // Set budget style to smart for simple mode
       setBudgetStyle('smart');
 
@@ -50,8 +51,19 @@ export default function SimpleSmartBudgetScreen({ navigation }) {
       setCategoryBudgets(categoryBudgets);
       setMonthlyIncome(totalBudget); // Use total as monthly income for validation
 
-      // Navigate to success screen which will handle completion
-      navigation.navigate('SimpleSuccess');
+      console.log('Budget data set:', { categoryBudgets, totalBudget });
+
+      // Wait briefly for state to propagate (React batches updates)
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Navigate to success screen with budget data as backup in params
+      navigation.navigate('SimpleSuccess', {
+        budgetData: {
+          categoryBudgets,
+          monthlyIncome: totalBudget,
+        },
+        budgetStyle: 'smart',
+      });
     } catch (error) {
       console.error('Error navigating to success screen:', error);
       alert('Failed to proceed. Please try again.');
