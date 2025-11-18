@@ -117,6 +117,43 @@ export default function AppNavigator() {
     }
   }, [user, userDetails?.partnerId, onboardingCompleted, loading, checkingOnboarding, navigationRef]);
 
+  // Listen for navigation to Onboarding with restartMode to force immediate state refresh
+  useEffect(() => {
+    if (!navigationRef.isReady()) return;
+
+    const unsubscribe = navigationRef.addListener('state', () => {
+      const currentRoute = navigationRef.getCurrentRoute();
+
+      // Detect manual restart from Settings
+      if (currentRoute?.name === 'Onboarding' && currentRoute?.params?.restartMode === true) {
+        console.log('🔄 Restart mode detected! Forcing immediate state refresh...');
+
+        // Reset the navigation flag to allow the onboarding to stay open
+        hasNavigatedToOnboarding.current = true; // Mark as navigated so auto-nav doesn't interfere
+
+        // Force immediate state update (don't wait for polling)
+        setOnboardingCompleted(false);
+
+        // Trigger a forced check to sync with storage
+        setForceCheckCounter(prev => prev + 1);
+
+        console.log('✅ State refreshed for restart');
+
+        // Clear the restartMode param to prevent repeated triggers
+        // Use setTimeout to avoid mutating during render
+        setTimeout(() => {
+          try {
+            navigationRef.setParams({ restartMode: false });
+          } catch (error) {
+            console.log('⚠️  Could not clear restartMode param:', error.message);
+          }
+        }, 100);
+      }
+    });
+
+    return unsubscribe;
+  }, [navigationRef]);
+
   const checkOnboardingStatus = async () => {
     // Debounce: prevent multiple simultaneous checks
     if (isCheckingStatus) {
