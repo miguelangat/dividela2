@@ -109,11 +109,28 @@ export default function AppNavigator() {
       }, 100);
     }
 
-    // Reset navigation flag when onboarding completes
+    // Dismiss modal and navigate to home when onboarding completes
     if (onboardingCompleted && hasNavigatedToOnboarding.current) {
-      console.log('🎉 Onboarding complete, dismissing modal');
+      console.log('🎉 Onboarding complete, dismissing modal and navigating to home');
       hasNavigatedToOnboarding.current = false;
-      // Navigation will automatically go back to MainTabs
+
+      // Dismiss the onboarding modal and navigate to home tab
+      if (navigationRef.canGoBack()) {
+        // Modal is in stack, go back to dismiss it
+        navigationRef.goBack();
+
+        // Navigate to HomeTab after modal dismisses
+        setTimeout(() => {
+          navigationRef.navigate('MainTabs', {
+            screen: 'HomeTab', // Navigate to home page where users add expenses
+          });
+        }, 100);
+      } else {
+        // Fallback: Navigate directly to MainTabs with HomeTab
+        navigationRef.navigate('MainTabs', {
+          screen: 'HomeTab',
+        });
+      }
     }
   }, [user, userDetails?.partnerId, onboardingCompleted, loading, checkingOnboarding, navigationRef]);
 
