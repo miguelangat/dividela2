@@ -66,27 +66,38 @@ export default function SimpleSuccessScreen({ navigation }) {
       return;
     }
 
+    console.log('=== Starting onboarding completion ===');
+    console.log('Budget style:', budgetStyle);
+    console.log('Categories from BudgetContext:', categories);
+
     setCompleting(true);
     setCompletionAttempted(true);
 
     try {
       // Complete onboarding and save budget
+      // Note: categories parameter is not actually used in completeOnboarding
+      // The budget data comes from OnboardingContext.budgetData
       const success = await completeOnboarding(categories);
+
+      console.log('Onboarding completion result:', success);
 
       if (success) {
         // AppNavigator will automatically navigate to MainTabs
         // after onboarding is marked as complete
-        console.log('Simple onboarding completed successfully');
+        console.log('✅ Simple onboarding completed successfully');
 
         // Keep completion flag set to prevent further attempts
         // Don't reset completing state to keep UI disabled
       } else {
+        console.error('❌ Onboarding completion returned false');
+        alert('Failed to complete onboarding. Please try again.');
         // Reset if not successful to allow retry
         setCompleting(false);
         setCompletionAttempted(false);
       }
     } catch (error) {
-      console.error('Error completing simple onboarding:', error);
+      console.error('❌ Error completing simple onboarding:', error);
+      alert(`Error: ${error.message || 'Failed to complete onboarding'}`);
       // Reset on error to allow retry
       setCompleting(false);
 

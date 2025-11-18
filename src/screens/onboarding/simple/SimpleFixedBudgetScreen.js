@@ -21,8 +21,8 @@ import { DEFAULT_CATEGORIES } from '../../../constants/defaultCategories';
 export default function SimpleFixedBudgetScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { userDetails } = useAuth();
-  const { totalBudget, setTotalBudget, setCategoryBudgets, setBudgetStyle } = useOnboarding();
-  const [amount, setAmount] = useState(totalBudget || 2400);
+  const { setCategoryBudgets, setMonthlyIncome, setBudgetStyle } = useOnboarding();
+  const [amount, setAmount] = useState(2400);
   const [distributedBudget, setDistributedBudget] = useState({});
   const [loading, setLoading] = useState(false);
 
@@ -63,10 +63,12 @@ export default function SimpleFixedBudgetScreen({ navigation }) {
     try {
       setLoading(true);
 
-      // Save to context
-      setTotalBudget(amount);
+      // Save to context (required for validation in completeOnboarding)
+      setMonthlyIncome(amount); // Set the total as monthly income
       setCategoryBudgets(distributedBudget);
       setBudgetStyle('fixed');
+
+      console.log('Fixed budget set:', { amount, distributedBudget });
 
       // Navigate to success screen which will handle completion
       navigation.navigate('SimpleSuccess');
@@ -80,9 +82,9 @@ export default function SimpleFixedBudgetScreen({ navigation }) {
 
   const handleAdjustDistribution = () => {
     // Navigate to advanced mode for custom distribution
-    setTotalBudget(amount);
+    setMonthlyIncome(amount);
     setCategoryBudgets(distributedBudget);
-    navigation.navigate('AdvancedOnboarding');
+    navigation.navigate('AdvancedWelcome');
   };
 
   return (

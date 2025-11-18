@@ -34,7 +34,7 @@ export default function SimpleChooseStyleScreen({ navigation }) {
   };
 
   const handleSwitchToAdvanced = () => {
-    navigation.navigate('AdvancedOnboarding');
+    navigation.navigate('AdvancedWelcome');
   };
 
   return (

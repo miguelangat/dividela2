@@ -21,8 +21,17 @@ import { DEFAULT_CATEGORIES } from '../../../constants/defaultCategories';
 export default function SimpleSmartBudgetScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { userDetails } = useAuth();
-  const { setBudgetStyle } = useOnboarding();
+  const { setBudgetStyle, setCategoryBudgets, setMonthlyIncome } = useOnboarding();
   const [loading, setLoading] = useState(false);
+
+  // Calculate budgets from default categories
+  const categoryBudgets = React.useMemo(() => {
+    const budgets = {};
+    Object.entries(DEFAULT_CATEGORIES).forEach(([key, category]) => {
+      budgets[key] = category.defaultBudget;
+    });
+    return budgets;
+  }, []);
 
   // Calculate total budget from default categories
   const totalBudget = Object.values(DEFAULT_CATEGORIES).reduce(
@@ -37,6 +46,10 @@ export default function SimpleSmartBudgetScreen({ navigation }) {
       // Set budget style to smart for simple mode
       setBudgetStyle('smart');
 
+      // Set the budget data in context (required for validation)
+      setCategoryBudgets(categoryBudgets);
+      setMonthlyIncome(totalBudget); // Use total as monthly income for validation
+
       // Navigate to success screen which will handle completion
       navigation.navigate('SimpleSuccess');
     } catch (error) {
@@ -48,8 +61,8 @@ export default function SimpleSmartBudgetScreen({ navigation }) {
   };
 
   const handleCustomize = () => {
-    // Navigate to manual allocation screen (would be advanced mode)
-    navigation.navigate('AdvancedOnboarding');
+    // Navigate to advanced mode for full customization
+    navigation.navigate('AdvancedWelcome');
   };
 
   return (
