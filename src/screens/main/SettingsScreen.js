@@ -223,6 +223,7 @@ export default function SettingsScreen({ navigation }) {
   );
 
   const handleRestartOnboarding = async () => {
+    console.log('🚨 RESTART BUTTON CLICKED - HANDLER CALLED');
     Alert.alert(
       'Restart Budget Onboarding',
       'This will take you through the budget setup process again. Your current budget will be replaced.',
@@ -306,7 +307,10 @@ export default function SettingsScreen({ navigation }) {
 
         <TouchableOpacity
           style={[styles.settingRow, styles.settingRowLast]}
-          onPress={handleRestartOnboarding}
+          onPress={() => {
+            console.log('🔴 BUTTON ONPRESS FIRED');
+            handleRestartOnboarding();
+          }}
           activeOpacity={0.6}
         >
           <View style={styles.settingIcon}>
