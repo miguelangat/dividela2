@@ -9,6 +9,7 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -143,7 +144,16 @@ export default function SimpleSmartBudgetScreen({ navigation }) {
       </ScrollView>
 
       {/* Footer */}
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, SPACING.base) }]}>
+      <View style={[
+        styles.footer,
+        {
+          paddingBottom: Platform.select({
+            ios: Math.max(insets.bottom, SPACING.base) + 85,      // safe area + iOS tab bar
+            android: Math.max(insets.bottom, SPACING.base) + 60,  // safe area + Android tab bar
+            web: 60,                                               // just tab bar (no safe area on web)
+          }),
+        }
+      ]}>
         {/* Primary Button */}
         <TouchableOpacity
           style={[COMMON_STYLES.primaryButton, loading && styles.buttonDisabled]}
@@ -180,7 +190,12 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: SPACING.screenPadding,
-    paddingBottom: SPACING.xxlarge,
+    // Extra padding for content scrollability + bottom tabs (tabs now always visible)
+    paddingBottom: Platform.select({
+      ios: SPACING.xxlarge * 3 + 85,      // content padding + iOS tab bar
+      android: SPACING.xxlarge * 3 + 60,  // content padding + Android tab bar
+      web: SPACING.xxlarge * 3 + 60,      // content padding + web tab bar
+    }),
   },
   progressStepper: {
     marginBottom: SPACING.base,

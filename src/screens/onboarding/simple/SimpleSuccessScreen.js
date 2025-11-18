@@ -10,6 +10,7 @@ import {
   Animated,
   ScrollView,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -300,7 +301,16 @@ export default function SimpleSuccessScreen({ navigation, route }) {
       </ScrollView>
 
       {/* Footer */}
-      <View style={[styles.footer, { paddingBottom: safeBottomInset }]}>
+      <View style={[
+        styles.footer,
+        {
+          paddingBottom: Platform.select({
+            ios: safeBottomInset + 85,      // safe area + iOS tab bar
+            android: safeBottomInset + 60,  // safe area + Android tab bar
+            web: 60,                         // just tab bar (no safe area on web)
+          }),
+        }
+      ]}>
         {/* Primary Button */}
         <TouchableOpacity
           style={[COMMON_STYLES.primaryButton, (completing || completionAttempted) && styles.buttonDisabled]}
@@ -338,7 +348,12 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: SPACING.screenPadding,
     paddingTop: SPACING.large,
-    paddingBottom: SPACING.xxlarge * 2, // Extra padding to ensure content is scrollable
+    // Extra padding for content scrollability + bottom tabs (tabs now always visible)
+    paddingBottom: Platform.select({
+      ios: SPACING.xxlarge * 3 + 85,      // content padding + iOS tab bar
+      android: SPACING.xxlarge * 3 + 60,  // content padding + Android tab bar
+      web: SPACING.xxlarge * 3 + 60,      // content padding + web tab bar
+    }),
     alignItems: 'center',
   },
   checkmarkContainer: {

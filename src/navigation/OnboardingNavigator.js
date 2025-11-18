@@ -2,6 +2,7 @@
 // Navigation for budget onboarding flow (simple and advanced modes)
 
 import React from 'react';
+import { View, StyleSheet, Platform } from 'react-native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { COLORS, FONTS } from '../constants/theme';
 import { OnboardingProvider } from '../contexts/OnboardingContext';
@@ -149,11 +150,26 @@ function OnboardingStack() {
   );
 }
 
-// Export with OnboardingProvider wrapper
+// Export with OnboardingProvider wrapper and modal container
 export default function OnboardingNavigator() {
   return (
-    <OnboardingProvider>
-      <OnboardingStack />
-    </OnboardingProvider>
+    <View style={styles.modalContainer}>
+      <OnboardingProvider>
+        <OnboardingStack />
+      </OnboardingProvider>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  modalContainer: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    // Add padding for bottom tabs - they should be visible underneath
+    paddingBottom: Platform.select({
+      ios: 85,      // iOS tab bar height
+      android: 60,  // Android tab bar height
+      web: 60,      // Web tab bar height
+    }),
+  },
+});

@@ -1,8 +1,8 @@
 // src/navigation/AppNavigator.js
 // Main navigation structure for the app
 
-import React, { useState, useEffect } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import React, { useState, useEffect, useRef } from 'react';
+import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useAuth } from '../contexts/AuthContext';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
@@ -34,6 +34,8 @@ export default function AppNavigator() {
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [forceCheckCounter, setForceCheckCounter] = useState(0);
   const checkTimeoutRef = React.useRef(null);
+  const navigationRef = useNavigationContainerRef();
+  const hasNavigatedToOnboarding = useRef(false);
 
   // Debug logging
   console.log('AppNavigator - user:', user?.uid);
@@ -90,6 +92,30 @@ export default function AppNavigator() {
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
+
+  // Auto-navigate to onboarding modal when user has partner but hasn't completed onboarding
+  useEffect(() => {
+    if (!navigationRef.isReady()) return;
+    if (!user || !userDetails?.partnerId) return;
+    if (loading || checkingOnboarding) return;
+    if (onboardingCompleted === null) return; // Still checking
+
+    // Navigate to onboarding modal if not completed and haven't navigated yet
+    if (!onboardingCompleted && !hasNavigatedToOnboarding.current) {
+      console.log('🎯 Auto-navigating to onboarding modal (tabs visible underneath)');
+      hasNavigatedToOnboarding.current = true;
+      setTimeout(() => {
+        navigationRef.navigate('Onboarding');
+      }, 100);
+    }
+
+    // Reset navigation flag when onboarding completes
+    if (onboardingCompleted && hasNavigatedToOnboarding.current) {
+      console.log('🎉 Onboarding complete, dismissing modal');
+      hasNavigatedToOnboarding.current = false;
+      // Navigation will automatically go back to MainTabs
+    }
+  }, [user, userDetails?.partnerId, onboardingCompleted, loading, checkingOnboarding, navigationRef]);
 
   const checkOnboardingStatus = async () => {
     // Debounce: prevent multiple simultaneous checks
@@ -154,7 +180,7 @@ export default function AppNavigator() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
@@ -176,16 +202,22 @@ export default function AppNavigator() {
             <Stack.Screen name="Join" component={JoinScreen} />
             <Stack.Screen name="Success" component={SuccessScreen} />
           </>
-        ) : !onboardingCompleted ? (
-          // Onboarding Stack - User has partner but hasn't completed onboarding
-          <>
-            <Stack.Screen name="Onboarding" component={OnboardingNavigator} />
-          </>
         ) : (
-          // Main App Stack - User logged in with partner and completed onboarding
+          // Main App Stack - User has partner, always show MainTabs
+          // Onboarding presented as modal overlay when not completed
           <>
             <Stack.Screen name="MainTabs" component={TabNavigator} />
-            <Stack.Screen name="Onboarding" component={OnboardingNavigator} />
+            <Stack.Screen
+              name="Onboarding"
+              component={OnboardingNavigator}
+              options={{
+                presentation: 'transparentModal',
+                headerShown: false,
+                cardStyle: { backgroundColor: 'transparent' },
+                cardOverlayEnabled: true,
+                gestureEnabled: false, // Prevent dismissal by gesture
+              }}
+            />
             <Stack.Screen
               name="AddExpense"
               component={AddExpenseScreen}
