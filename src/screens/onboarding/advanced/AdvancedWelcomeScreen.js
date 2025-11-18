@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   Animated,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
@@ -141,7 +142,16 @@ export default function AdvancedWelcomeScreen({ navigation }) {
         </ScrollView>
 
         {/* Buttons */}
-        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, SPACING.base) }]}>
+        <View style={[
+          styles.footer,
+          {
+            paddingBottom: Platform.select({
+              ios: Math.max(insets.bottom, SPACING.base) + 85,      // safe area + iOS tab bar
+              android: Math.max(insets.bottom, SPACING.base) + 60,  // safe area + Android tab bar
+              web: 60,                                               // just tab bar (no safe area on web)
+            }),
+          }
+        ]}>
           <TouchableOpacity
             style={styles.primaryButton}
             onPress={handleGetStarted}
@@ -176,7 +186,12 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: SPACING.screenPadding,
     paddingTop: SPACING.huge,
-    paddingBottom: SPACING.xxlarge,
+    // Extra padding for content scrollability + bottom tabs (tabs now always visible)
+    paddingBottom: Platform.select({
+      ios: SPACING.xxlarge * 3 + 85,      // content padding + iOS tab bar
+      android: SPACING.xxlarge * 3 + 60,  // content padding + Android tab bar
+      web: SPACING.xxlarge * 3 + 60,      // content padding + web tab bar
+    }),
   },
   progressContainer: {
     marginBottom: SPACING.xlarge,

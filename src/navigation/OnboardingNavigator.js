@@ -2,9 +2,10 @@
 // Navigation for budget onboarding flow (simple and advanced modes)
 
 import React from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { COLORS, FONTS } from '../constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { COLORS, FONTS, SPACING } from '../constants/theme';
 import { OnboardingProvider } from '../contexts/OnboardingContext';
 
 // Onboarding screens
@@ -151,9 +152,19 @@ function OnboardingStack() {
 }
 
 // Export with OnboardingProvider wrapper and modal container
-export default function OnboardingNavigator() {
+export default function OnboardingNavigator({ route }) {
+  const isRestart = route?.params?.restartMode;
+
   return (
     <View style={styles.modalContainer}>
+      {/* Setup Banner */}
+      <View style={styles.setupBanner}>
+        <Ionicons name="information-circle" size={18} color={COLORS.primary} />
+        <Text style={styles.bannerText}>
+          {isRestart ? 'Restarting budget setup' : 'Complete setup to unlock all features'}
+        </Text>
+      </View>
+
       <OnboardingProvider>
         <OnboardingStack />
       </OnboardingProvider>
@@ -171,5 +182,21 @@ const styles = StyleSheet.create({
       android: 60,  // Android tab bar height
       web: 60,      // Web tab bar height
     }),
+  },
+  setupBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primaryLight + '20',
+    paddingVertical: SPACING.small,
+    paddingHorizontal: SPACING.base,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.primaryLight + '40',
+    gap: SPACING.tiny,
+  },
+  bannerText: {
+    fontSize: FONTS.sizes.small,
+    color: COLORS.primary,
+    fontWeight: FONTS.weights.medium,
   },
 });

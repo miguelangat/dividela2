@@ -25,8 +25,10 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
+import { CommonActions } from '@react-navigation/native';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../contexts/AuthContext';
+import { onboardingStorage } from '../../utils/storage';
 import { COLORS, FONTS, SPACING } from '../../constants/theme';
 import { formatCurrency, calculateBalance } from '../../utils/calculations';
 
@@ -235,14 +237,33 @@ export default function SettingsScreen({ navigation }) {
           style: 'default',
           onPress: async () => {
             try {
-              // Clear the onboarding completion flag
-              const key = `onboarding_completed_${userDetails?.coupleId}`;
-              await AsyncStorage.removeItem(key);
+              console.log('🔄 Restarting onboarding...');
 
-              // Navigate to onboarding
-              navigation.navigate('Onboarding');
+              // Clear the onboarding completion flag using storage utility
+              if (userDetails?.coupleId) {
+                await onboardingStorage.clearCompleted(userDetails.coupleId);
+                await onboardingStorage.clearState();
+                console.log('✅ Cleared onboarding storage');
+              }
+
+              // Navigate to onboarding with reset action to ensure fresh state
+              // This resets the navigator to show onboarding modal on top of MainTabs
+              navigation.dispatch(
+                CommonActions.reset({
+                  index: 1,
+                  routes: [
+                    { name: 'MainTabs' },
+                    {
+                      name: 'Onboarding',
+                      params: { restartMode: true }, // Flag to indicate manual restart
+                    },
+                  ],
+                })
+              );
+
+              console.log('🎯 Navigated to onboarding');
             } catch (error) {
-              console.error('Error restarting onboarding:', error);
+              console.error('❌ Error restarting onboarding:', error);
               Alert.alert('Error', 'Failed to restart onboarding. Please try again.');
             }
           },

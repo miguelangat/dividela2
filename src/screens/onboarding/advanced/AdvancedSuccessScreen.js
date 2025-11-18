@@ -10,6 +10,7 @@ import {
   ScrollView,
   Animated,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -265,7 +266,7 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
       </View>
 
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: safeBottomInset }]}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* Animated Checkmark */}
@@ -408,9 +409,15 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   scrollContent: {
-    padding: SPACING.screenPadding,
+    paddingHorizontal: SPACING.screenPadding,
     paddingTop: SPACING.huge,
     alignItems: 'center',
+    // Extra padding for content scrollability + bottom tabs (tabs now always visible)
+    paddingBottom: Platform.select({
+      ios: SPACING.xxlarge * 3 + 85,      // content padding + iOS tab bar
+      android: SPACING.xxlarge * 3 + 60,  // content padding + Android tab bar
+      web: SPACING.xxlarge * 3 + 60,      // content padding + web tab bar
+    }),
   },
   checkmarkContainer: {
     marginBottom: SPACING.xlarge,
