@@ -222,22 +222,39 @@ This document describes how the Dividela subscription system handles edge cases,
 
 ---
 
-### ❓ Partner Breakup / Remove from Couple
+### ✅ Partner Breakup / Remove from Couple
 
 **Scenario**: Couple splits, one partner removes the other
 
-**Current Handling**:
-- Partner still retains premium if they originally subscribed
-- Non-subscribing partner loses premium access when `partnerId` removed
-- Firebase sync detects partner removal
+**Handling**:
+1. Bidirectional relationship verification in `hasCoupleAccess`
+2. Checks that both users still point to each other
+3. Verifies `partnerId` and `coupleId` match on both sides
+4. Automatic premium revocation when relationship broken
+5. Debug logging when breakup detected
 
-**Improvement Needed**:
-- Add check for null/removed partner in `hasCoupleAccess`
-- Clear partner-based premium when couple dissolves
+**Code**: `SubscriptionContext.js:517-547`
 
-**Code Location**: `SubscriptionContext.js:515-527` needs update
+**Logic**:
+```js
+// Check if no partner relationship
+if (!userDetails?.partnerId || !userDetails?.coupleId) {
+  debugLog('No partner relationship found');
+  return false;
+}
 
-**Status**: ⚠️ Partially handled, needs enhancement
+// Verify bidirectional relationship
+const partnerStillPaired =
+  partnerDetails.partnerId === userDetails.uid &&
+  partnerDetails.coupleId === userDetails.coupleId;
+
+if (!partnerStillPaired) {
+  debugLog('Partner relationship broken');
+  return false;
+}
+```
+
+**User Experience**: Partner-based premium automatically revoked when couple dissolves
 
 ---
 
@@ -511,7 +528,7 @@ Navigate to `SubscriptionDebugScreen` (only in `__DEV__` mode):
 | Subscription expiration | ✅ | Checked on every sync, Firebase fallback |
 | Cache expiration | ✅ | Auto-refreshes on foreground, 5-min expiry |
 | Retry logic | ✅ | Exponential backoff, max 3 attempts |
-| Partner breakup | ⚠️ | Partially handled, needs enhancement |
+| Partner breakup | ✅ | Bidirectional validation, automatic revocation |
 | Grace period | ✅ | Handled by RevenueCat automatically |
 
 ---
@@ -520,12 +537,12 @@ Navigate to `SubscriptionDebugScreen` (only in `__DEV__` mode):
 
 1. ✅ Add offline indicator UI (Done)
 2. ✅ Add debug screen (Done)
-3. ⚠️ Add partner breakup handling
+3. ✅ Add partner breakup handling (Done)
 4. ❌ Add analytics for purchase failures
 5. ❌ Add Sentry/Crashlytics error tracking
 6. ❌ Add purchase flow state persistence (for crash recovery)
 
 ---
 
-**Last Updated**: 2025-01-19
-**Version**: 1.1.0
+**Last Updated**: 2025-11-19
+**Version**: 1.2.0
