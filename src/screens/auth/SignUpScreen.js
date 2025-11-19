@@ -8,7 +8,6 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  ScrollView,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
@@ -17,6 +16,7 @@ import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons, AntDesign, Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
+import ScrollableContainer from '../../components/common/ScrollableContainer';
 import { validateEmail, validatePassword, validateDisplayName } from '../../utils/validators';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES, SHADOWS } from '../../constants/theme';
 
@@ -117,12 +117,17 @@ export default function SignUpScreen({ navigation }) {
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
       <StatusBar style="light" />
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
+      <ScrollableContainer
+        containerStyle={styles.scrollableContainer}
+        contentStyle={styles.scrollableContent}
         showsVerticalScrollIndicator={true}
-        bounces={true}
+        footer={
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>
+              Made in Colombia 🇨🇴 with ♥
+            </Text>
+          </View>
+        }
       >
         {/* Gradient Header */}
         <LinearGradient
@@ -319,14 +324,7 @@ export default function SignUpScreen({ navigation }) {
           </TouchableOpacity>
 
         </View>
-      </ScrollView>
-
-      {/* Made in Colombia Footer - Always Visible */}
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>
-          Made in Colombia 🇨🇴 with ♥
-        </Text>
-      </View>
+      </ScrollableContainer>
     </KeyboardAvoidingView>
   );
 }
@@ -336,12 +334,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.backgroundSecondary,
   },
-  scrollView: {
-    flex: 1,
+  scrollableContainer: {
+    backgroundColor: 'transparent', // Let KeyboardAvoidingView background show through
   },
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: SPACING.base, // Reduced since footer is now outside ScrollView
+  scrollableContent: {
+    paddingHorizontal: 0, // Override default padding since we have custom margins
   },
   gradientHeader: {
     paddingTop: Platform.OS === 'ios' ? 50 : 30,
@@ -555,6 +552,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: SPACING.base,
     paddingBottom: Platform.OS === 'ios' ? SPACING.large : SPACING.base,
+    paddingHorizontal: 0, // Override ScrollableContainer padding
     backgroundColor: COLORS.backgroundSecondary,
     borderTopWidth: 1,
     borderTopColor: COLORS.border + '30', // 30% opacity
