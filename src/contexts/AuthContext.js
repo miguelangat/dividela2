@@ -13,6 +13,7 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
+import { initializeUserReferral } from '../services/referralService';
 
 // Create the context
 const AuthContext = createContext({});
@@ -78,7 +79,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // Sign up with email and password
-  const signUp = async (email, password, displayName) => {
+  const signUp = async (email, password, displayName, referralCode = null) => {
     try {
       setError(null);
       setLoading(true);
@@ -88,6 +89,11 @@ export const AuthProvider = ({ children }) => {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const { user: firebaseUser } = userCredential;
       console.log('✓ Firebase Auth user created:', firebaseUser.uid);
+
+      // Initialize referral data
+      console.log('Initializing referral data...');
+      const referralData = await initializeUserReferral(firebaseUser.uid, referralCode);
+      console.log('✓ Referral data initialized:', referralData);
 
       // Create user document in Firestore
       const userData = {
@@ -102,6 +108,7 @@ export const AuthProvider = ({ children }) => {
           defaultSplit: 50,
           currency: 'USD',
         },
+        ...referralData,
       };
 
       console.log('Creating Firestore user document...');
@@ -221,7 +228,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Sign in with Google (OAuth)
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (referralCode = null) => {
     try {
       setError(null);
       const provider = new GoogleAuthProvider();
@@ -233,6 +240,10 @@ export const AuthProvider = ({ children }) => {
       const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
 
       if (!userDoc.exists()) {
+        // Initialize referral data for new OAuth user
+        console.log('Initializing referral data for new Google user...');
+        const referralData = await initializeUserReferral(firebaseUser.uid, referralCode);
+
         // Create user document for new OAuth user
         const userData = {
           uid: firebaseUser.uid,
@@ -241,6 +252,7 @@ export const AuthProvider = ({ children }) => {
           partnerId: null,
           coupleId: null,
           createdAt: new Date(),
+          ...referralData,
         };
 
         await setDoc(doc(db, 'users', firebaseUser.uid), userData);
@@ -270,7 +282,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Sign in with Apple (OAuth)
-  const signInWithApple = async () => {
+  const signInWithApple = async (referralCode = null) => {
     try {
       setError(null);
       const provider = new OAuthProvider('apple.com');
@@ -282,6 +294,10 @@ export const AuthProvider = ({ children }) => {
       const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
 
       if (!userDoc.exists()) {
+        // Initialize referral data for new OAuth user
+        console.log('Initializing referral data for new Apple user...');
+        const referralData = await initializeUserReferral(firebaseUser.uid, referralCode);
+
         // Create user document for new OAuth user
         const userData = {
           uid: firebaseUser.uid,
@@ -290,6 +306,7 @@ export const AuthProvider = ({ children }) => {
           partnerId: null,
           coupleId: null,
           createdAt: new Date(),
+          ...referralData,
         };
 
         await setDoc(doc(db, 'users', firebaseUser.uid), userData);

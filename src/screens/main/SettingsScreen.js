@@ -30,6 +30,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { onboardingStorage } from '../../utils/storage';
 import { COLORS, FONTS, SPACING } from '../../constants/theme';
 import { formatCurrency, calculateBalance } from '../../utils/calculations';
+import { hasActivePremium } from '../../services/referralService';
 
 const { width: screenWidth } = Dimensions.get('window');
 const isSmallScreen = screenWidth < 375;
@@ -223,6 +224,69 @@ export default function SettingsScreen({ navigation }) {
     </View>
   );
 
+  const handleNavigateToReferral = () => {
+    navigation.navigate('Referral');
+  };
+
+  const handleNavigateToPremiumFeatures = () => {
+    navigation.navigate('PremiumFeatures');
+  };
+
+  const renderPremiumSection = () => {
+    const isPremium = hasActivePremium(userDetails);
+    const referralCount = userDetails?.referralCount || 0;
+
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Premium</Text>
+
+        <View style={styles.card}>
+          {/* Premium Status */}
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={handleNavigateToPremiumFeatures}
+            activeOpacity={0.6}
+          >
+            <View style={styles.settingIcon}>
+              <Ionicons
+                name={isPremium ? 'star' : 'star-outline'}
+                size={20}
+                color={isPremium ? '#FFD700' : COLORS.primary}
+              />
+            </View>
+            <View style={styles.settingContent}>
+              <Text style={styles.settingLabel}>Premium Status</Text>
+              <Text style={styles.settingValue}>
+                {isPremium ? 'Active' : 'Free'}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+          </TouchableOpacity>
+
+          {/* Referral Program */}
+          <TouchableOpacity
+            style={[styles.settingRow, styles.settingRowLast]}
+            onPress={handleNavigateToReferral}
+            activeOpacity={0.6}
+          >
+            <View style={styles.settingIcon}>
+              <Ionicons name="gift" size={20} color={COLORS.primary} />
+            </View>
+            <View style={styles.settingContent}>
+              <Text style={styles.settingLabel}>Referral Program</Text>
+              <Text style={styles.settingValue}>
+                {isPremium
+                  ? 'Premium Unlocked!'
+                  : `${referralCount}/1 referrals`}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
   const handleRestartOnboarding = () => {
     console.log('🚨 RESTART BUTTON CLICKED - HANDLER CALLED');
     setRestartOnboardingModalVisible(true);
@@ -363,6 +427,9 @@ export default function SettingsScreen({ navigation }) {
 
         {/* Partner Section */}
         {renderPartnerSection()}
+
+        {/* Premium Section */}
+        {renderPremiumSection()}
 
         {/* Preferences Section */}
         {renderPreferencesSection()}

@@ -25,6 +25,8 @@ import OnboardingNavigator from './OnboardingNavigator';
 // Main app screens
 import TabNavigator from './TabNavigator';
 import AddExpenseScreen from '../screens/main/AddExpenseScreen';
+import ReferralScreen from '../screens/main/ReferralScreen';
+import PremiumFeaturesScreen from '../screens/main/PremiumFeaturesScreen';
 
 const Stack = createStackNavigator();
 
@@ -297,6 +299,20 @@ export default function AppNavigator() {
               component={AddExpenseScreen}
               options={{
                 presentation: 'modal',
+              }}
+            />
+            <Stack.Screen
+              name="Referral"
+              component={ReferralScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="PremiumFeatures"
+              component={PremiumFeaturesScreen}
+              options={{
+                headerShown: false,
               }}
             />
           </>

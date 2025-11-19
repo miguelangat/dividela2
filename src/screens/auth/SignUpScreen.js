@@ -18,12 +18,13 @@ import { useAuth } from '../../contexts/AuthContext';
 import { validateEmail, validatePassword, validateDisplayName } from '../../utils/validators';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES } from '../../constants/theme';
 
-export default function SignUpScreen({ navigation }) {
+export default function SignUpScreen({ navigation, route }) {
   const { signUp, signInWithGoogle, signInWithApple } = useAuth();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [referralCode, setReferralCode] = useState(route.params?.referralCode || '');
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState(null); // 'google' | 'apple' | null
@@ -53,7 +54,7 @@ export default function SignUpScreen({ navigation }) {
     // Proceed with sign up
     try {
       setLoading(true);
-      await signUp(email, password, name);
+      await signUp(email, password, name, referralCode || null);
       // Navigation will happen automatically via AuthContext
       // User will be redirected to ConnectScreen (to pair with partner)
       navigation.replace('Connect');
@@ -77,7 +78,7 @@ export default function SignUpScreen({ navigation }) {
       setErrors({});
       setSocialLoading('google');
       console.log('🔵 Calling signInWithGoogle...');
-      await signInWithGoogle();
+      await signInWithGoogle(referralCode || null);
       console.log('🔵 Google sign-in successful');
       // Navigation handled by AuthContext
     } catch (error) {
@@ -96,7 +97,7 @@ export default function SignUpScreen({ navigation }) {
     try {
       setErrors({});
       setSocialLoading('apple');
-      await signInWithApple();
+      await signInWithApple(referralCode || null);
       // Navigation handled by AuthContext
     } catch (error) {
       console.error('Apple sign-in error:', error);
@@ -169,6 +170,25 @@ export default function SignUpScreen({ navigation }) {
               autoComplete="password-new"
             />
             {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+          </View>
+
+          {/* Referral Code (Optional) */}
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Referral Code (Optional)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter code from a friend"
+              value={referralCode}
+              onChangeText={(text) => setReferralCode(text.toUpperCase())}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              maxLength={6}
+            />
+            {referralCode && (
+              <Text style={styles.helperText}>
+                Great! You and your friend will both get rewards
+              </Text>
+            )}
           </View>
 
           {/* Terms and Privacy */}
@@ -291,6 +311,11 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: FONTS.sizes.small,
     color: COLORS.error,
+    marginTop: SPACING.tiny,
+  },
+  helperText: {
+    fontSize: FONTS.sizes.small,
+    color: COLORS.success,
     marginTop: SPACING.tiny,
   },
   checkboxContainer: {

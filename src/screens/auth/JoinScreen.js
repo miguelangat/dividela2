@@ -29,6 +29,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { formatCodeInput, isValidCodeFormat } from '../../utils/inviteCode';
 import { COLORS, FONTS, SPACING, COMMON_STYLES } from '../../constants/theme';
 import { initializeCategoriesForCouple } from '../../services/categoryService';
+import { checkAndCompleteReferral } from '../../services/referralService';
 
 export default function JoinScreen({ navigation }) {
   const { user, userDetails, updatePartnerInfo } = useAuth();
@@ -170,6 +171,13 @@ export default function JoinScreen({ navigation }) {
       console.log('Initializing default categories for couple:', coupleId);
       await initializeCategoriesForCouple(coupleId);
       console.log('✓ Categories initialized');
+
+      // Check and complete any pending referrals
+      console.log('Checking for pending referrals...');
+      const referralResult = await checkAndCompleteReferral(coupleId, partnerId, user.uid);
+      if (referralResult.success && referralResult.count > 0) {
+        console.log(`✓ Completed ${referralResult.count} referral(s)`);
+      }
 
       console.log('✓ Couple creation complete!');
       return { success: true, partnerId, coupleId };
