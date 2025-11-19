@@ -1,12 +1,14 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { Button } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import * as DocumentPicker from 'expo-document-picker';
 
 /**
  * File picker button for selecting CSV or PDF bank statements
  */
 export default function FilePickerButton({ onFileSelected, loading, style }) {
+  const { t } = useTranslation();
   const [picking, setPicking] = React.useState(false);
 
   const pickFile = async () => {
@@ -32,7 +34,7 @@ export default function FilePickerButton({ onFileSelected, loading, style }) {
         const isPDF = fileName.endsWith('.pdf');
 
         if (!isCSV && !isPDF) {
-          alert('Please select a CSV or PDF file');
+          alert(t('import.filePicker.invalidFileType'));
           setPicking(false);
           return;
         }
@@ -50,7 +52,7 @@ export default function FilePickerButton({ onFileSelected, loading, style }) {
       setPicking(false);
     } catch (error) {
       console.error('Error picking file:', error);
-      alert('Error selecting file. Please try again.');
+      alert(t('import.filePicker.fileSelectError'));
       setPicking(false);
     }
   };
@@ -64,7 +66,7 @@ export default function FilePickerButton({ onFileSelected, loading, style }) {
       icon="file-upload"
       style={[styles.button, style]}
     >
-      {picking ? 'Selecting File...' : 'Select Bank Statement'}
+      {picking ? t('import.selectingFile') : t('import.selectFile')}
     </Button>
   );
 }
