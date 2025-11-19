@@ -7,7 +7,7 @@ import { collection, writeBatch, doc, serverTimestamp } from 'firebase/firestore
 import { db } from '../config/firebase';
 import { getExpenses } from './expenseService';
 import { parseBankStatement } from '../utils/bankStatementParser';
-import { mapTransactionsToExpenses, filterTransactions, validateExpenses } from '../utils/transactionMapper';
+import { mapTransactionsToExpenses, mapTransactionToExpense, filterTransactions, validateExpenses } from '../utils/transactionMapper';
 import { suggestCategoriesForTransactions } from '../utils/categoryAutoMapper';
 import { detectDuplicatesForTransactions } from '../utils/duplicateDetector';
 
@@ -139,6 +139,78 @@ export async function processTransactions(transactions, config) {
       success: false,
       error: error.message,
       expenses: [],
+    };
+  }
+}
+
+/**
+ * Import specific transactions with category overrides
+ *
+ * @param {Array} transactions - Transactions to import
+ * @param {Object} config - Import configuration
+ * @param {Object} categoryOverrides - Category overrides by transaction index
+ * @param {Array} selectedIndices - Which transactions to import
+ * @param {Array} categorySuggestions - Category suggestions
+ * @param {Function} onProgress - Progress callback
+ * @returns {Promise<Object>} Import result
+ */
+export async function importSelectedTransactions(
+  transactions,
+  config,
+  categoryOverrides,
+  selectedIndices,
+  categorySuggestions,
+  onProgress = null
+) {
+  try {
+    // Filter to only selected transactions
+    const selectedTransactions = transactions.filter((_, index) =>
+      selectedIndices.includes(index)
+    );
+
+    if (selectedTransactions.length === 0) {
+      throw new Error('No transactions selected for import');
+    }
+
+    // Map transactions to expenses with category overrides applied
+    const expenses = selectedTransactions.map((transaction) => {
+      const originalIndex = transactions.indexOf(transaction);
+      const suggestion = categorySuggestions?.[originalIndex]?.suggestion;
+      const overrideCategory = categoryOverrides[originalIndex];
+
+      // Use override if present, otherwise use suggestion, otherwise use default
+      const finalCategory = overrideCategory ||
+        (suggestion && suggestion.confidence > 0.3 ? suggestion.categoryKey : null) ||
+        config.defaultCategoryKey;
+
+      return mapTransactionToExpense(transaction, {
+        ...config,
+        categoryKey: finalCategory,
+      });
+    });
+
+    // Validate expenses
+    const validation = validateExpenses(expenses);
+    if (!validation.allValid) {
+      console.warn(`⚠️ ${validation.invalid} invalid expenses found`);
+      // Still proceed with valid ones
+    }
+
+    // Import valid expenses
+    const result = await batchImportExpenses(validation.validExpenses, onProgress);
+
+    return {
+      ...result,
+      totalRequested: selectedTransactions.length,
+      validCount: validation.valid,
+      invalidCount: validation.invalid,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+      importedCount: 0,
+      importedIds: [],
     };
   }
 }
@@ -390,6 +462,7 @@ export default {
   parseFile,
   processTransactions,
   batchImportExpenses,
+  importSelectedTransactions,
   importFromFile,
   previewImport,
   MAX_IMPORT_SIZE,
