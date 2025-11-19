@@ -167,7 +167,7 @@ export default function TabNavigator() {
         name="ChatTab"
         component={ChatScreen}
         options={{
-          tabBarLabel: 'Chat',
+          tabBarLabel: t('navigation.chat'),
         }}
       />
       <Tab.Screen
