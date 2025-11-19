@@ -176,5 +176,63 @@
       "signIn": "Iniciar sesión",
       "signUpError": "Error al crear la cuenta. Por favor, intenta de nuevo."
     }
+  },
+  "budget": {
+    "dashboard": {
+      "title": "Budget Dashboard",
+      "loadingDashboard": "Loading dashboard...",
+      "budgetDisabled": "Budget Tracking Disabled",
+      "budgetDisabledText": "Enable budget tracking in setup to see your progress",
+      "setupBudget": "Setup Budget",
+      "noBudgetTitle": "No Budget Set",
+      "noBudgetText": "Set up your budget to start tracking your spending",
+      "overallProgress": "Overall Progress",
+      "categoryBreakdown": "Category Breakdown",
+      "recentSettlements": "Recent Settlements",
+      "noSettlements": "No recent settlements",
+      "viewAll": "View All",
+      "refreshing": "Refreshing..."
+    }
+  },
+  "onboarding": {
+    "intro": {
+      "title": "Set Up Your Budget",
+      "subtitle": "Choose the setup that works best for you",
+      "subtitleAfterPairing": "Choose how you want to track your shared expenses",
+      "simpleTitle": "Keep It Simple",
+      "simpleSubtitle": "Quick monthly budgets",
+      "simpleDuration": "⏱️ 2 minutes",
+      "simpleFeature1": "Auto-calculated",
+      "simpleFeature2": "Monthly only",
+      "simpleFeature3": "Easy to adjust",
+      "advancedTitle": "Annual Planning",
+      "advancedSubtitle": "Full year budgets",
+      "advancedDuration": "⏱️ 5 minutes",
+      "advancedFeature1": "Complete control",
+      "advancedFeature2": "Annual & monthly",
+      "advancedFeature3": "Advanced features",
+      "skipButton": "Skip for Now",
+      "recommended": "RECOMMENDED"
+    },
+    "simple": {
+      "chooseStyle": {
+        "title": "Choose Your Style",
+        "subtitle": "How would you like to set your budget?",
+        "smartTitle": "Smart Budget",
+        "smartDescription": "We'll suggest budgets based on your spending patterns",
+        "smartRecommended": "Recommended for new users",
+        "fixedTitle": "Fixed Budget",
+        "fixedDescription": "Set a total monthly amount, we'll divide it across categories",
+        "fixedBest": "Best if you know your limit",
+        "continue": "Continue"
+      }
+    },
+    "skip": {
+      "title": "Skip Budget Setup?",
+      "subtitle": "You can always set it up later from Settings",
+      "message": "Budget tracking helps you monitor spending and stay on track. You can set it up anytime.",
+      "goBack": "Go Back",
+      "skipAnyway": "Skip Anyway"
+    }
   }
 }

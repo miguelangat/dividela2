@@ -16,6 +16,7 @@ import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES } from '../../../constants
 import ProgressStepper from '../../../components/onboarding/ProgressStepper';
 import OnboardingCard from '../../../components/onboarding/OnboardingCard';
 import { useOnboarding } from '../../../contexts/OnboardingContext';
+import { useTranslation } from 'react-i18next';
 
 export default function SimpleChooseStyleScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -61,8 +62,8 @@ export default function SimpleChooseStyleScreen({ navigation }) {
           {/* Smart Budget Option */}
           <OnboardingCard
             icon="💚"
-            title="Smart Budget"
-            description="We'll suggest budgets based on your spending patterns"
+            title={t('onboarding.simple.chooseStyle.smartTitle')}
+            description={t('onboarding.simple.chooseStyle.smartDescription')}
             details="📊 Updates monthly"
             selected={selectedStyle === 'smart'}
             recommended={true}
@@ -72,8 +73,8 @@ export default function SimpleChooseStyleScreen({ navigation }) {
           {/* Fixed Budget Option */}
           <OnboardingCard
             icon="📝"
-            title="Fixed Budget"
-            description="Set a total monthly amount, we'll divide it across categories"
+            title={t('onboarding.simple.chooseStyle.fixedTitle')}
+            description={t('onboarding.simple.chooseStyle.fixedDescription')}
             details="💰 You choose total"
             selected={selectedStyle === 'fixed'}
             onPress={() => setSelectedStyle('fixed')}
@@ -106,7 +107,7 @@ export default function SimpleChooseStyleScreen({ navigation }) {
           style={COMMON_STYLES.primaryButton}
           onPress={handleContinue}
         >
-          <Text style={COMMON_STYLES.primaryButtonText}>Continue</Text>
+          <Text style={COMMON_STYLES.primaryButtonText}>{t('onboarding.simple.chooseStyle.continue')}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

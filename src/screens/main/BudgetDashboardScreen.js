@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useBudget } from '../../contexts/BudgetContext';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES } from '../../constants/theme';
 import BudgetProgressCard from '../../components/BudgetProgressCard';
@@ -21,6 +22,7 @@ import * as settlementService from '../../services/settlementService';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function BudgetDashboardScreen({ navigation }) {
+  const { t } = useTranslation();
   const {
     categories,
     currentBudget,
@@ -79,7 +81,7 @@ export default function BudgetDashboardScreen({ navigation }) {
         <StatusBar style="dark" />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading dashboard...</Text>
+          <Text style={styles.loadingText}>{t('budget.dashboard.loadingDashboard')}</Text>
         </View>
       </View>
     );
@@ -91,7 +93,7 @@ export default function BudgetDashboardScreen({ navigation }) {
         <StatusBar style="dark" />
         <View style={styles.emptyStateContainer}>
           <Text style={styles.emptyStateIcon}>📊</Text>
-          <Text style={styles.emptyStateTitle}>Budget Tracking Disabled</Text>
+          <Text style={styles.emptyStateTitle}>{t('budget.dashboard.budgetDisabled')}</Text>
           <Text style={styles.emptyStateText}>
             Enable budget tracking in setup to see your progress
           </Text>
@@ -198,9 +200,9 @@ export default function BudgetDashboardScreen({ navigation }) {
         {recentSettlements.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Recent Settlements</Text>
+              <Text style={styles.sectionTitle}>{t('budget.dashboard.recentSettlements')}</Text>
               <TouchableOpacity onPress={() => navigation.navigate('SettlementHistory')}>
-                <Text style={styles.viewAllText}>View All</Text>
+                <Text style={styles.viewAllText}>{t('budget.dashboard.viewAll')}</Text>
               </TouchableOpacity>
             </View>
 

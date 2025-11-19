@@ -12,11 +12,13 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES } from '../../constants/theme';
 import { useOnboarding } from '../../contexts/OnboardingContext';
+import { useTranslation } from 'react-i18next';
 import OnboardingCard from '../../components/onboarding/OnboardingCard';
 
 export default function OnboardingIntroScreen({ navigation, route }) {
   const { afterPairing = false } = route.params || {};
   const { setMode } = useOnboarding();
+  const { t } = useTranslation();
   const [selectedOption, setSelectedOption] = useState(null);
 
   const handleSelectSimple = () => {
@@ -49,11 +51,11 @@ export default function OnboardingIntroScreen({ navigation, route }) {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Set Up Your Budget</Text>
+          <Text style={styles.title}>{t('onboarding.intro.title')}</Text>
           <Text style={styles.subtitle}>
             {afterPairing 
-              ? 'Choose how you want to track your shared expenses'
-              : 'Choose the setup that works best for you'
+              ? t('onboarding.intro.subtitleAfterPairing')
+              : t('onboarding.intro.subtitle')
             }
           </Text>
         </View>
@@ -63,14 +65,14 @@ export default function OnboardingIntroScreen({ navigation, route }) {
           {/* Simple Option (Recommended) */}
           <OnboardingCard
             icon="🎯"
-            badge="RECOMMENDED"
-            title="Keep It Simple"
-            subtitle="Quick monthly budgets"
-            duration="⏱️ 2 minutes"
+            badge={t('onboarding.intro.recommended')}
+            title={t('onboarding.intro.simpleTitle')}
+            subtitle={t('onboarding.intro.simpleSubtitle')}
+            duration={t('onboarding.intro.simpleDuration')}
             features={[
-              'Auto-calculated',
-              'Monthly only',
-              'Easy to adjust',
+              t('onboarding.intro.simpleFeature1'),
+              t('onboarding.intro.simpleFeature2'),
+              t('onboarding.intro.simpleFeature3'),
             ]}
             onPress={handleSelectSimple}
             isSelected={selectedOption === 'simple'}
@@ -80,9 +82,9 @@ export default function OnboardingIntroScreen({ navigation, route }) {
           {/* Advanced Option */}
           <OnboardingCard
             icon="📊"
-            title="Annual Planning"
-            subtitle="Full year budgets"
-            duration="⏱️ 5 minutes"
+            title={t('onboarding.intro.advancedTitle')}
+            subtitle={t('onboarding.intro.advancedSubtitle')}
+            duration={t('onboarding.intro.advancedDuration')}
             features={[
               'Annual budgets',
               'Monthly breakdowns',
