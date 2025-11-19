@@ -95,14 +95,14 @@ export default function BudgetDashboardScreen({ navigation }) {
           <Text style={styles.emptyStateIcon}>📊</Text>
           <Text style={styles.emptyStateTitle}>{t('budget.dashboard.budgetDisabled')}</Text>
           <Text style={styles.emptyStateText}>
-            Enable budget tracking in setup to see your progress
+            {t('budget.dashboard.budgetDisabledText')}
           </Text>
           <TouchableOpacity
             style={styles.primaryButton}
             onPress={() => navigation.navigate('BudgetSetup')}
             activeOpacity={0.8}
           >
-            <Text style={styles.primaryButtonText}>Go to Setup</Text>
+            <Text style={styles.primaryButtonText}>{t('budget.dashboard.goToSetup')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -136,33 +136,33 @@ export default function BudgetDashboardScreen({ navigation }) {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Budget Dashboard</Text>
+          <Text style={styles.title}>{t('budget.dashboard.title')}</Text>
           <Text style={styles.subtitle}>
-            Track your spending against monthly budgets
+            {t('budget.dashboard.subtitle')}
           </Text>
         </View>
 
         {/* Summary Cards */}
         <View style={styles.summaryGrid}>
           <View style={[styles.summaryCard, styles.summaryCardPrimary]}>
-            <Text style={styles.summaryLabel}>Total Budget</Text>
+            <Text style={styles.summaryLabel}>{t('budget.dashboard.totalBudget')}</Text>
             <Text style={styles.summaryValue}>${totalBudget.toFixed(0)}</Text>
           </View>
 
           <View style={[styles.summaryCard, styles.summaryCardWarning]}>
-            <Text style={styles.summaryLabel}>Total Spent</Text>
+            <Text style={styles.summaryLabel}>{t('budget.dashboard.totalSpent')}</Text>
             <Text style={styles.summaryValue}>${totalSpent.toFixed(0)}</Text>
           </View>
 
           <View style={[styles.summaryCard, styles.summaryCardSuccess]}>
-            <Text style={styles.summaryLabel}>Remaining</Text>
+            <Text style={styles.summaryLabel}>{t('budget.dashboard.remaining')}</Text>
             <Text style={styles.summaryValue}>${remaining.toFixed(0)}</Text>
           </View>
         </View>
 
         {/* Category Progress */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Budget Progress by Category</Text>
+          <Text style={styles.sectionTitle}>{t('budget.dashboard.budgetProgressTitle')}</Text>
 
           <View style={styles.progressGrid}>
             {categoryArray.map((category) => {
@@ -188,9 +188,9 @@ export default function BudgetDashboardScreen({ navigation }) {
           {categoryArray.length === 0 && (
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateIcon}>📁</Text>
-              <Text style={styles.emptyStateText}>No categories yet</Text>
+              <Text style={styles.emptyStateText}>{t('budget.dashboard.noCategories')}</Text>
               <Text style={styles.emptyStateSubtext}>
-                Add categories to start tracking your budget
+                {t('budget.dashboard.noCategoriesMessage')}
               </Text>
             </View>
           )}
@@ -239,7 +239,7 @@ export default function BudgetDashboardScreen({ navigation }) {
                       <View style={styles.settlementStat}>
                         <Ionicons name="receipt-outline" size={14} color={COLORS.textTertiary} />
                         <Text style={styles.settlementStatText}>
-                          {settlement.expensesSettledCount || 0} expenses
+                          {settlement.expensesSettledCount || 0} {t('budget.dashboard.expenses')}
                         </Text>
                       </View>
 
@@ -252,7 +252,7 @@ export default function BudgetDashboardScreen({ navigation }) {
                             styles.budgetBadgeText,
                             budgetSummary.budgetRemaining >= 0 ? styles.budgetBadgeTextSuccess : styles.budgetBadgeTextError
                           ]}>
-                            {budgetSummary.budgetRemaining >= 0 ? 'Under Budget' : 'Over Budget'}
+                            {budgetSummary.budgetRemaining >= 0 ? t('budget.dashboard.underBudget') : t('budget.dashboard.overBudget')}
                           </Text>
                         </View>
                       )}
@@ -262,7 +262,7 @@ export default function BudgetDashboardScreen({ navigation }) {
                       <View style={styles.topCategorySmall}>
                         <Text style={styles.topCategoryIcon}>{topCategory.icon}</Text>
                         <Text style={styles.topCategoryText}>
-                          Top: {topCategory.categoryName} (${topCategory.amount?.toFixed(0) || 0})
+                          {t('budget.dashboard.topLabel')} {topCategory.categoryName} (${topCategory.amount?.toFixed(0) || 0})
                         </Text>
                       </View>
                     )}
@@ -280,7 +280,7 @@ export default function BudgetDashboardScreen({ navigation }) {
             onPress={() => navigation.navigate('BudgetSetup')}
             activeOpacity={0.8}
           >
-            <Text style={styles.actionButtonText}>⚙️ Setup Budgets</Text>
+            <Text style={styles.actionButtonText}>{t('budget.dashboard.setupBudgets')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -288,7 +288,7 @@ export default function BudgetDashboardScreen({ navigation }) {
             onPress={() => navigation.navigate('CategoryManager')}
             activeOpacity={0.8}
           >
-            <Text style={styles.actionButtonText}>📁 Manage Categories</Text>
+            <Text style={styles.actionButtonText}>{t('budget.dashboard.manageCategories')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -296,7 +296,7 @@ export default function BudgetDashboardScreen({ navigation }) {
             onPress={() => navigation.navigate('AnnualBudgetSetup')}
             activeOpacity={0.8}
           >
-            <Text style={styles.actionButtonText}>📅 Annual Budget</Text>
+            <Text style={styles.actionButtonText}>{t('budget.dashboard.annualBudget')}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
