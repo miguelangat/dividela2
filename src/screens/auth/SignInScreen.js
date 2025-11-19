@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MaterialCommunityIcons, AntDesign } from '@expo/vector-icons';
+import { MaterialCommunityIcons, AntDesign, Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import LanguageSelectorButton from '../../components/LanguageSelectorButton';
@@ -282,7 +282,7 @@ export default function SignInScreen({ navigation }) {
             ) : (
               <>
                 <View style={styles.socialIconContainer}>
-                  <AntDesign name="apple1" size={20} color="#000000" />
+                  <Ionicons name="logo-apple" size={20} color="#000000" />
                 </View>
                 <Text style={styles.socialButtonText}>{t('auth.signIn.continueWithApple')}</Text>
               </>

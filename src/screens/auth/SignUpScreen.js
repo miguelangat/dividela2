@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MaterialCommunityIcons, AntDesign } from '@expo/vector-icons';
+import { MaterialCommunityIcons, AntDesign, Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { validateEmail, validatePassword, validateDisplayName } from '../../utils/validators';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES, SHADOWS } from '../../constants/theme';
@@ -308,7 +308,7 @@ export default function SignUpScreen({ navigation }) {
             ) : (
               <>
                 <View style={styles.socialIconContainer}>
-                  <AntDesign name="apple1" size={20} color="#000000" />
+                  <Ionicons name="logo-apple" size={20} color="#000000" />
                 </View>
                 <Text style={styles.socialButtonText}>Continue with Apple</Text>
               </>
