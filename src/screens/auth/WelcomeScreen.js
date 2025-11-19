@@ -105,6 +105,13 @@ export default function WelcomeScreen({ navigation }) {
               </TouchableOpacity>
             </View>
           </View>
+
+          {/* Made in Colombia Footer */}
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>
+              Made in Colombia 🇨🇴 with ♥
+            </Text>
+          </View>
         </ScrollView>
       </LinearGradient>
     </View>
@@ -228,5 +235,18 @@ const styles = StyleSheet.create({
     color: COLORS.textWhite,
     fontWeight: FONTS.weights.bold,
     opacity: 1,
+  },
+  footer: {
+    alignItems: 'center',
+    marginTop: SPACING.xxlarge,
+    paddingVertical: SPACING.large,
+    paddingBottom: SPACING.xxlarge,
+  },
+  footerText: {
+    fontSize: FONTS.sizes.small,
+    color: COLORS.textWhite,
+    fontWeight: FONTS.weights.medium,
+    letterSpacing: 0.3,
+    opacity: 0.6,
   },
 });

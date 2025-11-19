@@ -308,8 +308,12 @@ export default function SignInScreen({ navigation }) {
             </Text>
           </TouchableOpacity>
 
-          {/* Bottom Spacer for reliable scrolling */}
-          <View style={styles.bottomSpacer} />
+          {/* Made in Colombia Footer */}
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>
+              Made in Colombia 🇨🇴 with ♥
+            </Text>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -524,7 +528,17 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontWeight: FONTS.weights.bold,
   },
-  bottomSpacer: {
-    height: SPACING.xxlarge,
+  footer: {
+    alignItems: 'center',
+    marginTop: SPACING.xxlarge,
+    paddingVertical: SPACING.large,
+    paddingBottom: SPACING.xxlarge,
+  },
+  footerText: {
+    fontSize: FONTS.sizes.small,
+    color: COLORS.textTertiary,
+    fontWeight: FONTS.weights.medium,
+    letterSpacing: 0.3,
+    opacity: 0.8,
   },
 });

@@ -322,8 +322,12 @@ export default function SignUpScreen({ navigation }) {
             )}
           </TouchableOpacity>
 
-          {/* Bottom Spacer for reliable scrolling */}
-          <View style={styles.bottomSpacer} />
+          {/* Made in Colombia Footer */}
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>
+              Made in Colombia 🇨🇴 with ♥
+            </Text>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -546,7 +550,17 @@ const styles = StyleSheet.create({
     fontSize: FONTS.sizes.body,
     fontWeight: FONTS.weights.semibold,
   },
-  bottomSpacer: {
-    height: SPACING.xxlarge,
+  footer: {
+    alignItems: 'center',
+    marginTop: SPACING.xxlarge,
+    paddingVertical: SPACING.large,
+    paddingBottom: SPACING.xxlarge,
+  },
+  footerText: {
+    fontSize: FONTS.sizes.small,
+    color: COLORS.textTertiary,
+    fontWeight: FONTS.weights.medium,
+    letterSpacing: 0.3,
+    opacity: 0.8,
   },
 });
