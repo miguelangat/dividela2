@@ -19,6 +19,7 @@ import { useOnboarding } from '../../../contexts/OnboardingContext';
 import { useTranslation } from 'react-i18next';
 
 export default function SimpleChooseStyleScreen({ navigation }) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { budgetStyle, setBudgetStyle } = useOnboarding();
   const [selectedStyle, setSelectedStyle] = useState(budgetStyle || 'smart');
@@ -51,9 +52,9 @@ export default function SimpleChooseStyleScreen({ navigation }) {
 
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>How do you want to budget?</Text>
+          <Text style={styles.title}>{t('onboarding.simple.chooseStyle.title')}</Text>
           <Text style={styles.subtitle}>
-            Choose the approach that works best for you
+            {t('onboarding.simple.chooseStyle.subtitle')}
           </Text>
         </View>
 
@@ -64,7 +65,7 @@ export default function SimpleChooseStyleScreen({ navigation }) {
             icon="💚"
             title={t('onboarding.simple.chooseStyle.smartTitle')}
             description={t('onboarding.simple.chooseStyle.smartDescription')}
-            details="📊 Updates monthly"
+            details={t('onboarding.simple.chooseStyle.smartDetails')}
             selected={selectedStyle === 'smart'}
             recommended={true}
             onPress={() => setSelectedStyle('smart')}
@@ -75,7 +76,7 @@ export default function SimpleChooseStyleScreen({ navigation }) {
             icon="📝"
             title={t('onboarding.simple.chooseStyle.fixedTitle')}
             description={t('onboarding.simple.chooseStyle.fixedDescription')}
-            details="💰 You choose total"
+            details={t('onboarding.simple.chooseStyle.fixedDetails')}
             selected={selectedStyle === 'fixed'}
             onPress={() => setSelectedStyle('fixed')}
           />
@@ -87,7 +88,7 @@ export default function SimpleChooseStyleScreen({ navigation }) {
           onPress={handleSwitchToAdvanced}
         >
           <Text style={styles.advancedLinkText}>
-            Switch to Advanced Mode
+            {t('onboarding.simple.chooseStyle.switchToAdvanced')}
           </Text>
         </TouchableOpacity>
       </ScrollView>

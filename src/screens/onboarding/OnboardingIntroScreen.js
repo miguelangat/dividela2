@@ -86,9 +86,9 @@ export default function OnboardingIntroScreen({ navigation, route }) {
             subtitle={t('onboarding.intro.advancedSubtitle')}
             duration={t('onboarding.intro.advancedDuration')}
             features={[
-              'Annual budgets',
-              'Monthly breakdowns',
-              'Custom strategies',
+              t('onboarding.intro.advancedFeature1'),
+              t('onboarding.intro.advancedFeature2'),
+              t('onboarding.intro.advancedFeature3'),
             ]}
             onPress={handleSelectAdvanced}
             isSelected={selectedOption === 'advanced'}
@@ -103,13 +103,13 @@ export default function OnboardingIntroScreen({ navigation, route }) {
           activeOpacity={0.6}
         >
           <Text style={styles.skipButtonText}>
-            Skip for now
+            {t('onboarding.intro.skipButton')}
           </Text>
         </TouchableOpacity>
 
         {/* Info Text */}
         <Text style={styles.infoText}>
-          You can always set up budgets later from Settings
+          {t('onboarding.intro.skipMessage')}
         </Text>
       </ScrollView>
     </View>

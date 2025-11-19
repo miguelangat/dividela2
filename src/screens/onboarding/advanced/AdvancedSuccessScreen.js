@@ -17,8 +17,10 @@ import { StatusBar } from 'expo-status-bar';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES, SHADOWS } from '../../../constants/theme';
 import { useOnboarding } from '../../../contexts/OnboardingContext';
 import { useBudget } from '../../../contexts/BudgetContext';
+import { useTranslation } from 'react-i18next';
 
 export default function AdvancedSuccessScreen({ navigation, route }) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { finalData } = route.params || {};
   const { completeOnboarding, loading: onboardingLoading } = useOnboarding();
@@ -293,9 +295,9 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
             },
           ]}
         >
-          <Text style={styles.title}>Your Budget is Ready!</Text>
+          <Text style={styles.title}>{t('onboarding.advanced.success.title')}</Text>
           <Text style={styles.subtitle}>
-            You're all set to start tracking and managing your shared finances
+            {t('onboarding.advanced.success.subtitle')}
           </Text>
 
           {/* Summary Stats */}
@@ -305,7 +307,7 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
                 ${formatCurrency(totalBudget)}
               </Text>
               <Text style={styles.statLabel}>
-                {mode === 'annual' ? 'Annual Budget' : 'Monthly Budget'}
+                {mode === 'annual' ? t('onboarding.advanced.success.annualBudget') : t('onboarding.advanced.success.monthlyBudget')}
               </Text>
             </View>
 
@@ -313,21 +315,21 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
               <Text style={styles.statValue}>
                 {selectedCategories?.length || 0}
               </Text>
-              <Text style={styles.statLabel}>Categories</Text>
+              <Text style={styles.statLabel}>{t('onboarding.advanced.success.categoriesLabel')}</Text>
             </View>
 
             <View style={styles.statCard}>
               <Text style={styles.statValue}>
                 {includeSavings ? 'Yes' : 'No'}
               </Text>
-              <Text style={styles.statLabel}>Split Savings</Text>
+              <Text style={styles.statLabel}>{t('onboarding.advanced.success.splitSavingsLabel')}</Text>
             </View>
           </View>
 
           {/* Preview Card */}
           <View style={styles.previewCard}>
             <View style={styles.previewHeader}>
-              <Text style={styles.previewTitle}>First Month Breakdown</Text>
+              <Text style={styles.previewTitle}>{t('onboarding.advanced.success.firstMonthTitle')}</Text>
               <Text style={styles.previewAmount}>
                 ${formatCurrency(monthlyBudget)}
               </Text>
@@ -355,7 +357,7 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
 
             {selectedCategories?.length > 3 && (
               <Text style={styles.previewMore}>
-                + {selectedCategories.length - 3} more categories
+                {t('onboarding.advanced.success.moreCategories', { count: selectedCategories.length - 3 })}
               </Text>
             )}
           </View>
@@ -370,7 +372,7 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
             {completing ? (
               <ActivityIndicator size="small" color={COLORS.background} />
             ) : (
-              <Text style={styles.primaryButtonText}>Go to Dashboard</Text>
+              <Text style={styles.primaryButtonText}>{t('onboarding.advanced.success.continueButton')}</Text>
             )}
           </TouchableOpacity>
 
@@ -380,7 +382,7 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
             activeOpacity={0.7}
             disabled={completing || completionAttempted}
           >
-            <Text style={[styles.secondaryButtonText, (completing || completionAttempted) && styles.textDisabled]}>Edit Budget</Text>
+            <Text style={[styles.secondaryButtonText, (completing || completionAttempted) && styles.textDisabled]}>{t('onboarding.advanced.success.editButton')}</Text>
           </TouchableOpacity>
         </Animated.View>
       </ScrollView>
