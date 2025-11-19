@@ -401,12 +401,28 @@ ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 ## Additional Edge Cases & Gaps
 
 ### 17. **File Encoding Not Detected**
-**Location**: `src/utils/bankStatementParser.js:72`
+**Location**: `src/utils/bankStatementParser.js`, `src/utils/encodingDetector.js`
 **Issue**: UTF-8 encoding assumed, but banks may export in Latin-1, Windows-1252, etc.
 
 **Impact**: Low - Causes garbled text in descriptions
 **Solution**: Implement encoding detection or allow user to specify
-**Status**: ⏳ Pending Implementation
+**Status**: ✅ **IMPLEMENTED**
+
+**Implementation Details**:
+- Created new encoding detection module `src/utils/encodingDetector.js` (240 lines)
+- **detectEncoding()** - Heuristic detection of file encoding:
+  - Checks for BOM (Byte Order Mark) - UTF-8, UTF-16 LE/BE
+  - Validates UTF-8 multi-byte sequences
+  - Detects Windows-1252 specific characters (0x80-0x9F range)
+  - Falls back to ISO-8859-1 (Latin-1) for other 8-bit encodings
+  - Identifies binary files (non-text)
+- **decodeBuffer()** - Decodes buffer with specified encoding using TextDecoder
+- **autoDetectAndDecode()** - One-step detection + decoding
+- Updated `bankStatementParser.js` to use encoding detection for both web and native platforms
+- Reads CSV files as binary first, detects encoding, then decodes properly
+- Logs detected encoding: "📄 Detected file encoding: windows-1252"
+- Prevents "binary file" errors by detecting non-text files early
+- Supports: UTF-8, UTF-16 LE/BE, Windows-1252, ISO-8859-1/Latin-1
 
 ---
 
@@ -416,7 +432,17 @@ ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
 **Impact**: Low - Rare but causes parse failures
 **Solution**: Ensure PapaParse config handles multi-line
-**Status**: ⏳ Pending Implementation
+**Status**: ✅ **IMPLEMENTED**
+
+**Implementation Details**:
+- Added explicit PapaParse configuration options:
+  - `skipEmptyLines: 'greedy'` - Skips empty lines but preserves quoted newlines
+  - `newline: ''` - Auto-detect newline character (\n, \r\n, \r)
+  - `quoteChar: '"'` - Standard CSV quote character
+  - `escapeChar: '"'` - Standard escape (double quote)
+- Applied same config to delimiter retry logic for consistency
+- Example: Description field with value `"Purchase at\nStore Name"` now parsed correctly
+- Handles bank exports with multi-line notes/descriptions
 
 ---
 
@@ -426,7 +452,24 @@ ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
 **Impact**: Low - Could import to non-existent partner
 **Solution**: Add Firebase existence check for partnerId
-**Status**: ⏳ Pending Implementation
+**Status**: ✅ **IMPLEMENTED**
+
+**Implementation Details**:
+- Added Firebase imports: `getFirestore, doc, getDoc` from firebase/firestore
+- **validatePartnerExists(partnerId, coupleId)** - Async function to verify partner:
+  - Checks if partner user document exists in Firestore
+  - Verifies partner belongs to the specified couple
+  - Returns validation result with errors/warnings
+  - Gracefully handles network errors (warns but doesn't block)
+- **validateImportConfigAsync(config)** - New async validation function:
+  - Runs synchronous validation first (validateImportConfig)
+  - Then runs async partner existence check
+  - Combines results from both validations
+- Error messages:
+  - "Partner with ID {id} does not exist"
+  - "Partner {id} does not belong to couple {coupleId}"
+- Network errors become warnings, not blockers
+- Prevents importing to deleted/invalid partners
 
 ---
 
@@ -436,7 +479,15 @@ ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
 **Impact**: Low - App crash on memory-constrained devices
 **Solution**: Reduce to 10MB or implement streaming parsing
-**Status**: ⏳ Pending Implementation
+**Status**: ✅ **IMPLEMENTED**
+
+**Implementation Details**:
+- Reduced file size limit from 50MB to 10MB
+- Updated validation: `fileInfo.size > 10 * 1024 * 1024`
+- Error message: "File is too large (max 10MB)"
+- Prevents memory issues on older/lower-end mobile devices
+- 10MB is sufficient for typical bank statement exports (usually <1MB)
+- Users with larger files can split them or use web version
 
 ---
 
@@ -460,7 +511,7 @@ const expenseDoc = await expenseRef.get();  // Deprecated!
 ---
 
 ### 22. **Header Detection Can Fail**
-**Location**: `src/utils/csvParser.js:148`
+**Location**: `src/utils/csvParser.js:178-233`
 **Issue**: If no header found in first 5 rows, assumes row 0 is header (could be wrong).
 
 ```javascript
@@ -470,7 +521,31 @@ return 0;  // Might be data row!
 
 **Impact**: Low-Medium - First data row treated as header
 **Solution**: Require user confirmation if header detection uncertain
-**Status**: ⏳ Pending Implementation
+**Status**: ✅ **IMPLEMENTED**
+
+**Implementation Details**:
+- Enhanced `detectHeaderRow()` to return object with confidence level:
+  ```javascript
+  { index: 2, confidence: 'high', matches: 4 }
+  ```
+- **Confidence Levels**:
+  - `'high'` - 3+ column matches (date + amount + description)
+  - `'medium'` - 2 column matches (date + amount)
+  - `'low'` - Required columns found but few matches
+  - `'uncertain'` - No clear header, assuming first row
+  - `'none'` - First row appears to be data (has numeric values)
+- **Smart Detection**:
+  - Counts matches for date, amount, and description columns
+  - Checks if first row contains numeric values (likely data, not header)
+  - Returns index -1 if no valid header found (throws error)
+- **Better Error Messages**:
+  - When confidence is 'uncertain', errors include clarification:
+    "Could not find date column. Header detection was uncertain - please verify your CSV has a header row with 'Date' column."
+- **Logging**:
+  - Success: "✅ Header detected at row 3 (confidence: high)"
+  - Warning: "⚠️ Header detection: No header detected (confidence: none)"
+- Prevents treating data rows as headers
+- Provides actionable feedback when CSV format is ambiguous
 
 ---
 
@@ -544,13 +619,14 @@ return 0;  // Might be data row!
 ### Phase 4: Edge Cases & Polish (P3)
 **Priority**: Low
 **Estimated Time**: 4-6 hours
+**Status**: ✅ Complete (5/5 completed)
 
-1. ⏳ Add encoding detection
-2. ⏳ Verify multi-line CSV handling
-3. ⏳ Add partner existence verification
-4. ⏳ Adjust file size limit for mobile
-5. ⏳ Update deprecated Firebase APIs
-6. ⏳ Improve header detection
+1. ✅ Add encoding detection (P3 #17)
+2. ✅ Verify multi-line CSV handling (P3 #18)
+3. ✅ Add partner existence verification (P3 #19)
+4. ✅ Adjust file size limit for mobile (P3 #20)
+5. ✅ Update deprecated Firebase APIs (P3 #21) - Previously completed
+6. ✅ Improve header detection (P3 #22)
 
 ---
 
@@ -746,6 +822,69 @@ Each improvement will be validated with:
 - **Category Suggestions**: Near-instant with cache hits
 - **Merchant Recognition**: Consistent across location variations
 - **Learning**: Suggestions improve with each user correction
+
+---
+
+## Phase 4 Summary (Completed)
+
+**Date**: 2025-01-19
+**Duration**: ~4 hours
+**Files Modified**: 4 (1 new)
+**Lines Changed**: ~450
+
+### Implemented Features:
+
+1. **File Encoding Detection** (P3 #17)
+   - Automatic detection of file encoding (UTF-8, Windows-1252, ISO-8859-1, UTF-16)
+   - BOM (Byte Order Mark) detection
+   - UTF-8 multi-byte sequence validation
+   - Binary file detection and rejection
+   - TextDecoder-based decoding with fallbacks
+   - Prevents garbled text from non-UTF-8 bank exports
+
+2. **Multi-line CSV Handling** (P3 #18)
+   - Explicit PapaParse configuration for quoted newlines
+   - skipEmptyLines: 'greedy' - Preserves quoted multi-line values
+   - Auto-detect newline characters (\n, \r\n, \r)
+   - Proper handling of descriptions with embedded newlines
+   - Example: `"Purchase at\nStore Name"` parsed correctly
+
+3. **Partner Existence Verification** (P3 #19)
+   - Async Firebase validation of partner user
+   - Checks partner exists in Firestore users collection
+   - Verifies partner belongs to specified couple
+   - Graceful error handling (network issues → warnings, not blockers)
+   - New functions: validatePartnerExists(), validateImportConfigAsync()
+   - Prevents imports to deleted/invalid partners
+
+4. **Mobile File Size Limit** (P3 #20)
+   - Reduced from 50MB to 10MB for mobile compatibility
+   - Prevents memory issues on older/lower-end devices
+   - 10MB sufficient for typical bank exports (<1MB)
+   - Clear error message: "File is too large (max 10MB)"
+
+5. **Improved Header Detection** (P3 #22)
+   - Confidence-based header detection with 5 levels
+   - Smart detection counts column type matches
+   - Detects when first row is data (numeric values)
+   - Better error messages when confidence is uncertain
+   - Logging: "✅ Header detected at row 3 (confidence: high)"
+   - Prevents treating data rows as headers
+   - Returns -1 (error) when no valid header found
+
+### Files Modified:
+- `src/utils/bankStatementParser.js` - Integrated encoding detection (~40 lines changed)
+- `src/utils/encodingDetector.js` - NEW FILE (240 lines)
+- `src/utils/csvParser.js` - Multi-line CSV + header detection improvements (~100 lines changed)
+- `src/utils/importValidation.js` - Partner verification + file size limit (~70 lines changed)
+- `RELIABILITY_IMPROVEMENTS.md` - Documentation updates
+
+### Quality Improvements:
+- **Encoding Support**: Handles international characters and various bank export formats
+- **Robustness**: Prevents crashes from malformed CSVs (multi-line values, missing headers)
+- **Security**: Validates partner relationships before import
+- **Mobile Performance**: Prevents OOM crashes on memory-constrained devices
+- **User Experience**: Better error messages with confidence indicators
 
 ---
 

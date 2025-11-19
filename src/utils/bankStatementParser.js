@@ -2,6 +2,7 @@ import { parseCSV } from './csvParser';
 import { parsePDF, isPDF } from './pdfParser';
 import * as FileSystem from 'expo-file-system';
 import { Platform } from 'react-native';
+import { autoDetectAndDecode } from './encodingDetector';
 
 /**
  * Main orchestrator for bank statement parsing
@@ -56,7 +57,16 @@ async function readFileContent(uri, fileType) {
         const arrayBuffer = await response.arrayBuffer();
         return Buffer.from(arrayBuffer);
       } else {
-        return await response.text();
+        // For CSV/text files, detect encoding and decode
+        const arrayBuffer = await response.arrayBuffer();
+        const result = autoDetectAndDecode(arrayBuffer);
+
+        if (result.isBinary) {
+          throw new Error('File appears to be binary, not a text CSV file');
+        }
+
+        console.log(`📄 Detected file encoding: ${result.encoding}`);
+        return result.content;
       }
     } else {
       // On native platforms, use FileSystem
@@ -67,10 +77,19 @@ async function readFileContent(uri, fileType) {
         });
         return Buffer.from(base64, 'base64');
       } else {
-        // Read as UTF8 string
-        return await FileSystem.readAsStringAsync(uri, {
-          encoding: FileSystem.EncodingType.UTF8,
+        // For CSV/text files, detect encoding and decode
+        const base64 = await FileSystem.readAsStringAsync(uri, {
+          encoding: FileSystem.EncodingType.Base64,
         });
+        const buffer = Buffer.from(base64, 'base64');
+        const result = autoDetectAndDecode(buffer);
+
+        if (result.isBinary) {
+          throw new Error('File appears to be binary, not a text CSV file');
+        }
+
+        console.log(`📄 Detected file encoding: ${result.encoding}`);
+        return result.content;
       }
     }
   } catch (error) {

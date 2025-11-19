@@ -173,7 +173,7 @@ function findColumnIndex(headers, columnType) {
 
 /**
  * Detect header row in CSV data
- * Returns the index of the header row
+ * Returns an object with index and confidence level
  */
 function detectHeaderRow(rows) {
   // Look for a row that contains typical column names
@@ -183,25 +183,53 @@ function detectHeaderRow(rows) {
 
     const normalizedRow = row.map(cell => (cell || '').toLowerCase().trim());
 
-    // Check if this row contains date-related headers
-    const hasDateColumn = normalizedRow.some(cell =>
-      COLUMN_MAPPINGS.date.some(name => cell === name || cell.includes(name))
-    );
+    // Count matches for different column types
+    let dateMatches = 0;
+    let amountMatches = 0;
+    let descriptionMatches = 0;
 
-    // Check if this row contains amount-related headers
-    const hasAmountColumn = normalizedRow.some(cell =>
-      [...COLUMN_MAPPINGS.amount, ...COLUMN_MAPPINGS.debit, ...COLUMN_MAPPINGS.credit].some(name =>
-        cell === name || cell.includes(name)
-      )
-    );
+    normalizedRow.forEach(cell => {
+      // Check date columns
+      if (COLUMN_MAPPINGS.date.some(name => cell === name || cell.includes(name))) {
+        dateMatches++;
+      }
+      // Check amount columns
+      if ([...COLUMN_MAPPINGS.amount, ...COLUMN_MAPPINGS.debit, ...COLUMN_MAPPINGS.credit].some(
+        name => cell === name || cell.includes(name)
+      )) {
+        amountMatches++;
+      }
+      // Check description columns
+      if (COLUMN_MAPPINGS.description.some(name => cell === name || cell.includes(name))) {
+        descriptionMatches++;
+      }
+    });
 
-    if (hasDateColumn && hasAmountColumn) {
-      return i;
+    // Calculate confidence score
+    const totalMatches = dateMatches + amountMatches + descriptionMatches;
+    const hasRequiredColumns = dateMatches > 0 && amountMatches > 0;
+
+    if (hasRequiredColumns) {
+      const confidence = totalMatches >= 3 ? 'high' : totalMatches >= 2 ? 'medium' : 'low';
+      return { index: i, confidence, matches: totalMatches };
     }
   }
 
-  // If no header found, assume first row is header
-  return 0;
+  // If no header found with required columns, check first row more carefully
+  if (rows.length > 0 && rows[0].length > 0) {
+    const firstRow = rows[0];
+    const hasNumericValues = firstRow.some(cell => !isNaN(parseFloat(cell)) && !isNaN(cell));
+
+    // If first row has numeric values, it's likely data, not header
+    if (hasNumericValues) {
+      console.warn('⚠️ No clear header row detected, and first row appears to be data');
+      return { index: -1, confidence: 'none', warning: 'No header detected' };
+    }
+  }
+
+  // Fallback: assume first row is header with low confidence
+  console.warn('⚠️ No clear header row detected, assuming first row is header');
+  return { index: 0, confidence: 'uncertain', warning: 'Header detection uncertain' };
 }
 
 /**
@@ -258,6 +286,12 @@ export async function parseCSV(fileContent, options = {}) {
     const cleanedContent = stripBOM(fileContent);
 
     Papa.parse(cleanedContent, {
+      // Enable proper handling of quoted multi-line values
+      skipEmptyLines: 'greedy', // Skip empty lines but handle quoted newlines
+      newline: '',              // Auto-detect newline character
+      quoteChar: '"',           // Standard quote character
+      escapeChar: '"',          // Standard escape (double quote)
+
       complete: (results) => {
         try {
           const { data, errors } = results;
@@ -267,7 +301,13 @@ export async function parseCSV(fileContent, options = {}) {
             const delimiters = [',', ';', '\t', '|'];
             for (const delimiter of delimiters) {
               try {
-                const retryResult = Papa.parse(fileContent, { delimiter });
+                const retryResult = Papa.parse(cleanedContent, {
+                  delimiter,
+                  skipEmptyLines: 'greedy',
+                  newline: '',
+                  quoteChar: '"',
+                  escapeChar: '"',
+                });
                 if (retryResult.data.length > 0) {
                   return resolve(processCSVData(retryResult.data, dateFormat));
                 }
@@ -308,7 +348,21 @@ function processCSVData(rows, dateFormat = 'auto') {
   }
 
   // Detect header row
-  const headerIndex = detectHeaderRow(rows);
+  const headerResult = detectHeaderRow(rows);
+  const headerIndex = headerResult.index;
+
+  // Handle case where no header was detected
+  if (headerIndex === -1) {
+    throw new Error('Could not detect header row in CSV file. Please ensure your CSV has header columns like "Date" and "Amount".');
+  }
+
+  // Log warning if header detection is uncertain
+  if (headerResult.warning) {
+    console.warn(`⚠️ Header detection: ${headerResult.warning} (confidence: ${headerResult.confidence})`);
+  } else if (headerResult.confidence) {
+    console.log(`✅ Header detected at row ${headerIndex + 1} (confidence: ${headerResult.confidence})`);
+  }
+
   const headers = rows[headerIndex];
 
   // Get data rows (excluding header and footers)
@@ -327,11 +381,17 @@ function processCSVData(rows, dateFormat = 'auto') {
   const balanceIndex = findColumnIndex(headers, 'balance');
 
   if (dateIndex === -1) {
-    throw new Error('Could not find date column in CSV file. Please ensure your CSV has a "Date" column.');
+    const msg = headerResult.confidence === 'uncertain'
+      ? 'Could not find date column. Header detection was uncertain - please verify your CSV has a header row with "Date" column.'
+      : 'Could not find date column in CSV file. Please ensure your CSV has a "Date" column.';
+    throw new Error(msg);
   }
 
   if (amountIndex === -1 && debitIndex === -1 && creditIndex === -1) {
-    throw new Error('Could not find amount column in CSV file. Please ensure your CSV has an "Amount", "Debit", or "Credit" column.');
+    const msg = headerResult.confidence === 'uncertain'
+      ? 'Could not find amount column. Header detection was uncertain - please verify your CSV has a header row with "Amount", "Debit", or "Credit" column.'
+      : 'Could not find amount column in CSV file. Please ensure your CSV has an "Amount", "Debit", or "Credit" column.';
+    throw new Error(msg);
   }
 
   // Parse transactions

@@ -4,6 +4,7 @@
  */
 
 import { warn, error as logError } from './importDebug';
+import { getFirestore, doc, getDoc } from 'firebase/firestore';
 
 /**
  * Validation result structure
@@ -38,9 +39,9 @@ export function validateFile(fileInfo) {
   // Check file size
   if (fileInfo.size === 0) {
     errors.push('File is empty (0 bytes)');
-  } else if (fileInfo.size > 50 * 1024 * 1024) {
-    // 50MB limit
-    errors.push('File is too large (max 50MB)');
+  } else if (fileInfo.size > 10 * 1024 * 1024) {
+    // 10MB limit (reduced from 50MB for mobile device compatibility)
+    errors.push('File is too large (max 10MB)');
   } else if (fileInfo.size < 100) {
     // Suspiciously small
     warnings.push('File is very small, may not contain valid data');
@@ -512,6 +513,81 @@ export function validateImportConfig(config) {
   return createValidationResult(errors.length === 0, errors, warnings);
 }
 
+/**
+ * Validate partner existence in Firestore (async)
+ *
+ * @param {string} partnerId - Partner user ID to validate
+ * @param {string} coupleId - Couple ID to validate partner belongs to
+ * @returns {Promise<Object>} Validation result
+ */
+export async function validatePartnerExists(partnerId, coupleId) {
+  const errors = [];
+  const warnings = [];
+
+  if (!partnerId) {
+    errors.push('Missing partnerId');
+    return createValidationResult(false, errors, warnings);
+  }
+
+  if (!coupleId) {
+    errors.push('Missing coupleId for partner validation');
+    return createValidationResult(false, errors, warnings);
+  }
+
+  try {
+    const db = getFirestore();
+
+    // Check if partner user exists
+    const partnerRef = doc(db, 'users', partnerId);
+    const partnerDoc = await getDoc(partnerRef);
+
+    if (!partnerDoc.exists()) {
+      errors.push(`Partner with ID "${partnerId}" does not exist`);
+      return createValidationResult(false, errors, warnings);
+    }
+
+    // Check if partner belongs to the couple
+    const partnerData = partnerDoc.data();
+    if (partnerData.coupleId !== coupleId) {
+      errors.push(`Partner "${partnerId}" does not belong to couple "${coupleId}"`);
+      return createValidationResult(false, errors, warnings);
+    }
+
+    // Success
+    return createValidationResult(true, errors, warnings);
+  } catch (error) {
+    // If validation fails due to network/permissions, warn but don't block
+    warnings.push(`Could not verify partner existence: ${error.message}`);
+    logError('Partner validation failed', error);
+    return createValidationResult(true, errors, warnings);
+  }
+}
+
+/**
+ * Validate import configuration with async checks (partner existence)
+ *
+ * @param {Object} config - Import configuration
+ * @returns {Promise<Object>} Validation result
+ */
+export async function validateImportConfigAsync(config) {
+  // First, run synchronous validation
+  const syncResult = validateImportConfig(config);
+
+  if (!syncResult.isValid) {
+    return syncResult;
+  }
+
+  // Then run async validation for partner existence
+  const partnerResult = await validatePartnerExists(config.partnerId, config.coupleId);
+
+  // Combine results
+  return createValidationResult(
+    syncResult.isValid && partnerResult.isValid,
+    [...syncResult.errors, ...partnerResult.errors],
+    [...syncResult.warnings, ...partnerResult.warnings]
+  );
+}
+
 export default {
   validateFile,
   validateDate,
@@ -521,6 +597,8 @@ export default {
   validateTransactions,
   validateExpense,
   validateImportConfig,
+  validateImportConfigAsync,
+  validatePartnerExists,
   validateFirestoreFieldName,
   validateFirestoreFieldNames,
 };
