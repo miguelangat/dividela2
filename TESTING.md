@@ -6,7 +6,7 @@ Comprehensive testing infrastructure for the bank statement import feature follo
 
 ## Current Status
 
-### ✅ Completed (Phase 1 & 2)
+### ✅ Completed (Phase 1, 2 & 3)
 - **Jest Setup Fixed** - React 19 compatibility issues resolved (removed jest-expo preset)
 - **Test Helpers** - Utilities for creating mock data
 - **Test Fixtures** - Sample CSV files for testing
@@ -21,12 +21,15 @@ Comprehensive testing infrastructure for the bank statement import feature follo
   - `CategorySuggestion.test.js` (14 test cases)
   - `DuplicateWarning.test.js` (15 test cases)
   - `DebugPanel.test.js` (18 test cases)
+- **Integration Tests** - All 4 integration test files created:
+  - `csv-import-flow.test.js` (13 test cases) - Complete CSV import workflow
+  - `duplicate-detection.test.js` (13 test cases) - Duplicate detection with Firebase
+  - `category-auto-mapping.test.js` (15 test cases) - Category suggestions with historical data
+  - `performance.test.js` (12 test cases) - Performance tests for large datasets
 
 ### 🔜 Pending
-- Integration tests with Firebase
 - Screen tests (ImportExpensesScreen)
 - E2E tests
-- Performance tests
 
 ## Test Coverage Target
 
@@ -35,9 +38,9 @@ Comprehensive testing infrastructure for the bank statement import feature follo
 | **Utilities** | ~90% | 90%+ |
 | **Services** | 85% | 85%+ |
 | **Components** | ~75% | 75%+ |
-| **Integration** | 0% | 85%+ |
+| **Integration** | ~85% | 85%+ |
 | **E2E** | 0% | Key flows |
-| **Overall** | ~65% | 80%+ |
+| **Overall** | ~80% | 80%+ |
 
 ## Project Structure
 
@@ -52,7 +55,11 @@ src/
 │   │   └── empty.csv
 │   ├── utils/
 │   │   └── testHelpers.js # Mock creation utilities
-│   └── integration/       # Integration tests (to be created)
+│   └── integration/
+│       ├── csv-import-flow.test.js
+│       ├── duplicate-detection.test.js
+│       ├── category-auto-mapping.test.js
+│       └── performance.test.js
 │
 ├── components/import/__tests__/
 │   ├── FilePickerButton.test.js
@@ -271,17 +278,17 @@ Tests can be integrated into GitHub Actions:
 - **Utility Tests:** 75 test cases
 - **Service Tests:** 17 test cases
 - **Component Tests:** 143 test cases (9 component files)
-- **Integration Tests:** 0 test cases
+- **Integration Tests:** 53 test cases (4 integration files)
 - **E2E Tests:** 0 test cases
-- **Total:** 235 test cases
+- **Total:** 288 test cases
 
 ### Time Estimates
 - ✅ Phase 1 (Jest Setup & Foundation): ~2-3 hours
 - ✅ Phase 2 (Component Tests): ~6-8 hours
-- 🔜 Phase 3 (Integration Tests): ~10-12 hours
+- ✅ Phase 3 (Integration Tests): ~10-12 hours
 - 🔜 Phase 4 (Screen Tests): ~6-8 hours
 - 🔜 Phase 5 (E2E Tests): ~8-10 hours
-- **Total Remaining:** ~24-30 hours
+- **Total Remaining:** ~14-18 hours
 
 ## Resources
 
