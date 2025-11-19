@@ -315,7 +315,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.backgroundSecondary,
   },
   scrollContent: {
-    flexGrow: 1,
     paddingBottom: SPACING.xxlarge,
   },
   gradientHeader: {

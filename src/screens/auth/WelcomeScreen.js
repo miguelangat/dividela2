@@ -2,7 +2,7 @@
 // Welcome screen - First screen users see when opening the app
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -37,67 +37,72 @@ export default function WelcomeScreen({ navigation }) {
           <LanguageSelectorButton variant="icon" />
         </View>
 
-        {/* Top Section - Logo and Title */}
-        <View style={styles.topSection}>
-          {/* Logo with gradient border */}
-          <View style={styles.logoContainer}>
-            <View style={styles.logoCircle}>
-              <MaterialCommunityIcons name="finance" size={80} color={COLORS.textWhite} />
-            </View>
-          </View>
-
-          {/* Title and Tagline */}
-          <View style={styles.textContainer}>
-            <Text style={styles.title}>{t('auth.welcome.title')}</Text>
-            <Text style={styles.tagline}>
-              {t('auth.welcome.tagline')}
-            </Text>
-          </View>
-        </View>
-
-        {/* Bottom Section - Buttons */}
-        <View style={styles.bottomSection}>
-          {/* Feature Highlights Card */}
-          <View style={styles.featuresCard}>
-            <View style={styles.featureItem}>
-              <MaterialCommunityIcons name="shield-check" size={24} color={COLORS.primary} />
-              <Text style={styles.featureText}>{t('auth.welcome.feature1', 'Privacy Focused')}</Text>
-            </View>
-            <View style={styles.featureItem}>
-              <MaterialCommunityIcons name="account-group" size={24} color={COLORS.primary} />
-              <Text style={styles.featureText}>{t('auth.welcome.feature2', 'Perfect for Couples')}</Text>
-            </View>
-            <View style={styles.featureItem}>
-              <MaterialCommunityIcons name="chart-line" size={24} color={COLORS.primary} />
-              <Text style={styles.featureText}>{t('auth.welcome.feature3', 'Easy Tracking')}</Text>
-            </View>
-          </View>
-
-          {/* Buttons */}
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={styles.primaryButton}
-              onPress={handleGetStarted}
-              activeOpacity={0.8}
-            >
-              <View style={styles.primaryButtonContent}>
-                <Text style={styles.primaryButtonText}>{t('auth.welcome.getStarted')}</Text>
-                <MaterialCommunityIcons name="arrow-right" size={20} color={COLORS.textWhite} />
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Top Section - Logo and Title */}
+          <View style={styles.topSection}>
+            {/* Logo with gradient border */}
+            <View style={styles.logoContainer}>
+              <View style={styles.logoCircle}>
+                <MaterialCommunityIcons name="finance" size={80} color={COLORS.textWhite} />
               </View>
-            </TouchableOpacity>
+            </View>
 
-            {/* Sign In Link */}
-            <TouchableOpacity
-              style={styles.signInLink}
-              onPress={handleSignIn}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.signInLinkText}>
-                {t('auth.welcome.alreadyHaveAccount')} <Text style={styles.signInLinkBold}>{t('auth.welcome.signIn')}</Text>
+            {/* Title and Tagline */}
+            <View style={styles.textContainer}>
+              <Text style={styles.title}>{t('auth.welcome.title')}</Text>
+              <Text style={styles.tagline}>
+                {t('auth.welcome.tagline')}
               </Text>
-            </TouchableOpacity>
+            </View>
           </View>
-        </View>
+
+          {/* Bottom Section - Buttons */}
+          <View style={styles.bottomSection}>
+            {/* Feature Highlights Card */}
+            <View style={styles.featuresCard}>
+              <View style={styles.featureItem}>
+                <MaterialCommunityIcons name="shield-check" size={24} color={COLORS.primary} />
+                <Text style={styles.featureText}>{t('auth.welcome.feature1', 'Privacy Focused')}</Text>
+              </View>
+              <View style={styles.featureItem}>
+                <MaterialCommunityIcons name="account-group" size={24} color={COLORS.primary} />
+                <Text style={styles.featureText}>{t('auth.welcome.feature2', 'Perfect for Couples')}</Text>
+              </View>
+              <View style={styles.featureItem}>
+                <MaterialCommunityIcons name="chart-line" size={24} color={COLORS.primary} />
+                <Text style={styles.featureText}>{t('auth.welcome.feature3', 'Easy Tracking')}</Text>
+              </View>
+            </View>
+
+            {/* Buttons */}
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={styles.primaryButton}
+                onPress={handleGetStarted}
+                activeOpacity={0.8}
+              >
+                <View style={styles.primaryButtonContent}>
+                  <Text style={styles.primaryButtonText}>{t('auth.welcome.getStarted')}</Text>
+                  <MaterialCommunityIcons name="arrow-right" size={20} color={COLORS.textWhite} />
+                </View>
+              </TouchableOpacity>
+
+              {/* Sign In Link */}
+              <TouchableOpacity
+                style={styles.signInLink}
+                onPress={handleSignIn}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.signInLinkText}>
+                  {t('auth.welcome.alreadyHaveAccount')} <Text style={styles.signInLinkBold}>{t('auth.welcome.signIn')}</Text>
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
       </LinearGradient>
     </View>
   );
@@ -110,9 +115,12 @@ const styles = StyleSheet.create({
   },
   gradientBackground: {
     flex: 1,
+  },
+  scrollContent: {
     paddingHorizontal: SPACING.screenPadding,
     paddingTop: 50,
     paddingBottom: SPACING.xxlarge,
+    minHeight: '100%',
   },
   languageSelectorContainer: {
     position: 'absolute',
@@ -121,7 +129,7 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   topSection: {
-    flex: 1,
+    minHeight: 400,
     justifyContent: 'center',
     alignItems: 'center',
   },
