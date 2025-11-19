@@ -103,14 +103,14 @@ export default function WelcomeScreen({ navigation }) {
               </TouchableOpacity>
             </View>
           </View>
-
-          {/* Made in Colombia Footer */}
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>
-              Made in Colombia 🇨🇴 with ♥
-            </Text>
-          </View>
         </ScrollView>
+
+        {/* Made in Colombia Footer - Always Visible */}
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            Made in Colombia 🇨🇴 with ♥
+          </Text>
+        </View>
       </LinearGradient>
     </View>
   );
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: SPACING.screenPadding,
     paddingTop: 50,
-    paddingBottom: SPACING.xxlarge,
+    paddingBottom: SPACING.base, // Reduced since footer is now outside ScrollView
   },
   languageSelectorContainer: {
     position: 'absolute',
@@ -239,15 +239,17 @@ const styles = StyleSheet.create({
   },
   footer: {
     alignItems: 'center',
-    marginTop: SPACING.xxlarge,
-    paddingVertical: SPACING.large,
-    paddingBottom: SPACING.xxlarge,
+    paddingVertical: SPACING.base,
+    paddingBottom: Platform.OS === 'ios' ? SPACING.large : SPACING.base,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)', // Semi-transparent white on gradient
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.2)', // Subtle white border
   },
   footerText: {
     fontSize: FONTS.sizes.small,
     color: COLORS.textWhite,
     fontWeight: FONTS.weights.medium,
     letterSpacing: 0.3,
-    opacity: 0.6,
+    opacity: 0.8, // Increased opacity for better visibility
   },
 });

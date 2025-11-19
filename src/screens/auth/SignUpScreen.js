@@ -317,14 +317,15 @@ export default function SignUpScreen({ navigation }) {
             )}
           </TouchableOpacity>
 
-          {/* Made in Colombia Footer */}
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>
-              Made in Colombia 🇨🇴 with ♥
-            </Text>
-          </View>
         </View>
       </ScrollView>
+
+      {/* Made in Colombia Footer - Always Visible */}
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>
+          Made in Colombia 🇨🇴 with ♥
+        </Text>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -339,7 +340,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: SPACING.xxlarge,
+    paddingBottom: SPACING.base, // Reduced since footer is now outside ScrollView
   },
   gradientHeader: {
     paddingTop: Platform.OS === 'ios' ? 50 : 30,
@@ -551,9 +552,11 @@ const styles = StyleSheet.create({
   },
   footer: {
     alignItems: 'center',
-    marginTop: SPACING.xxlarge,
-    paddingVertical: SPACING.large,
-    paddingBottom: SPACING.xxlarge,
+    paddingVertical: SPACING.base,
+    paddingBottom: Platform.OS === 'ios' ? SPACING.large : SPACING.base,
+    backgroundColor: COLORS.backgroundSecondary,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border + '30', // 30% opacity
   },
   footerText: {
     fontSize: FONTS.sizes.small,
