@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, ScrollView, StyleSheet, Share, Alert } from 'react-native';
 import { Modal, Portal, Card, Text, Button, Chip, List, IconButton, Switch, Divider } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import { theme } from '../../constants/theme';
 import {
   isDebugMode,
@@ -18,6 +19,7 @@ import { getSessionStats } from '../../utils/importSession';
  * Shows logs, statistics, and diagnostic information
  */
 export default function DebugPanel({ visible, onDismiss, userId }) {
+  const { t } = useTranslation();
   const [debugEnabled, setDebugEnabled] = useState(isDebugMode());
   const [logs, setLogs] = useState([]);
   const [summary, setSummary] = useState(null);
@@ -58,12 +60,12 @@ export default function DebugPanel({ visible, onDismiss, userId }) {
 
   const handleClearLogs = () => {
     Alert.alert(
-      'Clear Logs',
-      'Are you sure you want to clear all debug logs? This cannot be undone.',
+      t('import.debug.clearLogsTitle'),
+      t('import.debug.clearLogsMessage'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Clear',
+          text: t('import.debug.clear'),
           style: 'destructive',
           onPress: async () => {
             await clearLogs();
@@ -80,10 +82,10 @@ export default function DebugPanel({ visible, onDismiss, userId }) {
 
       await Share.share({
         message: text,
-        title: 'Import Debug Logs',
+        title: t('import.debug.exportLogsTitle'),
       });
     } catch (error) {
-      Alert.alert('Error', 'Failed to export logs: ' + error.message);
+      Alert.alert(t('common.error'), t('import.debug.exportError', { error: error.message }));
     }
   };
 
@@ -131,8 +133,8 @@ export default function DebugPanel({ visible, onDismiss, userId }) {
       >
         <Card style={styles.card}>
           <Card.Title
-            title="Import Debug Panel"
-            subtitle="Logs and diagnostics"
+            title={t('import.debug.title')}
+            subtitle={t('import.debug.subtitle')}
             right={(props) => (
               <IconButton {...props} icon="close" onPress={onDismiss} />
             )}
@@ -142,9 +144,9 @@ export default function DebugPanel({ visible, onDismiss, userId }) {
             {/* Debug Mode Toggle */}
             <View style={styles.debugToggle}>
               <View>
-                <Text style={styles.toggleLabel}>Debug Mode</Text>
+                <Text style={styles.toggleLabel}>{t('import.debug.debugMode')}</Text>
                 <Text style={styles.toggleSubtitle}>
-                  Enable detailed logging
+                  {t('import.debug.debugModeDescription')}
                 </Text>
               </View>
               <Switch value={debugEnabled} onValueChange={handleToggleDebug} />
@@ -155,11 +157,11 @@ export default function DebugPanel({ visible, onDismiss, userId }) {
             {/* Summary Statistics */}
             {summary && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Summary</Text>
+                <Text style={styles.sectionTitle}>{t('import.debug.summary')}</Text>
                 <View style={styles.statsGrid}>
-                  <StatCard label="Total Logs" value={summary.totalLogs} />
-                  <StatCard label="Errors" value={summary.errors} color={theme.colors.error} />
-                  <StatCard label="Warnings" value={summary.warnings} color={theme.colors.warning} />
+                  <StatCard label={t('import.debug.totalLogs')} value={summary.totalLogs} />
+                  <StatCard label={t('import.debug.errors')} value={summary.errors} color={theme.colors.error} />
+                  <StatCard label={t('import.debug.warnings')} value={summary.warnings} color={theme.colors.warning} />
                 </View>
               </View>
             )}
@@ -167,15 +169,15 @@ export default function DebugPanel({ visible, onDismiss, userId }) {
             {/* Session Statistics */}
             {sessionStats && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Import Statistics</Text>
+                <Text style={styles.sectionTitle}>{t('import.debug.importStatistics')}</Text>
                 <View style={styles.statsGrid}>
-                  <StatCard label="Total Imports" value={sessionStats.total} />
-                  <StatCard label="Completed" value={sessionStats.completed} color={theme.colors.success} />
-                  <StatCard label="Failed" value={sessionStats.failed} color={theme.colors.error} />
+                  <StatCard label={t('import.debug.totalImports')} value={sessionStats.total} />
+                  <StatCard label={t('import.debug.completed')} value={sessionStats.completed} color={theme.colors.success} />
+                  <StatCard label={t('import.debug.failed')} value={sessionStats.failed} color={theme.colors.error} />
                 </View>
                 <View style={styles.statsGrid}>
-                  <StatCard label="Total Imported" value={sessionStats.totalImported} />
-                  <StatCard label="Avg. Size" value={sessionStats.averageImportSize} />
+                  <StatCard label={t('import.debug.totalImported')} value={sessionStats.totalImported} />
+                  <StatCard label={t('import.debug.avgSize')} value={sessionStats.averageImportSize} />
                 </View>
               </View>
             )}
@@ -184,7 +186,7 @@ export default function DebugPanel({ visible, onDismiss, userId }) {
 
             {/* Level Filters */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Filter by Level</Text>
+              <Text style={styles.sectionTitle}>{t('import.debug.filterByLevel')}</Text>
               <View style={styles.filterChips}>
                 {Object.values(LOG_LEVELS).map(level => (
                   <Chip
@@ -202,10 +204,10 @@ export default function DebugPanel({ visible, onDismiss, userId }) {
 
             {/* Logs List */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Recent Logs ({logs.length})</Text>
+              <Text style={styles.sectionTitle}>{t('import.debug.recentLogs', { count: logs.length })}</Text>
               <ScrollView style={styles.logsList}>
                 {logs.length === 0 ? (
-                  <Text style={styles.emptyText}>No logs to display</Text>
+                  <Text style={styles.emptyText}>{t('import.debug.noLogs')}</Text>
                 ) : (
                   logs.map((log, index) => (
                     <View key={index} style={styles.logItem}>
@@ -237,7 +239,7 @@ export default function DebugPanel({ visible, onDismiss, userId }) {
             {/* Recent Errors */}
             {summary && summary.recentErrors.length > 0 && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Recent Errors</Text>
+                <Text style={styles.sectionTitle}>{t('import.debug.recentErrors')}</Text>
                 {summary.recentErrors.map((error, index) => (
                   <View key={index} style={styles.errorItem}>
                     <Text style={styles.errorCategory}>{error.category}</Text>
@@ -253,13 +255,13 @@ export default function DebugPanel({ visible, onDismiss, userId }) {
 
           <Card.Actions>
             <Button onPress={handleClearLogs} icon="delete">
-              Clear Logs
+              {t('import.debug.clearLogs')}
             </Button>
             <Button onPress={handleExportLogs} icon="export">
-              Export
+              {t('import.debug.export')}
             </Button>
             <Button onPress={loadDebugData} icon="refresh" loading={loading}>
-              Refresh
+              {t('import.debug.refresh')}
             </Button>
           </Card.Actions>
         </Card>
