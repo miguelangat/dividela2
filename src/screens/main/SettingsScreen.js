@@ -49,6 +49,7 @@ export default function SettingsScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [signOutModalVisible, setSignOutModalVisible] = useState(false);
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
+  const [restartOnboardingModalVisible, setRestartOnboardingModalVisible] = useState(false);
 
   // Fetch partner details
   useEffect(() => {
@@ -239,60 +240,49 @@ export default function SettingsScreen({ navigation }) {
 
   const handleRestartOnboarding = async () => {
     console.log('🚨 RESTART BUTTON CLICKED - HANDLER CALLED');
-    Alert.alert(
-      t('settings.restartOnboardingTitle'),
-      t('settings.restartOnboardingMessage'),
-      [
-        {
-          text: t('common.cancel'),
-          style: 'cancel',
-        },
-        {
-          text: t('settings.restart'),
-          style: 'default',
-          onPress: async () => {
-            try {
-              console.log('🔄 Restarting onboarding...');
+    setRestartOnboardingModalVisible(true);
+  };
 
-              // Clear the onboarding completion flag using storage utility
-              if (userDetails?.coupleId) {
-                await onboardingStorage.clearCompleted(userDetails.coupleId);
-                await onboardingStorage.clearState();
-                console.log('✅ Cleared onboarding storage');
-              }
+  const confirmRestartOnboarding = async () => {
+    try {
+      setRestartOnboardingModalVisible(false);
+      console.log('🔄 Restarting onboarding...');
 
-              // Log navigation state for debugging
-              console.log('📍 Navigation state before restart:', {
-                hasNavigation: !!navigation,
-                hasParent: !!navigation.getParent,
-                hasGetParent: typeof navigation.getParent === 'function',
-              });
+      // Clear the onboarding completion flag using storage utility
+      if (userDetails?.coupleId) {
+        await onboardingStorage.clearCompleted(userDetails.coupleId);
+        await onboardingStorage.clearState();
+        console.log('✅ Cleared onboarding storage');
+      }
 
-              // Navigate to onboarding modal
-              // CRITICAL: SettingsScreen is in TabNavigator, 'Onboarding' is in parent Stack
-              // Must explicitly access parent navigator
-              try {
-                const parentNav = navigation.getParent();
-                if (parentNav) {
-                  console.log('🎯 Navigating via parent navigator');
-                  parentNav.navigate('Onboarding', { restartMode: true });
-                } else {
-                  console.log('🎯 Navigating directly (no parent found)');
-                  navigation.navigate('Onboarding', { restartMode: true });
-                }
-                console.log('✅ Navigation command executed');
-              } catch (navError) {
-                console.error('❌ Navigation error:', navError);
-                throw navError;
-              }
-            } catch (error) {
-              console.error('❌ Error restarting onboarding:', error);
-              Alert.alert(t('common.error'), t('settings.restartError'));
-            }
-          },
-        },
-      ]
-    );
+      // Log navigation state for debugging
+      console.log('📍 Navigation state before restart:', {
+        hasNavigation: !!navigation,
+        hasParent: !!navigation.getParent,
+        hasGetParent: typeof navigation.getParent === 'function',
+      });
+
+      // Navigate to onboarding modal
+      // CRITICAL: SettingsScreen is in TabNavigator, 'Onboarding' is in parent Stack
+      // Must explicitly access parent navigator
+      try {
+        const parentNav = navigation.getParent();
+        if (parentNav) {
+          console.log('🎯 Navigating via parent navigator');
+          parentNav.navigate('Onboarding', { restartMode: true });
+        } else {
+          console.log('🎯 Navigating directly (no parent found)');
+          navigation.navigate('Onboarding', { restartMode: true });
+        }
+        console.log('✅ Navigation command executed');
+      } catch (navError) {
+        console.error('❌ Navigation error:', navError);
+        throw navError;
+      }
+    } catch (error) {
+      console.error('❌ Error restarting onboarding:', error);
+      Alert.alert(t('common.error'), t('settings.restartError'));
+    }
   };
 
   const renderPreferencesSection = () => (
@@ -520,6 +510,46 @@ export default function SettingsScreen({ navigation }) {
 
       {/* Language Selector Modal */}
       {renderLanguageModal()}
+
+      {/* Restart Onboarding Confirmation Modal */}
+      <Modal
+        visible={restartOnboardingModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setRestartOnboardingModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="refresh" size={32} color={COLORS.primary} />
+            </View>
+
+            <Text style={styles.modalTitle}>{t('settings.restartOnboardingTitle')}</Text>
+            <Text style={styles.modalMessage}>
+              {t('settings.restartOnboardingMessage')}
+            </Text>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonSecondary]}
+                onPress={() => {
+                  console.log('Restart onboarding cancelled');
+                  setRestartOnboardingModalVisible(false);
+                }}
+              >
+                <Text style={styles.modalButtonTextSecondary}>{t('common.cancel')}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonPrimary]}
+                onPress={confirmRestartOnboarding}
+              >
+                <Text style={styles.modalButtonTextPrimary}>{t('settings.restart')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
