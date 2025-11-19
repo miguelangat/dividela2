@@ -2,10 +2,12 @@
 // Welcome screen - First screen users see when opening the app
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES } from '../../constants/theme';
+import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES, SHADOWS } from '../../constants/theme';
 import LanguageSelectorButton from '../../components/LanguageSelectorButton';
 
 export default function WelcomeScreen({ navigation }) {
@@ -21,108 +23,199 @@ export default function WelcomeScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
 
-      {/* Language Selector */}
-      <View style={styles.languageSelectorContainer}>
-        <LanguageSelectorButton variant="icon" />
-      </View>
+      {/* Gradient Background */}
+      <LinearGradient
+        colors={[COLORS.gradientStart, COLORS.gradientEnd]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradientBackground}
+      >
+        {/* Language Selector */}
+        <View style={styles.languageSelectorContainer}>
+          <LanguageSelectorButton variant="icon" />
+        </View>
 
-      {/* Logo/Icon */}
-      <View style={styles.logoContainer}>
-        <Text style={styles.logoEmoji}>💑</Text>
-      </View>
+        {/* Top Section - Logo and Title */}
+        <View style={styles.topSection}>
+          {/* Logo with gradient border */}
+          <View style={styles.logoContainer}>
+            <View style={styles.logoCircle}>
+              <MaterialCommunityIcons name="finance" size={80} color={COLORS.textWhite} />
+            </View>
+          </View>
 
-      {/* Title and Tagline */}
-      <View style={styles.textContainer}>
-        <Text style={styles.title}>{t('auth.welcome.title')}</Text>
-        <Text style={styles.tagline}>
-          {t('auth.welcome.tagline')}
-        </Text>
-      </View>
+          {/* Title and Tagline */}
+          <View style={styles.textContainer}>
+            <Text style={styles.title}>{t('auth.welcome.title')}</Text>
+            <Text style={styles.tagline}>
+              {t('auth.welcome.tagline')}
+            </Text>
+          </View>
+        </View>
 
-      {/* Primary CTA */}
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={styles.primaryButton}
-          onPress={handleGetStarted}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.primaryButtonText}>{t('auth.welcome.getStarted')}</Text>
-        </TouchableOpacity>
+        {/* Bottom Section - Buttons */}
+        <View style={styles.bottomSection}>
+          {/* Feature Highlights Card */}
+          <View style={styles.featuresCard}>
+            <View style={styles.featureItem}>
+              <MaterialCommunityIcons name="shield-check" size={24} color={COLORS.primary} />
+              <Text style={styles.featureText}>{t('auth.welcome.feature1', 'Privacy Focused')}</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <MaterialCommunityIcons name="account-group" size={24} color={COLORS.primary} />
+              <Text style={styles.featureText}>{t('auth.welcome.feature2', 'Perfect for Couples')}</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <MaterialCommunityIcons name="chart-line" size={24} color={COLORS.primary} />
+              <Text style={styles.featureText}>{t('auth.welcome.feature3', 'Easy Tracking')}</Text>
+            </View>
+          </View>
 
-        {/* Sign In Link */}
-        <TouchableOpacity
-          style={styles.signInLink}
-          onPress={handleSignIn}
-          activeOpacity={0.6}
-        >
-          <Text style={styles.signInLinkText}>
-            {t('auth.welcome.alreadyHaveAccount')} <Text style={styles.signInLinkBold}>{t('auth.welcome.signIn')}</Text>
-          </Text>
-        </TouchableOpacity>
-      </View>
+          {/* Buttons */}
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={handleGetStarted}
+              activeOpacity={0.8}
+            >
+              <View style={styles.primaryButtonContent}>
+                <Text style={styles.primaryButtonText}>{t('auth.welcome.getStarted')}</Text>
+                <MaterialCommunityIcons name="arrow-right" size={20} color={COLORS.textWhite} />
+              </View>
+            </TouchableOpacity>
+
+            {/* Sign In Link */}
+            <TouchableOpacity
+              style={styles.signInLink}
+              onPress={handleSignIn}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.signInLinkText}>
+                {t('auth.welcome.alreadyHaveAccount')} <Text style={styles.signInLinkBold}>{t('auth.welcome.signIn')}</Text>
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </LinearGradient>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    ...COMMON_STYLES.container,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: SPACING.screenPadding,
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  gradientBackground: {
+    flex: 1,
+    paddingHorizontal: SPACING.screenPadding,
+    paddingTop: 50,
+    paddingBottom: SPACING.xxlarge,
   },
   languageSelectorContainer: {
     position: 'absolute',
-    top: 40,
+    top: 50,
     right: SPACING.screenPadding,
     zIndex: 1000,
+  },
+  topSection: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   logoContainer: {
     marginBottom: SPACING.xxlarge,
   },
-  logoEmoji: {
-    fontSize: 80,
+  logoCircle: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    ...SHADOWS.large,
   },
   textContainer: {
     alignItems: 'center',
-    marginBottom: SPACING.huge,
+    paddingHorizontal: SPACING.large,
   },
   title: {
     fontSize: FONTS.sizes.xxlarge,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.primary,
+    color: COLORS.textWhite,
     marginBottom: SPACING.medium,
+    textAlign: 'center',
   },
   tagline: {
-    fontSize: FONTS.sizes.body,
-    color: COLORS.textSecondary,
+    fontSize: FONTS.sizes.subtitle,
+    color: COLORS.textWhite,
     textAlign: 'center',
-    maxWidth: 300,
-    lineHeight: 22,
+    maxWidth: 320,
+    lineHeight: 24,
+    opacity: 0.9,
+  },
+  bottomSection: {
+    width: '100%',
+  },
+  featuresCard: {
+    backgroundColor: COLORS.background,
+    borderRadius: SIZES.borderRadius.xlarge,
+    padding: SPACING.large,
+    marginBottom: SPACING.xlarge,
+    ...SHADOWS.large,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: SPACING.medium,
+  },
+  featureText: {
+    fontSize: FONTS.sizes.body,
+    color: COLORS.text,
+    fontWeight: FONTS.weights.medium,
+    marginLeft: SPACING.base,
   },
   buttonContainer: {
     width: '100%',
     alignItems: 'center',
   },
   primaryButton: {
-    ...COMMON_STYLES.primaryButton,
+    backgroundColor: COLORS.background,
+    borderRadius: SIZES.borderRadius.medium,
+    paddingVertical: SPACING.buttonPadding,
+    paddingHorizontal: SPACING.large,
     width: '100%',
-    marginBottom: SPACING.large,
+    minHeight: SIZES.button.height,
+    marginBottom: SPACING.base,
+    ...SHADOWS.medium,
+  },
+  primaryButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   primaryButtonText: {
-    ...COMMON_STYLES.primaryButtonText,
+    color: COLORS.primary,
+    fontSize: FONTS.sizes.body,
+    fontWeight: FONTS.weights.bold,
+    letterSpacing: 0.5,
+    marginRight: SPACING.small,
   },
   signInLink: {
     paddingVertical: SPACING.medium,
   },
   signInLinkText: {
     fontSize: FONTS.sizes.body,
-    color: COLORS.textSecondary,
+    color: COLORS.textWhite,
+    opacity: 0.9,
   },
   signInLinkBold: {
-    color: COLORS.primary,
-    fontWeight: FONTS.weights.semibold,
+    color: COLORS.textWhite,
+    fontWeight: FONTS.weights.bold,
+    opacity: 1,
   },
 });
