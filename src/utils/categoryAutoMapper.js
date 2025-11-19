@@ -4,6 +4,11 @@
  */
 
 import { normalizeMerchantName, extractBaseMerchant, getMerchantCategoryFrequency } from './merchantNormalizer';
+import {
+  getBatchCachedCategories,
+  batchCacheCategorySuggestions,
+  cacheCategorySuggestion,
+} from './importCache';
 
 /**
  * Default keyword mappings for common categories
@@ -305,23 +310,69 @@ function calculateSimilarity(str1, str2) {
  * @param {Array} availableCategories - Available category keys
  * @param {Object} customKeywords - Custom keyword mappings
  * @param {Array} pastTransactions - User's past transactions
+ * @param {Object} options - Additional options
+ * @param {boolean} options.useCache - Use caching to avoid re-processing (default: true)
  * @returns {Array} Array of suggestions
  */
 export function suggestCategoriesForTransactions(
   transactions,
   availableCategories,
   customKeywords = {},
-  pastTransactions = null
+  pastTransactions = null,
+  options = {}
 ) {
-  return transactions.map(transaction => ({
-    transaction,
-    suggestion: suggestCategory(
+  const { useCache = true } = options;
+
+  // Check cache for existing suggestions
+  const { cached, uncached } = useCache
+    ? getBatchCachedCategories(transactions)
+    : { cached: [], uncached: transactions };
+
+  let cacheHitCount = cached.length;
+
+  // Process only uncached transactions
+  const newSuggestions = uncached.map(transaction => {
+    const suggestion = suggestCategory(
       transaction.description,
       availableCategories,
       customKeywords,
       pastTransactions
-    ),
-  }));
+    );
+
+    // Cache the suggestion if caching is enabled
+    if (useCache) {
+      cacheCategorySuggestion(transaction, suggestion);
+    }
+
+    return {
+      transaction,
+      suggestion,
+      fromCache: false,
+    };
+  });
+
+  // Combine cached and new suggestions, maintaining original order
+  const allSuggestions = transactions.map(transaction => {
+    // Check if transaction was cached
+    const cachedSuggestion = cached.find(c => c.transaction === transaction);
+    if (cachedSuggestion) {
+      return {
+        transaction: cachedSuggestion.transaction,
+        suggestion: cachedSuggestion.suggestion,
+        fromCache: true,
+      };
+    }
+
+    // Otherwise find in new suggestions
+    return newSuggestions.find(s => s.transaction === transaction);
+  });
+
+  // Log cache performance
+  if (useCache && cacheHitCount > 0) {
+    console.log(`📦 Category Cache: ${cacheHitCount}/${transactions.length} hits (${((cacheHitCount / transactions.length) * 100).toFixed(1)}%)`);
+  }
+
+  return allSuggestions;
 }
 
 /**
@@ -375,10 +426,309 @@ export function addCustomKeyword(customKeywords, categoryKey, keyword) {
   return updated;
 }
 
+/**
+ * Category correction tracking for learning from user overrides
+ */
+
+// In-memory store for category corrections (can be persisted to Firestore)
+const categoryCorrections = new Map();
+
+/**
+ * Record a category correction when user overrides a suggestion
+ *
+ * @param {Object} transaction - The transaction that was corrected
+ * @param {string} suggestedCategory - The category that was suggested
+ * @param {string} correctedCategory - The category the user selected
+ * @param {Object} metadata - Additional metadata (optional)
+ * @returns {Object} Correction record
+ */
+export function recordCategoryCorrection(transaction, suggestedCategory, correctedCategory, metadata = {}) {
+  const merchantName = normalizeMerchantName(transaction.description);
+  const baseMerchant = extractBaseMerchant(transaction.description);
+
+  const correction = {
+    merchantName,
+    baseMerchant,
+    description: transaction.description,
+    normalizedDescription: normalizeText(transaction.description),
+    suggestedCategory,
+    correctedCategory,
+    timestamp: new Date().toISOString(),
+    ...metadata,
+  };
+
+  // Store by normalized merchant name for fast lookup
+  if (!categoryCorrections.has(merchantName)) {
+    categoryCorrections.set(merchantName, []);
+  }
+
+  categoryCorrections.get(merchantName).push(correction);
+
+  console.log(`📝 Correction recorded: "${merchantName}" → ${correctedCategory} (was: ${suggestedCategory})`);
+
+  return correction;
+}
+
+/**
+ * Get all corrections for a merchant
+ *
+ * @param {string} merchantName - Normalized merchant name
+ * @returns {Array} Array of corrections
+ */
+export function getCorrectionsForMerchant(merchantName) {
+  const normalized = normalizeMerchantName(merchantName);
+  return categoryCorrections.get(normalized) || [];
+}
+
+/**
+ * Get the most common corrected category for a merchant
+ *
+ * @param {string} merchantName - Merchant name (will be normalized)
+ * @returns {Object|null} Most common correction with confidence
+ */
+export function getMostCommonCorrection(merchantName) {
+  const corrections = getCorrectionsForMerchant(merchantName);
+
+  if (corrections.length === 0) {
+    return null;
+  }
+
+  // Count frequency of each corrected category
+  const categoryFrequency = corrections.reduce((freq, correction) => {
+    freq[correction.correctedCategory] = (freq[correction.correctedCategory] || 0) + 1;
+    return freq;
+  }, {});
+
+  // Find most common
+  const sorted = Object.entries(categoryFrequency).sort((a, b) => b[1] - a[1]);
+  const [categoryKey, count] = sorted[0];
+
+  // High confidence if user has corrected multiple times
+  const confidence = Math.min(0.99, 0.8 + (count / corrections.length) * 0.19);
+
+  return {
+    categoryKey,
+    confidence,
+    correctionCount: count,
+    totalCorrections: corrections.length,
+    source: 'user_correction',
+  };
+}
+
+/**
+ * Enhanced suggestion that prioritizes user corrections
+ *
+ * @param {string} description - Transaction description
+ * @param {Array} availableCategories - Available category keys
+ * @param {Object} customKeywords - Custom keyword mappings (optional)
+ * @param {Object} pastTransactions - User's past transactions for learning (optional)
+ * @param {boolean} useCorrections - Use correction data (default: true)
+ * @returns {Object} Suggested category with confidence score
+ */
+export function suggestCategoryWithCorrections(
+  description,
+  availableCategories = ['food', 'groceries', 'transport', 'home', 'fun', 'other'],
+  customKeywords = {},
+  pastTransactions = null,
+  useCorrections = true
+) {
+  // First, check if user has corrected this merchant before
+  if (useCorrections) {
+    const merchantName = normalizeMerchantName(description);
+    const correction = getMostCommonCorrection(merchantName);
+
+    if (correction && correction.confidence > 0.8) {
+      console.log(`✨ Using correction for "${merchantName}": ${correction.categoryKey} (confidence: ${correction.confidence.toFixed(2)})`);
+      return {
+        categoryKey: correction.categoryKey,
+        confidence: correction.confidence,
+        matchedKeywords: ['user_correction'],
+        source: 'user_correction',
+        correctionCount: correction.correctionCount,
+      };
+    }
+  }
+
+  // Fall back to regular suggestion logic
+  return suggestCategory(description, availableCategories, customKeywords, pastTransactions);
+}
+
+/**
+ * Batch suggest categories with correction learning
+ *
+ * @param {Array} transactions - Array of transactions
+ * @param {Array} availableCategories - Available category keys
+ * @param {Object} customKeywords - Custom keyword mappings
+ * @param {Array} pastTransactions - User's past transactions
+ * @param {Object} options - Additional options
+ * @param {boolean} options.useCache - Use caching (default: true)
+ * @param {boolean} options.useCorrections - Use correction data (default: true)
+ * @returns {Array} Array of suggestions
+ */
+export function suggestCategoriesWithCorrections(
+  transactions,
+  availableCategories,
+  customKeywords = {},
+  pastTransactions = null,
+  options = {}
+) {
+  const { useCache = true, useCorrections = true } = options;
+
+  // Check cache first
+  const { cached, uncached } = useCache
+    ? getBatchCachedCategories(transactions)
+    : { cached: [], uncached: transactions };
+
+  let cacheHitCount = cached.length;
+  let correctionHitCount = 0;
+
+  // Process uncached transactions
+  const newSuggestions = uncached.map(transaction => {
+    const suggestion = suggestCategoryWithCorrections(
+      transaction.description,
+      availableCategories,
+      customKeywords,
+      pastTransactions,
+      useCorrections
+    );
+
+    if (suggestion.source === 'user_correction') {
+      correctionHitCount++;
+    }
+
+    // Cache the suggestion
+    if (useCache) {
+      cacheCategorySuggestion(transaction, suggestion);
+    }
+
+    return {
+      transaction,
+      suggestion,
+      fromCache: false,
+    };
+  });
+
+  // Combine results
+  const allSuggestions = transactions.map(transaction => {
+    const cachedSuggestion = cached.find(c => c.transaction === transaction);
+    if (cachedSuggestion) {
+      return {
+        transaction: cachedSuggestion.transaction,
+        suggestion: cachedSuggestion.suggestion,
+        fromCache: true,
+      };
+    }
+
+    return newSuggestions.find(s => s.transaction === transaction);
+  });
+
+  // Log performance
+  if (useCache && cacheHitCount > 0) {
+    console.log(`📦 Category Cache: ${cacheHitCount}/${transactions.length} hits (${((cacheHitCount / transactions.length) * 100).toFixed(1)}%)`);
+  }
+  if (useCorrections && correctionHitCount > 0) {
+    console.log(`✨ Corrections Used: ${correctionHitCount}/${uncached.length} uncached (${((correctionHitCount / Math.max(uncached.length, 1)) * 100).toFixed(1)}%)`);
+  }
+
+  return allSuggestions;
+}
+
+/**
+ * Get all correction statistics
+ *
+ * @returns {Object} Correction statistics
+ */
+export function getCorrectionStats() {
+  let totalCorrections = 0;
+  const merchantCount = categoryCorrections.size;
+  const categoryDistribution = {};
+
+  for (const corrections of categoryCorrections.values()) {
+    totalCorrections += corrections.length;
+    corrections.forEach(correction => {
+      categoryDistribution[correction.correctedCategory] =
+        (categoryDistribution[correction.correctedCategory] || 0) + 1;
+    });
+  }
+
+  return {
+    totalCorrections,
+    uniqueMerchants: merchantCount,
+    averageCorrectionsPerMerchant: merchantCount > 0 ? totalCorrections / merchantCount : 0,
+    categoryDistribution,
+  };
+}
+
+/**
+ * Export corrections for persistence (e.g., to Firestore)
+ *
+ * @returns {Array} Array of all corrections
+ */
+export function exportCorrections() {
+  const allCorrections = [];
+
+  for (const [merchantName, corrections] of categoryCorrections.entries()) {
+    corrections.forEach(correction => {
+      allCorrections.push({
+        merchantName,
+        ...correction,
+      });
+    });
+  }
+
+  return allCorrections;
+}
+
+/**
+ * Import corrections from persistent storage
+ *
+ * @param {Array} corrections - Array of correction records
+ * @returns {number} Number of corrections imported
+ */
+export function importCorrections(corrections) {
+  let importedCount = 0;
+
+  corrections.forEach(correction => {
+    const { merchantName } = correction;
+
+    if (!categoryCorrections.has(merchantName)) {
+      categoryCorrections.set(merchantName, []);
+    }
+
+    categoryCorrections.get(merchantName).push(correction);
+    importedCount++;
+  });
+
+  console.log(`📥 Imported ${importedCount} category corrections for ${categoryCorrections.size} merchants`);
+
+  return importedCount;
+}
+
+/**
+ * Clear all corrections (useful for testing or reset)
+ *
+ * @returns {number} Number of corrections cleared
+ */
+export function clearCorrections() {
+  const count = Array.from(categoryCorrections.values()).reduce((sum, arr) => sum + arr.length, 0);
+  categoryCorrections.clear();
+  console.log(`🗑️ Cleared ${count} category corrections`);
+  return count;
+}
+
 export default {
   suggestCategory,
   suggestCategoriesForTransactions,
+  suggestCategoryWithCorrections,
+  suggestCategoriesWithCorrections,
   getCategorySuggestionStats,
   addCustomKeyword,
+  recordCategoryCorrection,
+  getCorrectionsForMerchant,
+  getMostCommonCorrection,
+  getCorrectionStats,
+  exportCorrections,
+  importCorrections,
+  clearCorrections,
   DEFAULT_CATEGORY_KEYWORDS,
 };

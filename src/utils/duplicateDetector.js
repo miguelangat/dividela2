@@ -3,6 +3,12 @@
  * Prevents re-importing the same expenses
  */
 
+import {
+  getBatchCachedDuplicates,
+  batchCacheDuplicateResults,
+  cacheDuplicateResult,
+} from './importCache';
+
 /**
  * Calculate similarity score between two strings using Levenshtein distance
  * Returns value between 0 (completely different) and 1 (identical)
@@ -294,6 +300,7 @@ function findCandidatesFromIndex(transaction, expenseIndex) {
  * @param {Object} options - Detection options
  * @param {number} options.duplicateWindowDays - Days to look back for duplicates (default: 90)
  * @param {boolean} options.useIndexOptimization - Use index-based optimization (default: true)
+ * @param {boolean} options.useCache - Use caching to avoid re-processing (default: true)
  * @param {Function} options.onProgress - Progress callback (processed, total)
  * @returns {Array} Array of results for each transaction
  */
@@ -301,9 +308,18 @@ export function detectDuplicatesForTransactions(transactions, existingExpenses, 
   const {
     duplicateWindowDays = 90,
     useIndexOptimization = true,
+    useCache = true,
     onProgress = null,
     ...detectionOptions
   } = options;
+
+  // Check cache for existing results
+  const { cached, uncached } = useCache
+    ? getBatchCachedDuplicates(transactions)
+    : { cached: [], uncached: transactions };
+
+  let cacheHitCount = cached.length;
+  let processedCount = 0;
 
   // Filter existing expenses to specified window for performance
   const windowStartDate = new Date();
@@ -319,7 +335,8 @@ export function detectDuplicatesForTransactions(transactions, existingExpenses, 
     ? buildExpenseIndex(recentExpenses, detectionOptions)
     : null;
 
-  const results = transactions.map((transaction, index) => {
+  // Process only uncached transactions
+  const newResults = uncached.map((transaction, index) => {
     // Get candidate expenses to check
     const candidates = useIndexOptimization && expenseIndex
       ? findCandidatesFromIndex(transaction, expenseIndex)
@@ -327,16 +344,47 @@ export function detectDuplicatesForTransactions(transactions, existingExpenses, 
 
     const duplicates = findDuplicates(transaction, candidates, detectionOptions);
 
+    processedCount++;
+
     // Report progress if callback provided
-    if (onProgress && (index + 1) % 10 === 0) {
-      onProgress(index + 1, transactions.length);
+    if (onProgress && (cacheHitCount + processedCount) % 10 === 0) {
+      onProgress(cacheHitCount + processedCount, transactions.length);
     }
 
-    return {
+    const result = {
       transaction,
       duplicates,
       hasDuplicates: duplicates.length > 0,
       highConfidenceDuplicate: duplicates.find(d => d.confidence >= 0.8),
+    };
+
+    // Cache the result if caching is enabled
+    if (useCache) {
+      cacheDuplicateResult(transaction, duplicates);
+    }
+
+    return result;
+  });
+
+  // Combine cached and new results, maintaining original order
+  const allResults = transactions.map(transaction => {
+    // Check if transaction was cached
+    const cachedResult = cached.find(c => c.transaction === transaction);
+    if (cachedResult) {
+      return {
+        transaction: cachedResult.transaction,
+        duplicates: cachedResult.duplicates,
+        hasDuplicates: cachedResult.hasDuplicates,
+        highConfidenceDuplicate: cachedResult.highConfidenceDuplicate,
+        fromCache: true,
+      };
+    }
+
+    // Otherwise find in new results
+    const newResult = newResults.find(r => r.transaction === transaction);
+    return {
+      ...newResult,
+      fromCache: false,
     };
   });
 
@@ -345,7 +393,12 @@ export function detectDuplicatesForTransactions(transactions, existingExpenses, 
     onProgress(transactions.length, transactions.length);
   }
 
-  return results;
+  // Log cache performance
+  if (useCache && cacheHitCount > 0) {
+    console.log(`📦 Cache: ${cacheHitCount}/${transactions.length} hits (${((cacheHitCount / transactions.length) * 100).toFixed(1)}%)`);
+  }
+
+  return allResults;
 }
 
 /**
