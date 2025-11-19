@@ -311,7 +311,7 @@ export default function SignInScreen({ navigation }) {
         {/* Made in Colombia Footer - Fixed at bottom */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            Made in Colombia 🇨🇴 with ♥
+            {t('auth.footer.madeInColombia', 'Made in Colombia 🇨🇴 with ♥')}
           </Text>
         </View>
       </KeyboardAvoidingView>

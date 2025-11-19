@@ -17,11 +17,13 @@ import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons, AntDesign, Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { validateEmail, validatePassword, validateDisplayName } from '../../utils/validators';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES, SHADOWS } from '../../constants/theme';
 
 export default function SignUpScreen({ navigation }) {
   const { signUp, signInWithGoogle, signInWithApple } = useAuth();
+  const { t } = useTranslation();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -133,7 +135,7 @@ export default function SignUpScreen({ navigation }) {
             activeOpacity={0.7}
           >
             <MaterialCommunityIcons name="arrow-left" size={24} color={COLORS.textWhite} />
-            <Text style={styles.backButtonText}>Back</Text>
+            <Text style={styles.backButtonText}>{t('navigation.back', 'Back')}</Text>
           </TouchableOpacity>
 
           {/* Header Content */}
@@ -144,8 +146,8 @@ export default function SignUpScreen({ navigation }) {
               color={COLORS.textWhite}
               style={styles.headerIcon}
             />
-            <Text style={styles.headerTitle}>Create Account</Text>
-            <Text style={styles.headerSubtitle}>Join Dividela today</Text>
+            <Text style={styles.headerTitle}>{t('auth.signUp.title', 'Create Account')}</Text>
+            <Text style={styles.headerSubtitle}>{t('auth.signUp.subtitle', 'Join Dividela today')}</Text>
           </View>
         </LinearGradient>
 
@@ -167,7 +169,7 @@ export default function SignUpScreen({ navigation }) {
 
           {/* Name Input */}
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Name</Text>
+            <Text style={styles.label}>{t('auth.signUp.name', 'Name')}</Text>
             <View style={[styles.inputContainer, errors.name && styles.inputError]}>
               <MaterialCommunityIcons
                 name="account-outline"
@@ -177,7 +179,7 @@ export default function SignUpScreen({ navigation }) {
               />
               <TextInput
                 style={styles.input}
-                placeholder="Your name"
+                placeholder={t('auth.signUp.namePlaceholder', 'Your name')}
                 placeholderTextColor={COLORS.textTertiary}
                 value={name}
                 onChangeText={setName}
@@ -190,7 +192,7 @@ export default function SignUpScreen({ navigation }) {
 
           {/* Email Input */}
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Email</Text>
+            <Text style={styles.label}>{t('auth.signUp.email', 'Email')}</Text>
             <View style={[styles.inputContainer, errors.email && styles.inputError]}>
               <MaterialCommunityIcons
                 name="email-outline"
@@ -200,7 +202,7 @@ export default function SignUpScreen({ navigation }) {
               />
               <TextInput
                 style={styles.input}
-                placeholder="your@email.com"
+                placeholder={t('auth.signUp.emailPlaceholder', 'your@email.com')}
                 placeholderTextColor={COLORS.textTertiary}
                 value={email}
                 onChangeText={setEmail}
@@ -215,7 +217,7 @@ export default function SignUpScreen({ navigation }) {
 
           {/* Password Input */}
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Password</Text>
+            <Text style={styles.label}>{t('auth.signUp.password', 'Password')}</Text>
             <View style={[styles.inputContainer, errors.password && styles.inputError]}>
               <MaterialCommunityIcons
                 name="lock-outline"
@@ -225,7 +227,7 @@ export default function SignUpScreen({ navigation }) {
               />
               <TextInput
                 style={styles.input}
-                placeholder="At least 8 characters"
+                placeholder={t('auth.signUp.passwordPlaceholder', 'At least 8 characters')}
                 placeholderTextColor={COLORS.textTertiary}
                 value={password}
                 onChangeText={setPassword}
@@ -248,8 +250,10 @@ export default function SignUpScreen({ navigation }) {
               {termsAccepted && <Text style={styles.checkmark}>✓</Text>}
             </View>
             <Text style={styles.checkboxLabel}>
-              I agree to the <Text style={styles.link}>Terms of Service</Text> and{' '}
-              <Text style={styles.link}>Privacy Policy</Text>
+              {t('auth.signUp.agreeToTerms', 'I agree to the')}{' '}
+              <Text style={styles.link}>{t('auth.signUp.termsOfService', 'Terms of Service')}</Text>{' '}
+              {t('auth.signUp.and', 'and')}{' '}
+              <Text style={styles.link}>{t('auth.signUp.privacyPolicy', 'Privacy Policy')}</Text>
             </Text>
           </TouchableOpacity>
           {errors.terms && <Text style={styles.errorText}>{errors.terms}</Text>}
@@ -270,7 +274,7 @@ export default function SignUpScreen({ navigation }) {
               {loading ? (
                 <ActivityIndicator color={COLORS.textWhite} />
               ) : (
-                <Text style={styles.submitButtonText}>Create Account</Text>
+                <Text style={styles.submitButtonText}>{t('auth.signUp.createAccountButton', 'Create Account')}</Text>
               )}
             </LinearGradient>
           </TouchableOpacity>
@@ -278,7 +282,7 @@ export default function SignUpScreen({ navigation }) {
           {/* Divider */}
           <View style={styles.dividerContainer}>
             <View style={styles.divider} />
-            <Text style={styles.dividerText}>or</Text>
+            <Text style={styles.dividerText}>{t('auth.signUp.orDivider', 'or')}</Text>
             <View style={styles.divider} />
           </View>
 
@@ -296,7 +300,7 @@ export default function SignUpScreen({ navigation }) {
                 <View style={styles.socialIconContainer}>
                   <AntDesign name="google" size={20} color="#DB4437" />
                 </View>
-                <Text style={styles.socialButtonText}>Continue with Google</Text>
+                <Text style={styles.socialButtonText}>{t('auth.signUp.continueWithGoogle', 'Continue with Google')}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -314,7 +318,7 @@ export default function SignUpScreen({ navigation }) {
                 <View style={styles.socialIconContainer}>
                   <Ionicons name="logo-apple" size={20} color="#000000" />
                 </View>
-                <Text style={styles.socialButtonText}>Continue with Apple</Text>
+                <Text style={styles.socialButtonText}>{t('auth.signUp.continueWithApple', 'Continue with Apple')}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -325,7 +329,7 @@ export default function SignUpScreen({ navigation }) {
         {/* Made in Colombia Footer - Fixed at bottom */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            Made in Colombia 🇨🇴 with ♥
+            {t('auth.footer.madeInColombia', 'Made in Colombia 🇨🇴 with ♥')}
           </Text>
         </View>
       </KeyboardAvoidingView>
