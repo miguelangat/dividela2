@@ -19,8 +19,10 @@ import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES, SHADOWS } from '../../../
 import { useOnboarding } from '../../../contexts/OnboardingContext';
 import { useBudget } from '../../../contexts/BudgetContext';
 import { DEFAULT_CATEGORIES } from '../../../constants/defaultCategories';
+import { useTranslation } from 'react-i18next';
 
 export default function SimpleSuccessScreen({ navigation, route }) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { budgetStyle: contextBudgetStyle, budgetData: contextBudgetData, selectedMode, completeOnboarding, loading: onboardingLoading, setCategoryBudgets, setMonthlyIncome, setBudgetStyle } = useOnboarding();
   const { currentBudget, totalBudget: budgetTotal, categories } = useBudget();
@@ -41,15 +43,14 @@ export default function SimpleSuccessScreen({ navigation, route }) {
   const fadeAnim = new Animated.Value(0);
 
   useEffect(() => {
-    startAnimation();
-
-    // Log budget data on mount to diagnose issues
-    console.log('=== SimpleSuccessScreen Mounted ===');
+    console.log('🟢 === SimpleSuccessScreen Mounted ===');
     console.log('Context Budget Data:', JSON.stringify(contextBudgetData, null, 2));
     console.log('Params Budget Data:', JSON.stringify(paramsBudgetData, null, 2));
     console.log('Using Budget Data:', JSON.stringify(budgetData, null, 2));
     console.log('Budget Style:', budgetStyle);
     console.log('Selected Mode:', selectedMode);
+
+    startAnimation();
 
     // If context data is empty but params data exists, set it in context
     if (paramsBudgetData && (!contextBudgetData || !contextBudgetData.monthlyIncome)) {
@@ -88,6 +89,9 @@ export default function SimpleSuccessScreen({ navigation, route }) {
   };
 
   const handleGoToDashboard = async () => {
+    console.log('🔴 GO TO DASHBOARD BUTTON CLICKED');
+    console.log('Current state - completing:', completing, 'completionAttempted:', completionAttempted);
+
     // Double-tap prevention: Check if already completing or recently completed
     if (completing || completionAttempted) {
       console.log('Preventing duplicate completion attempt');
@@ -103,13 +107,13 @@ export default function SimpleSuccessScreen({ navigation, route }) {
     if (!budgetData || !budgetData.categoryBudgets || Object.keys(budgetData.categoryBudgets).length === 0) {
       console.error('❌ Budget data is empty!');
       console.error('This usually means state updates from previous screen did not propagate.');
-      alert('Budget data not set. This is likely a timing issue. Please go back and try again.');
+      alert(t('onboarding.simple.success.budgetDataError'));
       return;
     }
 
     if (!budgetData.monthlyIncome || budgetData.monthlyIncome === 0) {
       console.error('❌ Monthly income is not set!');
-      alert('Monthly income not set. Please go back and set a budget amount.');
+      alert(t('onboarding.simple.success.incomeError'));
       return;
     }
 
@@ -176,7 +180,7 @@ export default function SimpleSuccessScreen({ navigation, route }) {
       } else {
         console.error('❌ Onboarding completion returned false');
         console.error('Likely causes: validation failed, Firebase save failed, or AsyncStorage failed');
-        alert('Failed to complete onboarding. Validation may have failed. Check console logs for details.');
+        alert(t('onboarding.simple.success.completionError'));
         setCompleting(false);
         setCompletionAttempted(false);
       }
@@ -214,14 +218,14 @@ export default function SimpleSuccessScreen({ navigation, route }) {
 
     if (budgetStyle === 'smart') {
       return {
-        type: 'Smart Budget',
-        description: 'Industry averages, adjusts to your spending',
+        type: t('onboarding.simple.success.smartBudgetType'),
+        description: t('onboarding.simple.success.smartDescription'),
         total: dataTotal || fallbackTotal,
       };
     } else {
       return {
-        type: 'Fixed Budget',
-        description: 'Custom amount distributed across categories',
+        type: t('onboarding.simple.success.fixedBudgetType'),
+        description: t('onboarding.simple.success.fixedDescription'),
         total: dataTotal || fallbackTotal,
       };
     }
@@ -262,26 +266,26 @@ export default function SimpleSuccessScreen({ navigation, route }) {
         {/* Animated Text Content */}
         <Animated.View style={[styles.textContent, { opacity: fadeAnim }]}>
           {/* Title */}
-          <Text style={styles.title}>Budget Setup Complete!</Text>
+          <Text style={styles.title}>{t('onboarding.simple.success.title')}</Text>
 
           {/* Message */}
           <Text style={styles.message}>
-            You're all set to start tracking expenses and managing your budget together
+            {t('onboarding.simple.success.subtitle')}
           </Text>
 
           {/* Summary Card */}
           <View style={styles.summaryCard}>
             <View style={styles.summaryHeader}>
-              <Text style={styles.summaryTitle}>Your Configuration</Text>
+              <Text style={styles.summaryTitle}>{t('onboarding.simple.success.configTitle')}</Text>
             </View>
 
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Budget Type</Text>
+              <Text style={styles.summaryLabel}>{t('onboarding.simple.success.budgetTypeLabel')}</Text>
               <Text style={styles.summaryValue}>{summary.type}</Text>
             </View>
 
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Monthly Total</Text>
+              <Text style={styles.summaryLabel}>{t('onboarding.simple.success.monthlyTotalLabel')}</Text>
               <Text style={styles.summaryValuePrimary}>
                 ${summary.total.toLocaleString()}
               </Text>
@@ -296,26 +300,26 @@ export default function SimpleSuccessScreen({ navigation, route }) {
 
           {/* Preview Card */}
           <View style={styles.previewCard}>
-            <Text style={styles.previewTitle}>Current Month Budget</Text>
-            
+            <Text style={styles.previewTitle}>{t('onboarding.simple.success.currentMonthTitle')}</Text>
+
             <View style={styles.previewStats}>
               <View style={styles.statItem}>
-                <Text style={styles.statLabel}>Categories</Text>
+                <Text style={styles.statLabel}>{t('onboarding.simple.success.categoriesLabel')}</Text>
                 <Text style={styles.statValue}>
                   {Object.keys(DEFAULT_CATEGORIES).length}
                 </Text>
               </View>
               <View style={styles.statDivider} />
               <View style={styles.statItem}>
-                <Text style={styles.statLabel}>Budget</Text>
+                <Text style={styles.statLabel}>{t('onboarding.simple.success.budgetLabel')}</Text>
                 <Text style={styles.statValue}>
                   ${summary.total.toLocaleString()}
                 </Text>
               </View>
               <View style={styles.statDivider} />
               <View style={styles.statItem}>
-                <Text style={styles.statLabel}>Spent</Text>
-                <Text style={styles.statValue}>$0</Text>
+                <Text style={styles.statLabel}>{t('onboarding.simple.success.spentLabel')}</Text>
+                <Text style={styles.statValue}>{t('onboarding.simple.success.zeroSpent')}</Text>
               </View>
             </View>
           </View>
@@ -324,15 +328,15 @@ export default function SimpleSuccessScreen({ navigation, route }) {
           <View style={styles.featuresContainer}>
             <View style={styles.featureItem}>
               <Ionicons name="wallet-outline" size={20} color={COLORS.primary} />
-              <Text style={styles.featureText}>Track expenses by category</Text>
+              <Text style={styles.featureText}>{t('onboarding.simple.success.feature1')}</Text>
             </View>
             <View style={styles.featureItem}>
               <Ionicons name="analytics-outline" size={20} color={COLORS.primary} />
-              <Text style={styles.featureText}>Monitor budget progress</Text>
+              <Text style={styles.featureText}>{t('onboarding.simple.success.feature2')}</Text>
             </View>
             <View style={styles.featureItem}>
               <Ionicons name="notifications-outline" size={20} color={COLORS.primary} />
-              <Text style={styles.featureText}>Get spending alerts</Text>
+              <Text style={styles.featureText}>{t('onboarding.simple.success.feature3')}</Text>
             </View>
           </View>
         </Animated.View>
@@ -358,7 +362,7 @@ export default function SimpleSuccessScreen({ navigation, route }) {
           {completing ? (
             <ActivityIndicator size="small" color={COLORS.background} />
           ) : (
-            <Text style={COMMON_STYLES.primaryButtonText}>Go to Dashboard</Text>
+            <Text style={COMMON_STYLES.primaryButtonText}>{t('onboarding.simple.success.continueButton')}</Text>
           )}
         </TouchableOpacity>
 
@@ -368,7 +372,7 @@ export default function SimpleSuccessScreen({ navigation, route }) {
           onPress={handleViewSettings}
           disabled={completing || completionAttempted}
         >
-          <Text style={[styles.settingsLinkText, (completing || completionAttempted) && styles.linkDisabled]}>View Budget Settings</Text>
+          <Text style={[styles.settingsLinkText, (completing || completionAttempted) && styles.linkDisabled]}>{t('onboarding.simple.success.settingsLink')}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

@@ -15,8 +15,10 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES, SHADOWS } from '../../../constants/theme';
+import { useTranslation } from 'react-i18next';
 
 export default function AdvancedSavingsScreen({ navigation, route }) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { allocationData } = route.params || {};
   const [includeSavings, setIncludeSavings] = useState(true);
@@ -49,16 +51,16 @@ export default function AdvancedSavingsScreen({ navigation, route }) {
       >
         {/* Progress Indicator */}
         <View style={styles.progressContainer}>
-          <Text style={styles.progressText}>Step 6 of 7</Text>
+          <Text style={styles.progressText}>{t('onboarding.advanced.savings.progressText')}</Text>
           <View style={styles.progressBar}>
             <View style={[styles.progressFill, { width: '85.7%' }]} />
           </View>
         </View>
 
         {/* Title */}
-        <Text style={styles.title}>What happens to savings?</Text>
+        <Text style={styles.title}>{t('onboarding.advanced.savings.title')}</Text>
         <Text style={styles.subtitle}>
-          Decide how to handle money saved under budget
+          {t('onboarding.advanced.savings.subtitle')}
         </Text>
 
         {/* Main Option Card */}
@@ -66,9 +68,9 @@ export default function AdvancedSavingsScreen({ navigation, route }) {
           <View style={styles.mainCardHeader}>
             <Text style={styles.mainCardIcon}>💰</Text>
             <View style={styles.mainCardTitleContainer}>
-              <Text style={styles.mainCardTitle}>Split the Savings</Text>
+              <Text style={styles.mainCardTitle}>{t('onboarding.advanced.savings.mainOption')}</Text>
               <Text style={styles.mainCardDescription}>
-                Include budget savings in monthly settlement
+                {t('onboarding.advanced.savings.mainDescription')}
               </Text>
             </View>
           </View>
@@ -76,37 +78,36 @@ export default function AdvancedSavingsScreen({ navigation, route }) {
           <View style={styles.divider} />
 
           {/* Explanation */}
-          <Text style={styles.explanationTitle}>How it works:</Text>
+          <Text style={styles.explanationTitle}>{t('onboarding.advanced.savings.explanationTitle')}</Text>
           <Text style={styles.explanationText}>
-            When you spend less than your budget, the savings are split equally
-            between both partners in the settlement calculation.
+            {t('onboarding.advanced.savings.explanationText')}
           </Text>
 
           {/* Example Calculation */}
           <View style={styles.exampleCard}>
-            <Text style={styles.exampleTitle}>Example</Text>
+            <Text style={styles.exampleTitle}>{t('onboarding.advanced.savings.exampleTitle')}</Text>
 
             <View style={styles.exampleRow}>
-              <Text style={styles.exampleLabel}>Monthly budget:</Text>
+              <Text style={styles.exampleLabel}>{t('onboarding.advanced.savings.monthlyBudgetLabel')}</Text>
               <Text style={styles.exampleValue}>${exampleBudget}</Text>
             </View>
 
             <View style={styles.exampleRow}>
-              <Text style={styles.exampleLabel}>Total spent:</Text>
+              <Text style={styles.exampleLabel}>{t('onboarding.advanced.savings.spentLabel')}</Text>
               <Text style={styles.exampleValue}>${exampleSpent}</Text>
             </View>
 
             <View style={styles.exampleDivider} />
 
             <View style={styles.exampleRow}>
-              <Text style={styles.exampleLabelBold}>Savings:</Text>
+              <Text style={styles.exampleLabelBold}>{t('onboarding.advanced.savings.savingsLabel')}</Text>
               <Text style={styles.exampleValueHighlight}>
                 ${exampleSavings}
               </Text>
             </View>
 
             <View style={styles.exampleRow}>
-              <Text style={styles.exampleLabelBold}>Each gets:</Text>
+              <Text style={styles.exampleLabelBold}>{t('onboarding.advanced.savings.eachGetsLabel')}</Text>
               <Text style={styles.exampleValueHighlight}>
                 ${exampleSplit}
               </Text>
@@ -116,11 +117,11 @@ export default function AdvancedSavingsScreen({ navigation, route }) {
           {/* Toggle Switch */}
           <View style={styles.toggleRow}>
             <View style={styles.toggleInfo}>
-              <Text style={styles.toggleLabel}>Include in settlement</Text>
+              <Text style={styles.toggleLabel}>{t('onboarding.advanced.savings.toggleLabel')}</Text>
               <Text style={styles.toggleHint}>
                 {includeSavings
-                  ? 'Savings will be split equally'
-                  : 'Savings will not be included'}
+                  ? t('onboarding.advanced.savings.toggleHintOn')
+                  : t('onboarding.advanced.savings.toggleHintOff')}
               </Text>
             </View>
             <Switch
@@ -139,7 +140,7 @@ export default function AdvancedSavingsScreen({ navigation, route }) {
           activeOpacity={0.7}
         >
           <View style={styles.secondaryOptionHeader}>
-            <Text style={styles.secondaryOptionTitle}>Track only, no split</Text>
+            <Text style={styles.secondaryOptionTitle}>{t('onboarding.advanced.savings.secondaryOption')}</Text>
             <Text style={styles.secondaryOptionIcon}>
               {showSecondaryOption ? '▼' : '▶'}
             </Text>
@@ -148,16 +149,14 @@ export default function AdvancedSavingsScreen({ navigation, route }) {
           {showSecondaryOption && (
             <View style={styles.secondaryOptionContent}>
               <Text style={styles.secondaryOptionText}>
-                This option lets you track budget vs. spending without
-                including savings in settlements. Good for couples who handle
-                leftover money differently.
+                {t('onboarding.advanced.savings.secondaryDescription')}
               </Text>
 
               <TouchableOpacity
                 style={styles.selectButton}
                 onPress={() => setIncludeSavings(false)}
               >
-                <Text style={styles.selectButtonText}>Use this option</Text>
+                <Text style={styles.selectButtonText}>{t('onboarding.advanced.savings.useSecondaryButton')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -167,7 +166,7 @@ export default function AdvancedSavingsScreen({ navigation, route }) {
         <View style={styles.infoBox}>
           <Text style={styles.infoIcon}>💡</Text>
           <Text style={styles.infoText}>
-            You can change this setting anytime in budget preferences
+            {t('onboarding.advanced.savings.infoText')}
           </Text>
         </View>
       </ScrollView>
@@ -188,7 +187,7 @@ export default function AdvancedSavingsScreen({ navigation, route }) {
           onPress={handleFinish}
           activeOpacity={0.8}
         >
-          <Text style={styles.finishButtonText}>Finish Setup</Text>
+          <Text style={styles.finishButtonText}>{t('onboarding.advanced.savings.finishButton')}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

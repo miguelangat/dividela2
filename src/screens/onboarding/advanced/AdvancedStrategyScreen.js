@@ -14,8 +14,10 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES, SHADOWS } from '../../../constants/theme';
+import { useTranslation } from 'react-i18next';
 
 export default function AdvancedStrategyScreen({ navigation, route }) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { timeframeData } = route.params || {};
   const [selectedStrategy, setSelectedStrategy] = useState('equal'); // 'equal', 'seasonal', 'custom'
@@ -33,25 +35,25 @@ export default function AdvancedStrategyScreen({ navigation, route }) {
     {
       id: 'equal',
       icon: '⚖️',
-      title: 'Equal Monthly',
-      description: 'Same amount every month, simple & predictable',
-      details: 'Perfect for consistent monthly expenses',
-      badge: 'Most Popular',
+      title: t('onboarding.advanced.strategy.equalTitle'),
+      description: t('onboarding.advanced.strategy.equalDescription'),
+      details: t('onboarding.advanced.strategy.equalDetail'),
+      badge: t('onboarding.advanced.strategy.equalBadge'),
     },
     {
       id: 'seasonal',
       icon: '🌤️',
-      title: 'Seasonal Budgets',
-      description: 'Vary by month/season, more flexible',
-      details: 'Great for expenses that change with seasons',
+      title: t('onboarding.advanced.strategy.seasonalTitle'),
+      description: t('onboarding.advanced.strategy.seasonalDescription'),
+      details: t('onboarding.advanced.strategy.seasonalDetail'),
       badge: null,
     },
     {
       id: 'custom',
       icon: '🎯',
-      title: 'Custom Plan',
-      description: 'Set each month individually, maximum control',
-      details: 'Full flexibility for unique planning needs',
+      title: t('onboarding.advanced.strategy.customTitle'),
+      description: t('onboarding.advanced.strategy.customDescription'),
+      details: t('onboarding.advanced.strategy.customDetail'),
       badge: null,
     },
   ];
@@ -67,16 +69,16 @@ export default function AdvancedStrategyScreen({ navigation, route }) {
       >
         {/* Progress Indicator */}
         <View style={styles.progressContainer}>
-          <Text style={styles.progressText}>Step 3 of 7</Text>
+          <Text style={styles.progressText}>{t('onboarding.advanced.strategy.progressText')}</Text>
           <View style={styles.progressBar}>
             <View style={[styles.progressFill, { width: '42.9%' }]} />
           </View>
         </View>
 
         {/* Title */}
-        <Text style={styles.title}>How do you plan?</Text>
+        <Text style={styles.title}>{t('onboarding.advanced.strategy.title')}</Text>
         <Text style={styles.subtitle}>
-          Choose your budgeting strategy for the year
+          {t('onboarding.advanced.strategy.subtitle')}
         </Text>
 
         {/* Strategy Cards */}
@@ -124,7 +126,7 @@ export default function AdvancedStrategyScreen({ navigation, route }) {
         <View style={styles.infoBox}>
           <Text style={styles.infoIcon}>💡</Text>
           <Text style={styles.infoText}>
-            Don't worry, you can change this later in settings
+            {t('onboarding.advanced.strategy.infoText')}
           </Text>
         </View>
       </ScrollView>
@@ -145,7 +147,7 @@ export default function AdvancedStrategyScreen({ navigation, route }) {
           onPress={handleContinue}
           activeOpacity={0.8}
         >
-          <Text style={styles.continueButtonText}>Continue</Text>
+          <Text style={styles.continueButtonText}>{t('onboarding.advanced.strategy.continue')}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

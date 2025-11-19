@@ -6,6 +6,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Platform } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { COLORS, FONTS } from '../constants/theme';
 
 // Main app screens
@@ -29,6 +30,8 @@ const SettlementStack = createStackNavigator();
 
 // Budget Stack Navigator
 function BudgetStackNavigator() {
+  const { t } = useTranslation();
+
   return (
     <BudgetStack.Navigator
       screenOptions={{
@@ -51,22 +54,22 @@ function BudgetStackNavigator() {
       <BudgetStack.Screen
         name="BudgetDashboard"
         component={BudgetDashboardScreen}
-        options={{ title: 'Budget' }}
+        options={{ title: t('navigation.budgetDashboard') }}
       />
       <BudgetStack.Screen
         name="BudgetSetup"
         component={BudgetSetupScreen}
-        options={{ title: 'Budget Setup' }}
+        options={{ title: t('navigation.budgetSetup') }}
       />
       <BudgetStack.Screen
         name="CategoryManager"
         component={CategoryManagerScreen}
-        options={{ title: 'Manage Categories' }}
+        options={{ title: t('navigation.categoryManager') }}
       />
       <BudgetStack.Screen
         name="AnnualBudgetSetup"
         component={AnnualBudgetSetupScreen}
-        options={{ title: 'Annual Budget' }}
+        options={{ title: t('navigation.annualBudget') }}
       />
     </BudgetStack.Navigator>
   );
@@ -74,6 +77,8 @@ function BudgetStackNavigator() {
 
 // Settlement Stack Navigator
 function SettlementStackNavigator() {
+  const { t } = useTranslation();
+
   return (
     <SettlementStack.Navigator
       screenOptions={{
@@ -96,18 +101,20 @@ function SettlementStackNavigator() {
       <SettlementStack.Screen
         name="SettlementHistory"
         component={SettlementHistoryScreen}
-        options={{ title: 'Settlement History' }}
+        options={{ title: t('navigation.settlementHistory') }}
       />
       <SettlementStack.Screen
         name="SettlementDetail"
         component={SettlementDetailScreen}
-        options={{ title: 'Settlement Details' }}
+        options={{ title: t('navigation.settlementDetails') }}
       />
     </SettlementStack.Navigator>
   );
 }
 
 export default function TabNavigator() {
+  const { t } = useTranslation();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -150,35 +157,35 @@ export default function TabNavigator() {
         name="HomeTab"
         component={HomeScreen}
         options={{
-          tabBarLabel: 'Home',
+          tabBarLabel: t('navigation.home'),
         }}
       />
       <Tab.Screen
         name="SettlementsTab"
         component={SettlementStackNavigator}
         options={{
-          tabBarLabel: 'Settlements',
+          tabBarLabel: t('navigation.settlements'),
         }}
       />
       <Tab.Screen
         name="BudgetTab"
         component={BudgetStackNavigator}
         options={{
-          tabBarLabel: 'Budget',
+          tabBarLabel: t('navigation.budget'),
         }}
       />
       <Tab.Screen
         name="StatsTab"
         component={StatsScreen}
         options={{
-          tabBarLabel: 'Stats',
+          tabBarLabel: t('navigation.stats'),
         }}
       />
       <Tab.Screen
         name="SettingsTab"
         component={SettingsScreen}
         options={{
-          tabBarLabel: 'Settings',
+          tabBarLabel: t('navigation.settings'),
         }}
       />
     </Tab.Navigator>

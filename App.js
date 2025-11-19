@@ -6,17 +6,21 @@ import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { BudgetProvider } from './src/contexts/BudgetContext';
+import { LanguageProvider } from './src/contexts/LanguageContext';
 import AppNavigator from './src/navigation/AppNavigator';
+import './src/i18n/i18n.config'; // Initialize i18n
 
 export default function App() {
   try {
     return (
       <SafeAreaProvider>
-        <AuthProvider>
-          <BudgetProvider>
-            <AppNavigator />
-          </BudgetProvider>
-        </AuthProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <BudgetProvider>
+              <AppNavigator />
+            </BudgetProvider>
+          </AuthProvider>
+        </LanguageProvider>
       </SafeAreaProvider>
     );
   } catch (error) {

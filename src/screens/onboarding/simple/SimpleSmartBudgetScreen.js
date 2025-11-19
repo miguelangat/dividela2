@@ -18,8 +18,10 @@ import ProgressStepper from '../../../components/onboarding/ProgressStepper';
 import { useOnboarding } from '../../../contexts/OnboardingContext';
 import { useAuth } from '../../../contexts/AuthContext';
 import { DEFAULT_CATEGORIES } from '../../../constants/defaultCategories';
+import { useTranslation } from 'react-i18next';
 
 export default function SimpleSmartBudgetScreen({ navigation }) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { userDetails } = useAuth();
   const { setBudgetStyle, setCategoryBudgets, setMonthlyIncome } = useOnboarding();
@@ -67,7 +69,7 @@ export default function SimpleSmartBudgetScreen({ navigation }) {
       });
     } catch (error) {
       console.error('Error navigating to success screen:', error);
-      alert('Failed to proceed. Please try again.');
+      alert(t('onboarding.simple.smart.navigationError'));
     } finally {
       setLoading(false);
     }
@@ -90,29 +92,29 @@ export default function SimpleSmartBudgetScreen({ navigation }) {
 
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>All Set! Here's the plan:</Text>
+          <Text style={styles.title}>{t('onboarding.simple.smart.title')}</Text>
         </View>
 
         {/* Explanation */}
         <View style={styles.explanationCard}>
           <View style={styles.explanationItem}>
             <Text style={styles.checkmark}>✓</Text>
-            <Text style={styles.explanationText}>We'll track your spending</Text>
+            <Text style={styles.explanationText}>{t('onboarding.simple.smart.feature1')}</Text>
           </View>
           <View style={styles.explanationItem}>
             <Text style={styles.checkmark}>✓</Text>
-            <Text style={styles.explanationText}>Suggest budgets after first month</Text>
+            <Text style={styles.explanationText}>{t('onboarding.simple.smart.feature2')}</Text>
           </View>
           <View style={styles.explanationItem}>
             <Text style={styles.checkmark}>✓</Text>
-            <Text style={styles.explanationText}>Adjust anytime in settings</Text>
+            <Text style={styles.explanationText}>{t('onboarding.simple.smart.feature3')}</Text>
           </View>
         </View>
 
         {/* Default Budget Preview */}
         <View style={styles.previewCard}>
-          <Text style={styles.previewTitle}>Starting Budgets</Text>
-          <Text style={styles.previewSubtitle}>Based on industry averages</Text>
+          <Text style={styles.previewTitle}>{t('onboarding.simple.smart.previewTitle')}</Text>
+          <Text style={styles.previewSubtitle}>{t('onboarding.simple.smart.previewSubtitle')}</Text>
 
           <View style={styles.categoriesList}>
             {Object.entries(DEFAULT_CATEGORIES).map(([key, category]) => (
@@ -130,14 +132,14 @@ export default function SimpleSmartBudgetScreen({ navigation }) {
 
           {/* Total */}
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Total Monthly Budget</Text>
+            <Text style={styles.totalLabel}>{t('onboarding.simple.smart.totalLabel')}</Text>
             <Text style={styles.totalAmount}>${totalBudget.toLocaleString()}</Text>
           </View>
 
           {/* Note */}
           <View style={styles.noteContainer}>
             <Text style={styles.noteText}>
-              💡 Industry averages - We'll adjust based on YOUR spending
+              {t('onboarding.simple.smart.noteText')}
             </Text>
           </View>
         </View>
@@ -163,7 +165,7 @@ export default function SimpleSmartBudgetScreen({ navigation }) {
           {loading ? (
             <ActivityIndicator color={COLORS.textWhite} />
           ) : (
-            <Text style={COMMON_STYLES.primaryButtonText}>Start Tracking</Text>
+            <Text style={COMMON_STYLES.primaryButtonText}>{t('onboarding.simple.smart.startButton')}</Text>
           )}
         </TouchableOpacity>
 
@@ -173,7 +175,7 @@ export default function SimpleSmartBudgetScreen({ navigation }) {
           onPress={handleCustomize}
           disabled={loading}
         >
-          <Text style={styles.secondaryLinkText}>Customize These Amounts</Text>
+          <Text style={styles.secondaryLinkText}>{t('onboarding.simple.smart.customizeLink')}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

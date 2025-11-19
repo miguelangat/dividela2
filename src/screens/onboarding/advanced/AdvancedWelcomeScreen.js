@@ -16,8 +16,10 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES } from '../../../constants/theme';
+import { useTranslation } from 'react-i18next';
 
 export default function AdvancedWelcomeScreen({ navigation }) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -67,10 +69,10 @@ export default function AdvancedWelcomeScreen({ navigation }) {
   };
 
   const checklistItems = [
-    'Track monthly spending',
-    'Stay under budget',
-    'Split savings fairly',
-    'Achieve financial goals',
+    t('onboarding.advanced.welcome.feature1'),
+    t('onboarding.advanced.welcome.feature2'),
+    t('onboarding.advanced.welcome.feature3'),
+    t('onboarding.advanced.welcome.feature4'),
   ];
 
   return (
@@ -90,7 +92,7 @@ export default function AdvancedWelcomeScreen({ navigation }) {
         >
           {/* Progress Indicator */}
           <View style={styles.progressContainer}>
-            <Text style={styles.progressText}>Step 1 of 7</Text>
+            <Text style={styles.progressText}>{t('onboarding.advanced.welcome.progressText')}</Text>
             <View style={styles.progressBar}>
               <View style={[styles.progressFill, { width: '14.3%' }]} />
             </View>
@@ -110,7 +112,7 @@ export default function AdvancedWelcomeScreen({ navigation }) {
           </Animated.View>
 
           {/* Title */}
-          <Text style={styles.title}>Plan Your Year Together</Text>
+          <Text style={styles.title}>{t('onboarding.advanced.welcome.title')}</Text>
 
           {/* Value Proposition */}
           <View style={styles.valueProposition}>
@@ -157,7 +159,7 @@ export default function AdvancedWelcomeScreen({ navigation }) {
             onPress={handleGetStarted}
             activeOpacity={0.8}
           >
-            <Text style={styles.primaryButtonText}>Let's Get Started</Text>
+            <Text style={styles.primaryButtonText}>{t('onboarding.advanced.welcome.continueButton')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -165,7 +167,7 @@ export default function AdvancedWelcomeScreen({ navigation }) {
             onPress={handleBackToSimple}
             activeOpacity={0.6}
           >
-            <Text style={styles.linkButtonText}>Back to Simple Mode</Text>
+            <Text style={styles.linkButtonText}>{t('onboarding.advanced.welcome.backToSimple')}</Text>
           </TouchableOpacity>
         </View>
       </LinearGradient>
