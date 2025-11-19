@@ -41,9 +41,6 @@ export default function WelcomeScreen({ navigation }) {
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
-          {...(Platform.OS === 'web' && {
-            nestedScrollEnabled: true,
-          })}
         >
           {/* Top Section - Logo and Title */}
           <View style={styles.topSection}>
@@ -123,30 +120,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    ...(Platform.OS === 'web' && {
-      height: '100vh',
-      overflow: 'hidden',
-    }),
   },
   gradientBackground: {
     flex: 1,
-    ...(Platform.OS === 'web' && {
-      height: '100%',
-    }),
   },
   scrollView: {
     flex: 1,
-    ...(Platform.OS === 'web' && {
-      height: '100%',
-      overflowY: 'auto',
-      WebkitOverflowScrolling: 'touch',
-    }),
   },
   scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: SPACING.screenPadding,
     paddingTop: 50,
     paddingBottom: SPACING.xxlarge,
-    minHeight: '100%',
   },
   languageSelectorContainer: {
     position: 'absolute',

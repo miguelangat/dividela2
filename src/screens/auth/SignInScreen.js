@@ -118,15 +118,9 @@ export default function SignInScreen({ navigation }) {
       <StatusBar style="light" />
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={[
-          styles.scrollContent,
-          Platform.OS === 'web' && { minHeight: '100%' }
-        ]}
+        contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-        {...(Platform.OS === 'web' && {
-          nestedScrollEnabled: true,
-        })}
       >
         {/* Gradient Header */}
         <LinearGradient
@@ -325,24 +319,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.backgroundSecondary,
-    ...(Platform.OS === 'web' && {
-      height: '100vh',
-      overflow: 'hidden',
-    }),
   },
   scrollView: {
     flex: 1,
-    ...(Platform.OS === 'web' && {
-      height: '100%',
-      overflowY: 'auto',
-      WebkitOverflowScrolling: 'touch',
-    }),
   },
   scrollContent: {
+    flexGrow: 1,
     paddingBottom: SPACING.xxlarge,
-    ...(Platform.OS === 'web' && {
-      minHeight: '100%',
-    }),
   },
   gradientHeader: {
     paddingTop: Platform.OS === 'ios' ? 50 : 30,
