@@ -1,6 +1,6 @@
 /**
  * Service for importing expenses from bank statements
- * Handles batch operations and import tracking
+ * Handles batch operations, import tracking, resilience, and debugging
  */
 
 import { collection, writeBatch, doc, serverTimestamp } from 'firebase/firestore';
@@ -10,26 +10,76 @@ import { parseBankStatement } from '../utils/bankStatementParser';
 import { mapTransactionsToExpenses, mapTransactionToExpense, filterTransactions, validateExpenses } from '../utils/transactionMapper';
 import { suggestCategoriesForTransactions } from '../utils/categoryAutoMapper';
 import { detectDuplicatesForTransactions } from '../utils/duplicateDetector';
+import { validateFile, validateTransactions, validateImportConfig } from '../utils/importValidation';
+import { startTimer, logParsing, logDuplicateDetection, logCategorySuggestions, logValidation, logBatchProgress, info, error as logError } from '../utils/importDebug';
+import { createSession, updateProgress, completeSession, failSession, SESSION_STATES, updateSession } from '../utils/importSession';
+import { retryOperation, rollbackImport, CancellationToken, validateImportIntegrity } from '../utils/importResilience';
 
 const MAX_BATCH_SIZE = 500; // Firestore batch limit
 const MAX_IMPORT_SIZE = 1000; // User-defined limit
 
 /**
- * Parse bank statement file
+ * Parse bank statement file with validation and logging
  *
  * @param {string} fileUri - URI of the file to parse
+ * @param {Object} fileInfo - File information for validation
  * @returns {Promise<Object>} Parsed result
  */
-export async function parseFile(fileUri) {
+export async function parseFile(fileUri, fileInfo = null) {
+  const timer = startTimer('PARSER', 'File parsing');
+
   try {
-    const result = await parseBankStatement(fileUri);
+    // Validate file if info provided
+    if (fileInfo) {
+      const fileValidation = validateFile(fileInfo);
+      if (!fileValidation.isValid) {
+        throw new Error(`File validation failed: ${fileValidation.errors.join(', ')}`);
+      }
+      if (fileValidation.hasWarnings) {
+        info('PARSER', 'File validation warnings', { warnings: fileValidation.warnings });
+      }
+    }
+
+    // Parse with retry logic for network-related failures
+    const result = await retryOperation(
+      () => parseBankStatement(fileUri),
+      undefined,
+      'Parse bank statement'
+    );
 
     if (!result.success) {
       throw new Error(result.error || 'Failed to parse file');
     }
 
+    // Log parsing result
+    logParsing(result.metadata?.fileType || 'unknown', result);
+
+    // Validate parsed transactions
+    if (result.transactions && result.transactions.length > 0) {
+      const transactionValidation = validateTransactions(result.transactions);
+
+      if (!transactionValidation.isValid) {
+        logError('PARSER', 'Transaction validation failed', {
+          errors: transactionValidation.errors.slice(0, 5),
+        });
+      }
+
+      if (transactionValidation.hasWarnings) {
+        info('PARSER', 'Transaction validation warnings', {
+          warnings: transactionValidation.warnings.slice(0, 5),
+        });
+      }
+
+      // Add validation info to result
+      result.validation = transactionValidation;
+    }
+
+    timer.end({ transactionCount: result.transactions?.length || 0 });
+
     return result;
   } catch (error) {
+    timer.end({ error: error.message });
+    logError('PARSER', 'File parsing failed', { error: error.message });
     throw new Error(`File parsing failed: ${error.message}`);
   }
 }
