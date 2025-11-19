@@ -6,6 +6,7 @@ import {
   createMerchantAlias,
   getMerchantAliases,
   updateAliasUsageCount,
+  deleteMerchantAlias,
 } from '../merchantAliasService';
 
 import {
@@ -15,6 +16,7 @@ import {
   doc,
   addDoc,
   updateDoc,
+  deleteDoc,
   query,
   where,
   orderBy,
@@ -427,6 +429,43 @@ describe('merchantAliasService', () => {
       updateDoc.mockRejectedValue(new Error('Firestore error'));
 
       await expect(updateAliasUsageCount(aliasId)).rejects.toThrow('Firestore error');
+    });
+  });
+
+  describe('deleteMerchantAlias', () => {
+    it('should delete merchant alias', async () => {
+      const aliasId = 'alias123';
+      const coupleId = 'couple123';
+
+      deleteDoc.mockResolvedValue();
+
+      await deleteMerchantAlias(aliasId, coupleId);
+
+      expect(doc).toHaveBeenCalled();
+      expect(deleteDoc).toHaveBeenCalled();
+    });
+
+    it('should validate alias ID', async () => {
+      const coupleId = 'couple123';
+
+      await expect(deleteMerchantAlias(null, coupleId)).rejects.toThrow('Alias ID is required');
+      await expect(deleteMerchantAlias('', coupleId)).rejects.toThrow('Alias ID is required');
+    });
+
+    it('should validate couple ID', async () => {
+      const aliasId = 'alias123';
+
+      await expect(deleteMerchantAlias(aliasId, null)).rejects.toThrow('Couple ID is required');
+      await expect(deleteMerchantAlias(aliasId, '')).rejects.toThrow('Couple ID is required');
+    });
+
+    it('should handle Firestore errors', async () => {
+      const aliasId = 'alias123';
+      const coupleId = 'couple123';
+
+      deleteDoc.mockRejectedValue(new Error('Firestore error'));
+
+      await expect(deleteMerchantAlias(aliasId, coupleId)).rejects.toThrow('Firestore error');
     });
   });
 

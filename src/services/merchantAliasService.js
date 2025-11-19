@@ -6,6 +6,7 @@ import {
   getDocs,
   addDoc,
   updateDoc,
+  deleteDoc,
   doc,
   query,
   where,
@@ -191,6 +192,34 @@ export const updateAliasUsageCount = async (aliasId) => {
     console.log('Alias usage count updated:', aliasId);
   } catch (error) {
     console.error('Error updating alias usage count:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete a merchant alias
+ * @param {string} aliasId - ID of the alias document to delete
+ * @param {string} coupleId - ID of the couple (for validation)
+ * @returns {Promise<void>}
+ */
+export const deleteMerchantAlias = async (aliasId, coupleId) => {
+  try {
+    // Validate inputs
+    if (!aliasId || aliasId.trim() === '') {
+      throw new Error('Alias ID is required');
+    }
+    if (!coupleId || coupleId.trim() === '') {
+      throw new Error('Couple ID is required');
+    }
+
+    const aliasRef = doc(db, 'merchantAliases', aliasId);
+
+    // Delete the document
+    await deleteDoc(aliasRef);
+
+    console.log('Merchant alias deleted:', aliasId);
+  } catch (error) {
+    console.error('Error deleting merchant alias:', error);
     throw error;
   }
 };
