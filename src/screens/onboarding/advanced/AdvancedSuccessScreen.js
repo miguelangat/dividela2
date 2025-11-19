@@ -18,8 +18,10 @@ import { CommonActions } from '@react-navigation/native';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES, SHADOWS } from '../../../constants/theme';
 import { useOnboarding } from '../../../contexts/OnboardingContext';
 import { useBudget } from '../../../contexts/BudgetContext';
+import { useTranslation } from 'react-i18next';
 
 export default function AdvancedSuccessScreen({ navigation, route }) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { finalData } = route.params || {};
   const {
@@ -92,6 +94,10 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
   }, []);
 
   useEffect(() => {
+    console.log('🟢 === AdvancedSuccessScreen Mounted ===');
+    console.log('Final Data:', JSON.stringify(finalData, null, 2));
+    console.log('isDataValid:', isDataValid);
+
     // Check if data is valid before proceeding
     if (!isDataValid) {
       console.error('❌ [AdvancedSuccess] Invalid data detected');
@@ -248,10 +254,9 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
   }, [finalData, isDataValid, setCategoryBudgets, setMonthlyIncome, setMode]); // Removed contextBudgetData to prevent infinite loop
 
   const handleGoToDashboard = async () => {
-    console.log('');
-    console.log('========================================');
-    console.log('🔵 [AdvancedSuccess] GO TO DASHBOARD CLICKED');
-    console.log('========================================');
+    console.log('🔴 ADVANCED GO TO DASHBOARD BUTTON CLICKED');
+    console.log('Current state - completing:', completing, 'completionAttempted:', completionAttempted);
+    console.log('isDataValid:', isDataValid);
 
     // Double-tap prevention: Check if already completing or recently completed
     if (completing || completionAttempted) {
@@ -266,34 +271,7 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
       return;
     }
 
-    console.log('✅ Data validation passed');
-    console.log('📊 Final Data:', JSON.stringify(finalData, null, 2));
-    console.log('📊 Context Budget Data:', JSON.stringify(contextBudgetData, null, 2));
-    console.log('📊 Budget Categories from Context:', budgetCategories);
-
-    // Convert annual to monthly if needed
-    const isAnnual = finalData.mode === 'annual';
-    const divisor = isAnnual ? 12 : 1;
-
-    const categoryBudgets = {};
-    if (finalData.allocations) {
-      Object.entries(finalData.allocations).forEach(([key, value]) => {
-        categoryBudgets[key] = value / divisor;
-      });
-    }
-
-    const monthlyIncome = (finalData.totalBudget || 0) / divisor;
-
-    console.log('📝 Prepared budget data for completion:');
-    console.log('  - categoryBudgets:', categoryBudgets);
-    console.log('  - monthlyIncome:', monthlyIncome);
-    console.log('  - mode:', finalData.mode);
-
-    // Also set context for consistency (but don't wait for it)
-    setCategoryBudgets(categoryBudgets);
-    setMonthlyIncome(monthlyIncome);
-    setMode(finalData.mode || 'advanced');
-
+    console.log('=== Starting ADVANCED onboarding completion ===');
     setCompleting(true);
     setCompletionAttempted(true);
 
@@ -302,11 +280,45 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
 
       // Complete onboarding and save budget
       // Pass budget data explicitly to avoid React state timing issues
+      // Reconstruct categoryBudgets and monthlyIncome from finalData
+      const isAnnual = finalData.mode === 'annual';
+      const divisor = isAnnual ? 12 : 1;
+
+      const categoryBudgets = {};
+      if (finalData.allocations) {
+        Object.entries(finalData.allocations).forEach(([key, value]) => {
+          categoryBudgets[key] = value / divisor;
+        });
+      }
+
+      const monthlyIncome = (finalData.totalBudget || 0) / divisor;
+
       const explicitBudgetData = {
         categoryBudgets,
         monthlyIncome,
         annualBudgets: [],
       };
+
+      console.log('📦 Explicit budget data:', JSON.stringify(explicitBudgetData, null, 2));
+
+      // Validate that we have the necessary data
+      if (!explicitBudgetData.categoryBudgets || Object.keys(explicitBudgetData.categoryBudgets).length === 0) {
+        console.error('❌ Category budgets not defined');
+        alert('Error: Category budgets are not defined. Please go back and ensure all categories have budget values.');
+        setCompleting(false);
+        setCompletionAttempted(false);
+        return;
+      }
+
+      if (!explicitBudgetData.monthlyIncome || explicitBudgetData.monthlyIncome <= 0) {
+        console.error('❌ Monthly income not defined');
+        alert('Error: Monthly income is not defined. Please go back and enter your budget.');
+        setCompleting(false);
+        setCompletionAttempted(false);
+        return;
+      }
+
+      console.log('✅ Budget data validation passed');
 
       const success = await completeOnboarding(budgetCategories, explicitBudgetData);
 
@@ -486,9 +498,9 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
             },
           ]}
         >
-          <Text style={styles.title}>Your Budget is Ready!</Text>
+          <Text style={styles.title}>{t('onboarding.advanced.success.title')}</Text>
           <Text style={styles.subtitle}>
-            You're all set to start tracking and managing your shared finances
+            {t('onboarding.advanced.success.subtitle')}
           </Text>
 
           {/* Summary Stats */}
@@ -498,7 +510,7 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
                 ${formatCurrency(totalBudget)}
               </Text>
               <Text style={styles.statLabel}>
-                {mode === 'annual' ? 'Annual Budget' : 'Monthly Budget'}
+                {mode === 'annual' ? t('onboarding.advanced.success.annualBudget') : t('onboarding.advanced.success.monthlyBudget')}
               </Text>
             </View>
 
@@ -506,21 +518,21 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
               <Text style={styles.statValue}>
                 {selectedCategories?.length || 0}
               </Text>
-              <Text style={styles.statLabel}>Categories</Text>
+              <Text style={styles.statLabel}>{t('onboarding.advanced.success.categoriesLabel')}</Text>
             </View>
 
             <View style={styles.statCard}>
               <Text style={styles.statValue}>
                 {includeSavings ? 'Yes' : 'No'}
               </Text>
-              <Text style={styles.statLabel}>Split Savings</Text>
+              <Text style={styles.statLabel}>{t('onboarding.advanced.success.splitSavingsLabel')}</Text>
             </View>
           </View>
 
           {/* Preview Card */}
           <View style={styles.previewCard}>
             <View style={styles.previewHeader}>
-              <Text style={styles.previewTitle}>First Month Breakdown</Text>
+              <Text style={styles.previewTitle}>{t('onboarding.advanced.success.firstMonthTitle')}</Text>
               <Text style={styles.previewAmount}>
                 ${formatCurrency(monthlyBudget)}
               </Text>
@@ -548,7 +560,7 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
 
             {selectedCategories?.length > 3 && (
               <Text style={styles.previewMore}>
-                + {selectedCategories.length - 3} more categories
+                {t('onboarding.advanced.success.moreCategories', { count: selectedCategories.length - 3 })}
               </Text>
             )}
           </View>
@@ -563,7 +575,7 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
             {completing ? (
               <ActivityIndicator size="small" color={COLORS.background} />
             ) : (
-              <Text style={styles.primaryButtonText}>Go to Dashboard</Text>
+              <Text style={styles.primaryButtonText}>{t('onboarding.advanced.success.continueButton')}</Text>
             )}
           </TouchableOpacity>
 
@@ -573,7 +585,7 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
             activeOpacity={0.7}
             disabled={completing || completionAttempted}
           >
-            <Text style={[styles.secondaryButtonText, (completing || completionAttempted) && styles.textDisabled]}>Edit Budget</Text>
+            <Text style={[styles.secondaryButtonText, (completing || completionAttempted) && styles.textDisabled]}>{t('onboarding.advanced.success.editButton')}</Text>
           </TouchableOpacity>
         </Animated.View>
       </ScrollView>

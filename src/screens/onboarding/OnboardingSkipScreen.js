@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { CommonActions } from '@react-navigation/native';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES } from '../../constants/theme';
 import { useOnboarding } from '../../contexts/OnboardingContext';
+import { useTranslation } from 'react-i18next';
 
 export default function OnboardingSkipScreen({ navigation }) {
   const insets = useSafeAreaInsets();
