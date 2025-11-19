@@ -7,19 +7,23 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { BudgetProvider } from './src/contexts/BudgetContext';
 import { ChatProvider } from './src/contexts/ChatContext';
+import { LanguageProvider } from './src/contexts/LanguageContext';
 import AppNavigator from './src/navigation/AppNavigator';
+import './src/i18n/i18n.config'; // Initialize i18n
 
 export default function App() {
   try {
     return (
       <SafeAreaProvider>
-        <AuthProvider>
-          <BudgetProvider>
-            <ChatProvider>
-              <AppNavigator />
-            </ChatProvider>
-          </BudgetProvider>
-        </AuthProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <BudgetProvider>
+              <ChatProvider>
+                <AppNavigator />
+              </ChatProvider>
+            </BudgetProvider>
+          </AuthProvider>
+        </LanguageProvider>
       </SafeAreaProvider>
     );
   } catch (error) {

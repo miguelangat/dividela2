@@ -15,11 +15,14 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
+import LanguageSelectorButton from '../../components/LanguageSelectorButton';
 import { validateEmail, validatePassword } from '../../utils/validators';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES } from '../../constants/theme';
 
 export default function SignInScreen({ navigation }) {
   const { signIn, signInWithGoogle, signInWithApple } = useAuth();
+  const { t } = useTranslation();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -52,7 +55,7 @@ export default function SignInScreen({ navigation }) {
       // User will be redirected based on whether they have a partner
     } catch (error) {
       console.error('Sign in error:', error);
-      setErrors({ general: 'Invalid email or password. Please try again.' });
+      setErrors({ general: t('auth.signIn.invalidCredentials') });
     } finally {
       setLoading(false);
     }
@@ -81,7 +84,7 @@ export default function SignInScreen({ navigation }) {
     } catch (error) {
       console.error('🔴 Google sign-in error:', error);
       if (error.code !== 'auth/popup-closed-by-user') {
-        setErrors({ general: error.message || 'Failed to sign in with Google' });
+        setErrors({ general: error.message || t('auth.signIn.signInError') });
       }
     } finally {
       setSocialLoading(null);
@@ -97,7 +100,7 @@ export default function SignInScreen({ navigation }) {
     } catch (error) {
       console.error('Apple sign-in error:', error);
       if (error.code !== 'auth/popup-closed-by-user') {
-        setErrors({ general: error.message || 'Failed to sign in with Apple' });
+        setErrors({ general: error.message || t('auth.signIn.signInError') });
       }
     } finally {
       setSocialLoading(null);
@@ -114,6 +117,11 @@ export default function SignInScreen({ navigation }) {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
+        {/* Language Selector */}
+        <View style={styles.languageSelectorContainer}>
+          <LanguageSelectorButton variant="icon" />
+        </View>
+
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity
@@ -121,20 +129,20 @@ export default function SignInScreen({ navigation }) {
             style={styles.backButton}
             activeOpacity={0.6}
           >
-            <Text style={styles.backButtonText}>← Back</Text>
+            <Text style={styles.backButtonText}>← {t('navigation.back')}</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Sign In (OAuth Ready)</Text>
-          <Text style={styles.headerSubtitle}>Welcome back! Google & Apple login enabled.</Text>
+          <Text style={styles.headerTitle}>{t('auth.signIn.title')}</Text>
+          <Text style={styles.headerSubtitle}>{t('auth.signIn.subtitle')}</Text>
         </View>
 
         {/* Form */}
         <View style={styles.form}>
           {/* Email Input */}
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Email</Text>
+            <Text style={styles.label}>{t('auth.signIn.email')}</Text>
             <TextInput
               style={[styles.input, errors.email && styles.inputError]}
-              placeholder="your@email.com"
+              placeholder={t('auth.signIn.emailPlaceholder')}
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -147,10 +155,10 @@ export default function SignInScreen({ navigation }) {
 
           {/* Password Input */}
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Password</Text>
+            <Text style={styles.label}>{t('auth.signIn.password')}</Text>
             <TextInput
               style={[styles.input, errors.password && styles.inputError]}
-              placeholder="Enter your password"
+              placeholder={t('auth.signIn.passwordPlaceholder')}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -167,7 +175,7 @@ export default function SignInScreen({ navigation }) {
             onPress={handleForgotPassword}
             activeOpacity={0.6}
           >
-            <Text style={styles.forgotPasswordText}>Forgot password?</Text>
+            <Text style={styles.forgotPasswordText}>{t('auth.signIn.forgotPassword')}</Text>
           </TouchableOpacity>
 
           {/* General Error */}
@@ -187,14 +195,14 @@ export default function SignInScreen({ navigation }) {
             {loading ? (
               <ActivityIndicator color={COLORS.textWhite} />
             ) : (
-              <Text style={styles.submitButtonText}>Sign In</Text>
+              <Text style={styles.submitButtonText}>{t('auth.signIn.signInButton')}</Text>
             )}
           </TouchableOpacity>
 
           {/* Divider */}
           <View style={styles.dividerContainer}>
             <View style={styles.divider} />
-            <Text style={styles.dividerText}>or</Text>
+            <Text style={styles.dividerText}>{t('auth.signIn.orDivider')}</Text>
             <View style={styles.divider} />
           </View>
 
@@ -208,7 +216,7 @@ export default function SignInScreen({ navigation }) {
             {socialLoading === 'apple' ? (
               <ActivityIndicator color={COLORS.primary} />
             ) : (
-              <Text style={styles.socialButtonText}>Continue with Apple</Text>
+              <Text style={styles.socialButtonText}>{t('auth.signIn.continueWithApple')}</Text>
             )}
           </TouchableOpacity>
 
@@ -221,7 +229,7 @@ export default function SignInScreen({ navigation }) {
             {socialLoading === 'google' ? (
               <ActivityIndicator color={COLORS.primary} />
             ) : (
-              <Text style={styles.socialButtonText}>Continue with Google</Text>
+              <Text style={styles.socialButtonText}>{t('auth.signIn.continueWithGoogle')}</Text>
             )}
           </TouchableOpacity>
 
@@ -232,8 +240,8 @@ export default function SignInScreen({ navigation }) {
             activeOpacity={0.6}
           >
             <Text style={styles.signUpLinkText}>
-              Don't have an account?{' '}
-              <Text style={styles.signUpLinkBold}>Sign up</Text>
+              {t('auth.signIn.dontHaveAccount')}{' '}
+              <Text style={styles.signUpLinkBold}>{t('auth.signIn.signUp')}</Text>
             </Text>
           </TouchableOpacity>
         </View>
@@ -249,6 +257,10 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: SPACING.screenPadding,
+  },
+  languageSelectorContainer: {
+    alignSelf: 'flex-end',
+    marginTop: SPACING.large,
   },
   header: {
     marginTop: SPACING.large,
