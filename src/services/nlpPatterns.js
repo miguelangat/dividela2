@@ -6,6 +6,7 @@
  */
 export const INTENTS = {
   ADD_EXPENSE: 'add_expense',
+  EDIT_EXPENSE: 'edit_expense',
   QUERY_BUDGET: 'query_budget',
   QUERY_BALANCE: 'query_balance',
   QUERY_SPENDING: 'query_spending',
@@ -109,8 +110,26 @@ const LIST_EXPENSES_PATTERNS = [
  * Delete expense patterns
  */
 const DELETE_EXPENSE_PATTERNS = [
-  /(?:delete|remove)\s+(?:last|recent)\s+expense/i,
-  /(?:undo|cancel)\s+(?:that|last)\s+expense/i,
+  /(?:delete|remove)\s+(?:last|recent|the\s+last)\s+expense/i,
+  /(?:undo|cancel)\s+(?:that|last|the\s+last)\s+expense/i,
+  /(?:delete|remove)\s+expense\s+(?:number\s+)?(\d+)/i,
+];
+
+/**
+ * Edit expense patterns
+ */
+const EDIT_EXPENSE_PATTERNS = [
+  // "Edit last expense"
+  /(?:edit|change|update|modify)\s+(?:last|recent|the\s+last)\s+expense/i,
+
+  // "Edit expense to $60"
+  /(?:edit|change|update)\s+(?:last\s+)?expense\s+(?:amount\s+)?to\s+\$?(\d+(?:\.\d{1,2})?)/i,
+
+  // "Change last expense category to food"
+  /(?:change|update)\s+(?:last\s+)?expense\s+category\s+to\s+(.+)/i,
+
+  // "Update last expense description to dinner"
+  /(?:change|update)\s+(?:last\s+)?expense\s+description\s+to\s+(.+)/i,
 ];
 
 /**
@@ -335,12 +354,49 @@ export function parseCommand(text) {
     }
   }
 
+  // Check edit expense patterns
+  for (const pattern of EDIT_EXPENSE_PATTERNS) {
+    const match = normalizedText.match(pattern);
+    if (match) {
+      const entities = {};
+
+      // Check what's being edited
+      if (pattern.source.includes('amount')) {
+        entities.field = 'amount';
+        entities.newValue = match[1] ? parseFloat(match[1]) : null;
+      } else if (pattern.source.includes('category')) {
+        entities.field = 'category';
+        entities.newValue = match[1] ? match[1].trim() : null;
+      } else if (pattern.source.includes('description')) {
+        entities.field = 'description';
+        entities.newValue = match[1] ? match[1].trim() : null;
+      } else {
+        // General edit command, will ask user what to edit
+        entities.field = null;
+      }
+
+      return {
+        intent: INTENTS.EDIT_EXPENSE,
+        entities,
+        raw: text,
+      };
+    }
+  }
+
   // Check delete expense patterns
   for (const pattern of DELETE_EXPENSE_PATTERNS) {
-    if (pattern.test(normalizedText)) {
+    const match = normalizedText.match(pattern);
+    if (match) {
+      const entities = {};
+
+      // Check if specific expense number was mentioned
+      if (match[1]) {
+        entities.expenseNumber = parseInt(match[1], 10);
+      }
+
       return {
         intent: INTENTS.DELETE_EXPENSE,
-        entities: {},
+        entities,
         raw: text,
       };
     }

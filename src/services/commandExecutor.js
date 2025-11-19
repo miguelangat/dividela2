@@ -3,8 +3,14 @@
 
 import * as expenseService from './expenseService';
 import * as budgetService from './budgetService';
-import { findMatchingCategory, suggestCategoryFromDescription } from './fuzzyMatcher';
+import { findMatchingCategory, suggestCategoryFromDescription, findMultipleMatches } from './fuzzyMatcher';
 import { INTENTS } from './nlpPatterns';
+import {
+  createConfirmationContext,
+  createCategoryDisambiguationContext,
+  formatCategoryChoices,
+  CONFIRMATION_ACTIONS,
+} from './conversationManager';
 
 /**
  * Execute ADD_EXPENSE command
@@ -439,6 +445,13 @@ function executeHelp() {
     `• "Add $50 for groceries"\n` +
     `• "I spent 30 dollars on lunch"\n` +
     `• "Record $120 electricity bill"\n\n` +
+    `**Edit Expenses:**\n` +
+    `• "Edit last expense"\n` +
+    `• "Change amount to $60"\n` +
+    `• "Change category to food"\n\n` +
+    `**Delete Expenses:**\n` +
+    `• "Delete last expense"\n` +
+    `• "Remove last expense"\n\n` +
     `**Check Budget:**\n` +
     `• "Show my budget status"\n` +
     `• "How much left in food budget?"\n` +
@@ -492,6 +505,173 @@ function executeListExpenses(entities, context) {
 }
 
 /**
+ * Execute EDIT_EXPENSE command
+ */
+async function executeEditExpense(entities, context) {
+  const { field, newValue } = entities;
+  const { expenses, categories, userDetails } = context;
+
+  if (!expenses || expenses.length === 0) {
+    return {
+      success: false,
+      message: "No expenses to edit. Add an expense first!",
+    };
+  }
+
+  // Get the most recent expense
+  const lastExpense = expenses[0];
+
+  // If no specific field specified, ask what to edit
+  if (!field) {
+    return {
+      success: true,
+      message: `📝 **Edit Last Expense**\n\n` +
+        `Current: $${lastExpense.amount.toFixed(2)} - ${lastExpense.description}\n` +
+        `Category: ${lastExpense.category || lastExpense.categoryKey}\n\n` +
+        `What would you like to change?\n` +
+        `• "Change amount to $60"\n` +
+        `• "Change category to food"\n` +
+        `• "Change description to dinner"`,
+      data: {
+        needsField: true,
+        expense: lastExpense,
+      },
+    };
+  }
+
+  try {
+    const updates = {};
+
+    if (field === 'amount') {
+      if (!newValue || newValue <= 0) {
+        return {
+          success: false,
+          message: "Please specify a valid amount (e.g., 'Change amount to $60').",
+        };
+      }
+      updates.amount = newValue;
+
+      // Recalculate split
+      const user1Percentage = lastExpense.splitDetails?.user1Percentage || 50;
+      const user2Percentage = lastExpense.splitDetails?.user2Percentage || 50;
+      updates.splitDetails = {
+        user1Amount: (newValue * user1Percentage) / 100,
+        user2Amount: (newValue * user2Percentage) / 100,
+        user1Percentage,
+        user2Percentage,
+      };
+    } else if (field === 'category') {
+      const categoryMatch = findMatchingCategory(newValue, categories, 0.6);
+
+      if (!categoryMatch) {
+        return {
+          success: false,
+          message: `I couldn't find a category matching "${newValue}". Try: ${Object.values(categories).slice(0, 3).map(c => c.name).join(', ')}, etc.`,
+        };
+      }
+
+      updates.categoryKey = categoryMatch.key;
+      updates.category = categoryMatch.category.name;
+    } else if (field === 'description') {
+      if (!newValue) {
+        return {
+          success: false,
+          message: "Please specify a description (e.g., 'Change description to dinner').",
+        };
+      }
+      updates.description = newValue;
+    }
+
+    await expenseService.updateExpense(lastExpense.id, updates);
+
+    let message = `✅ Updated expense:\n\n`;
+
+    if (field === 'amount') {
+      message += `Amount: $${lastExpense.amount.toFixed(2)} → $${newValue.toFixed(2)}`;
+    } else if (field === 'category') {
+      message += `Category: ${lastExpense.category} → ${updates.category}`;
+    } else if (field === 'description') {
+      message += `Description: ${lastExpense.description} → ${newValue}`;
+    }
+
+    return {
+      success: true,
+      message,
+      data: {
+        expense: { ...lastExpense, ...updates },
+      },
+    };
+  } catch (error) {
+    console.error('Error editing expense:', error);
+    return {
+      success: false,
+      message: `❌ Failed to edit expense: ${error.message}`,
+      error,
+    };
+  }
+}
+
+/**
+ * Execute DELETE_EXPENSE command
+ */
+async function executeDeleteExpense(entities, context) {
+  const { expenseNumber } = entities;
+  const { expenses } = context;
+
+  if (!expenses || expenses.length === 0) {
+    return {
+      success: false,
+      message: "No expenses to delete.",
+    };
+  }
+
+  // Get the expense to delete
+  let expenseToDelete;
+
+  if (expenseNumber && expenseNumber > 0 && expenseNumber <= expenses.length) {
+    expenseToDelete = expenses[expenseNumber - 1];
+  } else {
+    // Default to last expense
+    expenseToDelete = expenses[0];
+  }
+
+  // Return a confirmation request
+  const confirmationContext = createConfirmationContext(
+    CONFIRMATION_ACTIONS.DELETE_EXPENSE,
+    { expenseId: expenseToDelete.id },
+    `Are you sure you want to delete this expense?\n\n$${expenseToDelete.amount.toFixed(2)} - ${expenseToDelete.description}\n\nReply "yes" to confirm or "no" to cancel.`
+  );
+
+  return {
+    success: true,
+    message: confirmationContext.message,
+    needsConfirmation: true,
+    confirmationContext,
+  };
+}
+
+/**
+ * Handle confirmed deletion
+ */
+async function handleConfirmedDeletion(expenseId) {
+  try {
+    await expenseService.deleteExpense(expenseId);
+
+    return {
+      success: true,
+      message: "✅ Expense deleted successfully.",
+    };
+  } catch (error) {
+    console.error('Error deleting expense:', error);
+    return {
+      success: false,
+      message: `❌ Failed to delete expense: ${error.message}`,
+      error,
+    };
+  }
+}
+
+/**
  * Main command executor
  * Routes intents to appropriate handlers
  */
@@ -519,16 +699,16 @@ export async function executeCommand(intent, entities, context) {
       case INTENTS.LIST_EXPENSES:
         return executeListExpenses(entities, context);
 
+      case INTENTS.EDIT_EXPENSE:
+        return await executeEditExpense(entities, context);
+
+      case INTENTS.DELETE_EXPENSE:
+        return await executeDeleteExpense(entities, context);
+
       case INTENTS.SETTLE:
         return {
           success: true,
           message: "💰 To settle up, please go to the Home tab and tap the settlement button. I can't create settlements yet, but I'm learning!",
-        };
-
-      case INTENTS.DELETE_EXPENSE:
-        return {
-          success: true,
-          message: "🗑️ To delete an expense, please go to the Home tab and tap on the expense to edit or delete it. I can't delete expenses yet, but I'm learning!",
         };
 
       case INTENTS.UNKNOWN:
@@ -548,6 +728,11 @@ export async function executeCommand(intent, entities, context) {
   }
 }
 
+export {
+  handleConfirmedDeletion,
+};
+
 export default {
   executeCommand,
+  handleConfirmedDeletion,
 };
