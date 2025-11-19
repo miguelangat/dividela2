@@ -17,6 +17,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../../contexts/AuthContext';
 import { validateEmail, validatePassword, validateDisplayName } from '../../utils/validators';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES } from '../../constants/theme';
+import { isValidReferralCode } from '../../services/referralService';
 
 export default function SignUpScreen({ navigation, route }) {
   const { signUp, signInWithGoogle, signInWithApple } = useAuth();
@@ -25,6 +26,7 @@ export default function SignUpScreen({ navigation, route }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [referralCode, setReferralCode] = useState(route.params?.referralCode || '');
+  const [referralCodeValid, setReferralCodeValid] = useState(null); // null | true | false
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState(null); // 'google' | 'apple' | null
@@ -68,6 +70,32 @@ export default function SignUpScreen({ navigation, route }) {
 
   const handleBackPress = () => {
     navigation.goBack();
+  };
+
+  const handleReferralCodeChange = (text) => {
+    const upperCode = text.toUpperCase();
+    setReferralCode(upperCode);
+
+    // Validate format in real-time
+    if (upperCode.length === 0) {
+      setReferralCodeValid(null);
+    } else if (upperCode.length === 6) {
+      const isValid = isValidReferralCode(upperCode);
+      setReferralCodeValid(isValid);
+      if (!isValid) {
+        setErrors(prev => ({
+          ...prev,
+          referralCode: 'Invalid code format (use A-Z, 2-9, no 0/1/O/I)'
+        }));
+      } else {
+        setErrors(prev => {
+          const { referralCode, ...rest } = prev;
+          return rest;
+        });
+      }
+    } else {
+      setReferralCodeValid(null);
+    }
   };
 
   const handleGoogleSignIn = async () => {
@@ -176,17 +204,24 @@ export default function SignUpScreen({ navigation, route }) {
           <View style={styles.formGroup}>
             <Text style={styles.label}>Referral Code (Optional)</Text>
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                errors.referralCode && styles.inputError,
+                referralCodeValid === true && styles.inputValid,
+              ]}
               placeholder="Enter code from a friend"
               value={referralCode}
-              onChangeText={(text) => setReferralCode(text.toUpperCase())}
+              onChangeText={handleReferralCodeChange}
               autoCapitalize="characters"
               autoCorrect={false}
               maxLength={6}
             />
-            {referralCode && (
+            {errors.referralCode && (
+              <Text style={styles.errorText}>{errors.referralCode}</Text>
+            )}
+            {referralCodeValid === true && (
               <Text style={styles.helperText}>
-                Great! You and your friend will both get rewards
+                ✓ Valid code! You and your friend will both get rewards
               </Text>
             )}
           </View>
@@ -307,6 +342,9 @@ const styles = StyleSheet.create({
   },
   inputError: {
     borderColor: COLORS.error,
+  },
+  inputValid: {
+    borderColor: COLORS.success,
   },
   errorText: {
     fontSize: FONTS.sizes.small,

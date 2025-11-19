@@ -1,5 +1,6 @@
 // src/services/referralService.js
 // Service for managing referral program logic
+// VERSION 2.0 - Enhanced with error handling, troubleshooting, and edge case protection
 
 import {
   doc,
@@ -12,112 +13,211 @@ import {
   getDocs,
   serverTimestamp,
   writeBatch,
+  Timestamp,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+
+const REFERRAL_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // No ambiguous chars
+const REFERRAL_CODE_LENGTH = 6;
+const ATTRIBUTION_WINDOW_HOURS = 24;
+const MAX_COLLISION_RETRIES = 5;
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
 /**
- * Generate a unique 6-character referral code
- * @param {string} userId - User ID to ensure uniqueness
- * @returns {string} Unique referral code
+ * Safe timestamp conversion with fallbacks
+ * @param {*} timestamp - Firestore timestamp or Date
+ * @returns {Date} JavaScript Date object
  */
-export const generateReferralCode = (userId) => {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removed ambiguous chars (0,O,1,I)
+const toDate = (timestamp) => {
+  if (!timestamp) return null;
+  if (timestamp instanceof Date) return timestamp;
+  if (timestamp.toDate && typeof timestamp.toDate === 'function') {
+    return timestamp.toDate();
+  }
+  if (timestamp.seconds) {
+    return new Date(timestamp.seconds * 1000);
+  }
+  try {
+    return new Date(timestamp);
+  } catch (error) {
+    console.error('Failed to convert timestamp:', timestamp, error);
+    return null;
+  }
+};
+
+/**
+ * Check if a referral code already exists
+ * @param {string} code - Referral code to check
+ * @returns {Promise<boolean>} True if code exists
+ */
+const codeExists = async (code) => {
+  try {
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, where('referralCode', '==', code));
+    const snapshot = await getDocs(q);
+    return !snapshot.empty;
+  } catch (error) {
+    console.error('Error checking code existence:', error);
+    return false; // Assume doesn't exist on error
+  }
+};
+
+// ============================================================================
+// CORE FUNCTIONS
+// ============================================================================
+
+/**
+ * Generate a unique 6-character referral code with collision detection
+ * @param {string} userId - User ID to ensure uniqueness
+ * @param {number} attempt - Current attempt number (for recursion)
+ * @returns {Promise<string>} Unique referral code
+ */
+export const generateReferralCode = async (userId, attempt = 0) => {
+  if (attempt >= MAX_COLLISION_RETRIES) {
+    // Fallback to timestamp-based code if too many collisions
+    console.warn('⚠️ Max collision retries reached, using timestamp fallback');
+    const timestamp = Date.now().toString(36).toUpperCase().slice(-6);
+    return timestamp.padEnd(REFERRAL_CODE_LENGTH, REFERRAL_CODE_CHARS[0]);
+  }
+
   let code = '';
 
-  // Use first 2 chars from user ID hash + 4 random chars for uniqueness
-  const hash = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const hashStr = hash.toString(36).toUpperCase();
+  if (attempt === 0) {
+    // First attempt: use user ID hash for consistency
+    const hash = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const hashStr = hash.toString(36).toUpperCase();
 
-  code += chars[hashStr.charCodeAt(0) % chars.length];
-  code += chars[hashStr.charCodeAt(1) % chars.length];
+    code += REFERRAL_CODE_CHARS[hashStr.charCodeAt(0) % REFERRAL_CODE_CHARS.length];
+    code += REFERRAL_CODE_CHARS[hashStr.charCodeAt(1) % REFERRAL_CODE_CHARS.length];
+  } else {
+    // Subsequent attempts: fully random
+    for (let i = 0; i < 2; i++) {
+      code += REFERRAL_CODE_CHARS[Math.floor(Math.random() * REFERRAL_CODE_CHARS.length)];
+    }
+  }
 
   // Add 4 random characters
   for (let i = 0; i < 4; i++) {
-    code += chars[Math.floor(Math.random() * chars.length)];
+    code += REFERRAL_CODE_CHARS[Math.floor(Math.random() * REFERRAL_CODE_CHARS.length)];
   }
 
+  // Check for collision
+  const exists = await codeExists(code);
+  if (exists) {
+    console.log(`⚠️ Collision detected for code ${code}, retrying... (attempt ${attempt + 1})`);
+    return generateReferralCode(userId, attempt + 1);
+  }
+
+  console.log(`✓ Generated unique referral code: ${code} (attempt ${attempt + 1})`);
   return code;
 };
 
 /**
  * Initialize referral data for a new user
  * Creates referral code and sets up premium tracking
+ * RESILIENT: Returns partial data on failure to not block signup
  * @param {string} userId - User ID
  * @param {string} referredByCode - Optional referral code that referred this user
- * @returns {object} Referral initialization data
+ * @returns {Promise<object>} Referral initialization data
  */
 export const initializeUserReferral = async (userId, referredByCode = null) => {
+  const defaultData = {
+    referralCode: null,
+    referredBy: null,
+    referredByUserId: null,
+    premiumStatus: 'free',
+    premiumSource: null,
+    premiumUnlockedAt: null,
+    premiumExpiresAt: null,
+    referralCount: 0,
+    referralsPending: [],
+    referralsCompleted: [],
+  };
+
   try {
-    console.log('🎁 Initializing referral for user:', userId);
+    console.log('🎁 [initializeUserReferral] Starting for user:', userId);
 
-    // Generate unique referral code for this user
-    const referralCode = generateReferralCode(userId);
-    console.log('Generated referral code:', referralCode);
+    // Generate unique referral code with collision detection
+    let referralCode;
+    try {
+      referralCode = await generateReferralCode(userId);
+      console.log('✓ [initializeUserReferral] Generated code:', referralCode);
+    } catch (error) {
+      console.error('❌ [initializeUserReferral] Failed to generate code:', error);
+      // Fallback: create simple timestamp-based code
+      referralCode = Date.now().toString(36).toUpperCase().slice(-6);
+      console.log('⚠️ [initializeUserReferral] Using fallback code:', referralCode);
+    }
 
-    // Determine who referred this user (if anyone)
-    let referredBy = null;
-    let referredByUserId = null;
+    defaultData.referralCode = referralCode;
 
-    if (referredByCode) {
-      console.log('User signed up with referral code:', referredByCode);
+    // Handle referral code if provided
+    if (referredByCode && isValidReferralCode(referredByCode)) {
+      console.log('🔍 [initializeUserReferral] Processing referral code:', referredByCode);
 
-      // Look up the referrer's user ID from their referral code
-      const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('referralCode', '==', referredByCode));
-      const querySnapshot = await getDocs(q);
+      try {
+        // Look up the referrer
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('referralCode', '==', referredByCode));
+        const querySnapshot = await getDocs(q);
 
-      if (!querySnapshot.empty) {
-        referredByUserId = querySnapshot.docs[0].id;
-        referredBy = referredByCode;
-        console.log('Found referrer:', referredByUserId);
+        if (!querySnapshot.empty) {
+          const referrerUserId = querySnapshot.docs[0].id;
 
-        // Create pending referral document
-        const referralId = `${referredByUserId}_${userId}_${Date.now()}`;
-        const now = new Date();
-        const expiresAt = new Date(now.getTime() + (24 * 60 * 60 * 1000)); // 1 day from now
+          // Prevent self-referral
+          if (referrerUserId === userId) {
+            console.warn('⚠️ [initializeUserReferral] Self-referral blocked');
+          } else {
+            defaultData.referredBy = referredByCode;
+            defaultData.referredByUserId = referrerUserId;
+            console.log('✓ [initializeUserReferral] Found referrer:', referrerUserId);
 
-        await setDoc(doc(db, 'referrals', referralId), {
-          referrerUserId: referredByUserId,
-          referredUserId: userId,
-          referredCoupleId: null,
-          status: 'pending',
-          createdAt: serverTimestamp(),
-          expiresAt: expiresAt,
-          completedAt: null,
-        });
+            // Create pending referral document
+            try {
+              const referralId = `${referrerUserId}_${userId}_${Date.now()}`;
+              const expiresAt = new Date(Date.now() + (ATTRIBUTION_WINDOW_HOURS * 60 * 60 * 1000));
 
-        console.log('✓ Created pending referral document:', referralId);
-      } else {
-        console.warn('⚠️ Referral code not found:', referredByCode);
+              await setDoc(doc(db, 'referrals', referralId), {
+                referrerUserId,
+                referredUserId: userId,
+                referredCoupleId: null,
+                status: 'pending',
+                createdAt: serverTimestamp(),
+                expiresAt: expiresAt,
+                completedAt: null,
+              });
+
+              console.log('✓ [initializeUserReferral] Created pending referral:', referralId);
+            } catch (error) {
+              console.error('❌ [initializeUserReferral] Failed to create pending referral:', error);
+              // Don't fail the whole initialization if this fails
+            }
+          }
+        } else {
+          console.warn('⚠️ [initializeUserReferral] Referral code not found:', referredByCode);
+        }
+      } catch (error) {
+        console.error('❌ [initializeUserReferral] Error processing referral code:', error);
+        // Continue with partial data
       }
     }
 
-    return {
-      referralCode,
-      referredBy,
-      referredByUserId,
-      premiumStatus: 'free',
-      premiumSource: null,
-      premiumUnlockedAt: null,
-      premiumExpiresAt: null,
-      referralCount: 0,
-      referralsPending: [],
-      referralsCompleted: [],
-    };
+    console.log('✓ [initializeUserReferral] Complete:', defaultData);
+    return defaultData;
+
   } catch (error) {
-    console.error('Error initializing user referral:', error);
-    // Return minimal data on error
+    console.error('❌ [initializeUserReferral] Critical error:', error);
+    // Return minimal safe data to not block signup
     return {
-      referralCode: generateReferralCode(userId),
-      referredBy: null,
-      referredByUserId: null,
-      premiumStatus: 'free',
-      premiumSource: null,
-      premiumUnlockedAt: null,
-      premiumExpiresAt: null,
-      referralCount: 0,
-      referralsPending: [],
-      referralsCompleted: [],
+      ...defaultData,
+      referralCode: Date.now().toString(36).toUpperCase().slice(-6), // Emergency fallback
     };
   }
 };
@@ -125,36 +225,31 @@ export const initializeUserReferral = async (userId, referredByCode = null) => {
 /**
  * Check and complete referral when a couple is created
  * Awards premium to referrer if successful
+ * RESILIENT: Does not throw errors that would block couple creation
  * @param {string} coupleId - The couple ID that was just created
  * @param {string} user1Id - First user in the couple
  * @param {string} user2Id - Second user in the couple
- * @returns {object} Result with success status and rewards granted
+ * @returns {Promise<object>} Result with success status and rewards granted
  */
 export const checkAndCompleteReferral = async (coupleId, user1Id, user2Id) => {
   try {
-    console.log('🔍 Checking for referral completion...');
-    console.log('Couple:', coupleId, 'Users:', user1Id, user2Id);
+    console.log('🔍 [checkAndCompleteReferral] Starting...');
+    console.log('   Couple:', coupleId);
+    console.log('   User1:', user1Id);
+    console.log('   User2:', user2Id);
 
-    // Check if either user was referred and has a pending referral
+    // Validate inputs
+    if (!coupleId || !user1Id || !user2Id) {
+      console.error('❌ [checkAndCompleteReferral] Invalid inputs');
+      return { success: false, reason: 'invalid_inputs' };
+    }
+
+    // Check for pending referrals
     const referralsRef = collection(db, 'referrals');
 
-    // Check for user1
-    const q1 = query(
-      referralsRef,
-      where('referredUserId', '==', user1Id),
-      where('status', '==', 'pending')
-    );
-
-    // Check for user2
-    const q2 = query(
-      referralsRef,
-      where('referredUserId', '==', user2Id),
-      where('status', '==', 'pending')
-    );
-
     const [snapshot1, snapshot2] = await Promise.all([
-      getDocs(q1),
-      getDocs(q2),
+      getDocs(query(referralsRef, where('referredUserId', '==', user1Id), where('status', '==', 'pending'))),
+      getDocs(query(referralsRef, where('referredUserId', '==', user2Id), where('status', '==', 'pending'))),
     ]);
 
     const pendingReferrals = [
@@ -163,226 +258,216 @@ export const checkAndCompleteReferral = async (coupleId, user1Id, user2Id) => {
     ];
 
     if (pendingReferrals.length === 0) {
-      console.log('ℹ️  No pending referrals found');
+      console.log('ℹ️  [checkAndCompleteReferral] No pending referrals');
       return { success: false, reason: 'no_pending_referrals' };
     }
 
-    console.log(`Found ${pendingReferrals.length} pending referral(s)`);
+    console.log(`✓ [checkAndCompleteReferral] Found ${pendingReferrals.length} pending referral(s)`);
 
     // Process each pending referral
     const results = [];
+    const now = new Date();
 
     for (const referral of pendingReferrals) {
-      // Check if expired (1 day window)
-      const now = new Date();
-      const expiresAt = referral.expiresAt.toDate();
+      try {
+        // Check expiration
+        const expiresAt = toDate(referral.expiresAt);
+        if (!expiresAt || now > expiresAt) {
+          console.log('⏰ [checkAndCompleteReferral] Referral expired:', referral.id);
 
-      if (now > expiresAt) {
-        console.log('⏰ Referral expired:', referral.id);
-        // Mark as expired
-        await updateDoc(doc(db, 'referrals', referral.id), {
-          status: 'expired',
+          try {
+            await updateDoc(doc(db, 'referrals', referral.id), { status: 'expired' });
+          } catch (error) {
+            console.error('❌ Failed to mark referral as expired:', error);
+          }
+
+          results.push({ success: false, reason: 'expired', referralId: referral.id });
+          continue;
+        }
+
+        console.log('✅ [checkAndCompleteReferral] Processing valid referral:', referral.id);
+
+        // Use batch for atomic updates
+        const batch = writeBatch(db);
+
+        // Update referral status
+        batch.update(doc(db, 'referrals', referral.id), {
+          status: 'completed',
+          completedAt: serverTimestamp(),
+          referredCoupleId: coupleId,
         });
-        results.push({ success: false, reason: 'expired', referralId: referral.id });
-        continue;
-      }
 
-      // Referral is valid! Complete it
-      console.log('✅ Completing referral:', referral.id);
+        // Update referrer
+        const referrerRef = doc(db, 'users', referral.referrerUserId);
+        const referrerDoc = await getDoc(referrerRef);
 
-      const batch = writeBatch(db);
+        if (referrerDoc.exists()) {
+          const referrerData = referrerDoc.data();
+          const currentCount = referrerData.referralCount || 0;
+          const newCount = currentCount + 1;
 
-      // Update referral status
-      batch.update(doc(db, 'referrals', referral.id), {
-        status: 'completed',
-        completedAt: serverTimestamp(),
-        referredCoupleId: coupleId,
-      });
+          const referrerUpdates = {
+            referralCount: newCount,
+            referralsCompleted: [...(referrerData.referralsCompleted || []), coupleId],
+          };
 
-      // Update referrer's stats
-      const referrerRef = doc(db, 'users', referral.referrerUserId);
-      const referrerDoc = await getDoc(referrerRef);
+          // Award premium on first successful referral
+          if (newCount === 1 && referrerData.premiumStatus !== 'premium') {
+            console.log('🎉 [checkAndCompleteReferral] Awarding Premium to referrer!');
+            referrerUpdates.premiumStatus = 'premium';
+            referrerUpdates.premiumSource = 'referral';
+            referrerUpdates.premiumUnlockedAt = serverTimestamp();
+            referrerUpdates.premiumExpiresAt = null; // Forever
+          }
 
-      if (referrerDoc.exists()) {
-        const referrerData = referrerDoc.data();
-        const currentCount = referrerData.referralCount || 0;
-        const newCount = currentCount + 1;
-
-        const updates = {
-          referralCount: newCount,
-          referralsCompleted: [...(referrerData.referralsCompleted || []), coupleId],
-        };
-
-        // Award premium if this is their first successful referral
-        if (newCount === 1 && referrerData.premiumStatus !== 'premium') {
-          console.log('🎉 Awarding premium to referrer! First successful referral!');
-          updates.premiumStatus = 'premium';
-          updates.premiumSource = 'referral';
-          updates.premiumUnlockedAt = serverTimestamp();
-          updates.premiumExpiresAt = null; // Premium forever
+          batch.update(referrerRef, referrerUpdates);
+        } else {
+          console.warn('⚠️ [checkAndCompleteReferral] Referrer document not found');
         }
 
-        batch.update(referrerRef, updates);
-      }
+        // Update referred user
+        const referredRef = doc(db, 'users', referral.referredUserId);
+        const referredDoc = await getDoc(referredRef);
 
-      // Update referred user's status
-      const referredRef = doc(db, 'users', referral.referredUserId);
-      const referredDoc = await getDoc(referredRef);
+        if (referredDoc.exists()) {
+          const referredData = referredDoc.data();
 
-      if (referredDoc.exists()) {
-        const referredData = referredDoc.data();
+          // Grant 1-month Premium if not already premium
+          if (referredData.premiumStatus !== 'premium') {
+            console.log('🎁 [checkAndCompleteReferral] Granting 1-month Premium to referred user');
 
-        // Grant 1 month free premium to referred user (double-sided reward)
-        if (referredData.premiumStatus !== 'premium') {
-          console.log('🎁 Granting 1-month premium to referred user');
+            const oneMonthFromNow = new Date();
+            oneMonthFromNow.setMonth(oneMonthFromNow.getMonth() + 1);
 
-          const oneMonthFromNow = new Date();
-          oneMonthFromNow.setMonth(oneMonthFromNow.getMonth() + 1);
-
-          batch.update(referredRef, {
-            premiumStatus: 'premium',
-            premiumSource: 'referral_bonus',
-            premiumUnlockedAt: serverTimestamp(),
-            premiumExpiresAt: oneMonthFromNow,
-            referralCompletedAt: serverTimestamp(),
-          });
+            batch.update(referredRef, {
+              premiumStatus: 'premium',
+              premiumSource: 'referral_bonus',
+              premiumUnlockedAt: serverTimestamp(),
+              premiumExpiresAt: oneMonthFromNow,
+              referralCompletedAt: serverTimestamp(),
+            });
+          }
+        } else {
+          console.warn('⚠️ [checkAndCompleteReferral] Referred user document not found');
         }
+
+        // Commit batch
+        await batch.commit();
+        console.log('✓ [checkAndCompleteReferral] Batch committed successfully');
+
+        results.push({
+          success: true,
+          referralId: referral.id,
+          referrerId: referral.referrerUserId,
+          referredId: referral.referredUserId,
+        });
+
+      } catch (error) {
+        console.error('❌ [checkAndCompleteReferral] Error processing referral:', referral.id, error);
+        results.push({
+          success: false,
+          reason: 'processing_error',
+          referralId: referral.id,
+          error: error.message,
+        });
       }
-
-      // Commit all updates
-      await batch.commit();
-      console.log('✓ Referral completion batch committed');
-
-      results.push({
-        success: true,
-        referralId: referral.id,
-        referrerId: referral.referrerUserId,
-        referredId: referral.referredUserId,
-      });
     }
 
+    const successCount = results.filter(r => r.success).length;
+    console.log(`✓ [checkAndCompleteReferral] Completed ${successCount}/${results.length} referrals`);
+
     return {
-      success: true,
+      success: successCount > 0,
       results,
-      count: results.filter(r => r.success).length,
+      count: successCount,
     };
+
   } catch (error) {
-    console.error('❌ Error completing referral:', error);
+    console.error('❌ [checkAndCompleteReferral] Critical error:', error);
     return { success: false, error: error.message };
   }
 };
 
 /**
  * Get referral statistics for a user
+ * RESILIENT: Returns null on error instead of throwing
  * @param {string} userId - User ID
- * @returns {object} Referral stats
+ * @returns {Promise<object|null>} Referral stats or null on error
  */
 export const getReferralStats = async (userId) => {
   try {
+    console.log('📊 [getReferralStats] Fetching for user:', userId);
+
     const userDoc = await getDoc(doc(db, 'users', userId));
 
     if (!userDoc.exists()) {
+      console.error('❌ [getReferralStats] User not found');
       return null;
     }
 
     const userData = userDoc.data();
 
-    // Get pending referrals
+    // Get pending and completed referrals
     const referralsRef = collection(db, 'referrals');
-    const pendingQuery = query(
-      referralsRef,
-      where('referrerUserId', '==', userId),
-      where('status', '==', 'pending')
-    );
-    const completedQuery = query(
-      referralsRef,
-      where('referrerUserId', '==', userId),
-      where('status', '==', 'completed')
-    );
 
     const [pendingSnapshot, completedSnapshot] = await Promise.all([
-      getDocs(pendingQuery),
-      getDocs(completedQuery),
+      getDocs(query(referralsRef, where('referrerUserId', '==', userId), where('status', '==', 'pending'))),
+      getDocs(query(referralsRef, where('referrerUserId', '==', userId), where('status', '==', 'completed'))),
     ]);
 
-    const pendingReferrals = pendingSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    const pendingReferrals = pendingSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const completedReferrals = completedSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-    const completedReferrals = completedSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    console.log('✓ [getReferralStats] Fetched successfully');
 
     return {
-      referralCode: userData.referralCode,
+      referralCode: userData.referralCode || null,
       referralCount: userData.referralCount || 0,
       premiumStatus: userData.premiumStatus || 'free',
-      premiumSource: userData.premiumSource,
-      premiumUnlockedAt: userData.premiumUnlockedAt,
-      premiumExpiresAt: userData.premiumExpiresAt,
+      premiumSource: userData.premiumSource || null,
+      premiumUnlockedAt: userData.premiumUnlockedAt || null,
+      premiumExpiresAt: userData.premiumExpiresAt || null,
       pendingReferrals,
       completedReferrals,
-      referralLink: `https://dividela.co/r/${userData.referralCode}`,
+      referralLink: userData.referralCode ? `https://dividela.co/r/${userData.referralCode}` : null,
     };
+
   } catch (error) {
-    console.error('Error getting referral stats:', error);
+    console.error('❌ [getReferralStats] Error:', error);
     return null;
   }
 };
 
 /**
- * Award premium to a user
- * @param {string} userId - User ID
- * @param {string} source - Source of premium ('referral', 'subscription', 'referral_bonus')
- * @param {Date} expiresAt - Optional expiration date (null for forever)
- * @returns {boolean} Success status
+ * Check if user has active premium
+ * SAFE: Handles all edge cases with fallbacks
+ * @param {object} userDetails - User details from Firestore
+ * @returns {boolean} Whether user has active premium
  */
-export const awardPremium = async (userId, source, expiresAt = null) => {
+export const hasActivePremium = (userDetails) => {
   try {
-    console.log(`🎁 Awarding premium to user ${userId} from source: ${source}`);
+    if (!userDetails) return false;
+    if (userDetails.premiumStatus !== 'premium') return false;
+    if (!userDetails.premiumExpiresAt) return true; // No expiration = forever
 
-    await updateDoc(doc(db, 'users', userId), {
-      premiumStatus: 'premium',
-      premiumSource: source,
-      premiumUnlockedAt: serverTimestamp(),
-      premiumExpiresAt: expiresAt,
-    });
+    const now = new Date();
+    const expiresAt = toDate(userDetails.premiumExpiresAt);
 
-    console.log('✓ Premium awarded successfully');
-    return true;
+    if (!expiresAt) {
+      console.warn('⚠️ [hasActivePremium] Invalid expiration date, assuming active');
+      return true; // Benefit of the doubt
+    }
+
+    return now < expiresAt;
+
   } catch (error) {
-    console.error('Error awarding premium:', error);
+    console.error('❌ [hasActivePremium] Error:', error);
     return false;
   }
 };
 
 /**
- * Check if user has active premium
- * @param {object} userDetails - User details from Firestore
- * @returns {boolean} Whether user has active premium
- */
-export const hasActivePremium = (userDetails) => {
-  if (!userDetails) return false;
-
-  if (userDetails.premiumStatus !== 'premium') return false;
-
-  // If no expiration, premium is forever
-  if (!userDetails.premiumExpiresAt) return true;
-
-  // Check if expired
-  const now = new Date();
-  const expiresAt = userDetails.premiumExpiresAt.toDate
-    ? userDetails.premiumExpiresAt.toDate()
-    : new Date(userDetails.premiumExpiresAt);
-
-  return now < expiresAt;
-};
-
-/**
  * Get premium feature gates
- * Returns list of features and whether user has access
  * @param {object} userDetails - User details from Firestore
  * @returns {object} Feature access map
  */
@@ -405,9 +490,44 @@ export const getPremiumFeatures = (userDetails) => {
 };
 
 /**
- * Clean up expired referrals
- * Should be called periodically (e.g., daily via Cloud Function)
- * @returns {number} Number of referrals expired
+ * Validate referral code format
+ * @param {string} code - Referral code to validate
+ * @returns {boolean} Whether code format is valid
+ */
+export const isValidReferralCode = (code) => {
+  if (!code || typeof code !== 'string') return false;
+  return /^[A-HJ-NP-Z2-9]{6}$/.test(code);
+};
+
+/**
+ * Award premium to a user (admin function)
+ * @param {string} userId - User ID
+ * @param {string} source - Source of premium
+ * @param {Date} expiresAt - Optional expiration date
+ * @returns {Promise<boolean>} Success status
+ */
+export const awardPremium = async (userId, source, expiresAt = null) => {
+  try {
+    console.log(`🎁 [awardPremium] Awarding to ${userId} from ${source}`);
+
+    await updateDoc(doc(db, 'users', userId), {
+      premiumStatus: 'premium',
+      premiumSource: source,
+      premiumUnlockedAt: serverTimestamp(),
+      premiumExpiresAt: expiresAt,
+    });
+
+    console.log('✓ [awardPremium] Success');
+    return true;
+  } catch (error) {
+    console.error('❌ [awardPremium] Error:', error);
+    return false;
+  }
+};
+
+/**
+ * Clean up expired referrals (maintenance function)
+ * @returns {Promise<number>} Number of referrals expired
  */
 export const cleanupExpiredReferrals = async () => {
   try {
@@ -421,6 +541,11 @@ export const cleanupExpiredReferrals = async () => {
 
     const snapshot = await getDocs(expiredQuery);
 
+    if (snapshot.empty) {
+      console.log('ℹ️  [cleanupExpiredReferrals] No expired referrals found');
+      return 0;
+    }
+
     const batch = writeBatch(db);
     snapshot.docs.forEach(doc => {
       batch.update(doc.ref, { status: 'expired' });
@@ -428,20 +553,183 @@ export const cleanupExpiredReferrals = async () => {
 
     await batch.commit();
 
-    console.log(`Expired ${snapshot.docs.length} referrals`);
+    console.log(`✓ [cleanupExpiredReferrals] Expired ${snapshot.docs.length} referrals`);
     return snapshot.docs.length;
   } catch (error) {
-    console.error('Error cleaning up expired referrals:', error);
+    console.error('❌ [cleanupExpiredReferrals] Error:', error);
     return 0;
   }
 };
 
+// ============================================================================
+// TROUBLESHOOTING & DEBUGGING UTILITIES
+// ============================================================================
+
 /**
- * Validate referral code format
- * @param {string} code - Referral code to validate
- * @returns {boolean} Whether code format is valid
+ * Debug: Get detailed referral information for troubleshooting
+ * @param {string} userId - User ID to debug
+ * @returns {Promise<object>} Comprehensive debug info
  */
-export const isValidReferralCode = (code) => {
-  if (!code || typeof code !== 'string') return false;
-  return /^[A-HJ-NP-Z2-9]{6}$/.test(code);
+export const debugReferralInfo = async (userId) => {
+  try {
+    console.log('🔧 [debugReferralInfo] Debugging user:', userId);
+
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (!userDoc.exists()) {
+      return { error: 'User not found' };
+    }
+
+    const userData = userDoc.data();
+    const referralsRef = collection(db, 'referrals');
+
+    // Get all referrals where user is referrer
+    const asReferrerQuery = query(referralsRef, where('referrerUserId', '==', userId));
+    const asReferrerSnapshot = await getDocs(asReferrerQuery);
+
+    // Get all referrals where user was referred
+    const asReferredQuery = query(referralsRef, where('referredUserId', '==', userId));
+    const asReferredSnapshot = await getDocs(asReferredQuery);
+
+    return {
+      userId,
+      userProfile: {
+        referralCode: userData.referralCode,
+        referredBy: userData.referredBy,
+        referredByUserId: userData.referredByUserId,
+        premiumStatus: userData.premiumStatus,
+        premiumSource: userData.premiumSource,
+        premiumUnlockedAt: userData.premiumUnlockedAt,
+        premiumExpiresAt: userData.premiumExpiresAt,
+        referralCount: userData.referralCount,
+      },
+      asReferrer: {
+        total: asReferrerSnapshot.size,
+        pending: asReferrerSnapshot.docs.filter(d => d.data().status === 'pending').length,
+        completed: asReferrerSnapshot.docs.filter(d => d.data().status === 'completed').length,
+        expired: asReferrerSnapshot.docs.filter(d => d.data().status === 'expired').length,
+        referrals: asReferrerSnapshot.docs.map(d => ({ id: d.id, ...d.data() })),
+      },
+      asReferred: {
+        total: asReferredSnapshot.size,
+        referrals: asReferredSnapshot.docs.map(d => ({ id: d.id, ...d.data() })),
+      },
+      premiumActive: hasActivePremium(userData),
+      timestamp: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error('❌ [debugReferralInfo] Error:', error);
+    return { error: error.message };
+  }
+};
+
+/**
+ * Debug: Verify data consistency for a user
+ * @param {string} userId - User ID to verify
+ * @returns {Promise<object>} Consistency check results
+ */
+export const verifyReferralConsistency = async (userId) => {
+  try {
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (!userDoc.exists()) {
+      return { valid: false, error: 'User not found' };
+    }
+
+    const userData = userDoc.data();
+    const referralsRef = collection(db, 'referrals');
+
+    // Count completed referrals
+    const completedQuery = query(
+      referralsRef,
+      where('referrerUserId', '==', userId),
+      where('status', '==', 'completed')
+    );
+    const completedSnapshot = await getDocs(completedQuery);
+    const actualCompletedCount = completedSnapshot.size;
+    const storedCount = userData.referralCount || 0;
+
+    const issues = [];
+
+    // Check count consistency
+    if (actualCompletedCount !== storedCount) {
+      issues.push({
+        type: 'count_mismatch',
+        message: `Stored count (${storedCount}) doesn't match actual (${actualCompletedCount})`,
+        storedCount,
+        actualCount: actualCompletedCount,
+      });
+    }
+
+    // Check premium eligibility
+    if (actualCompletedCount >= 1 && userData.premiumStatus !== 'premium') {
+      issues.push({
+        type: 'missing_premium',
+        message: 'User has completed referrals but no premium status',
+        completedCount: actualCompletedCount,
+      });
+    }
+
+    // Check for duplicate referral codes
+    if (userData.referralCode) {
+      const usersRef = collection(db, 'users');
+      const duplicateQuery = query(usersRef, where('referralCode', '==', userData.referralCode));
+      const duplicateSnapshot = await getDocs(duplicateQuery);
+
+      if (duplicateSnapshot.size > 1) {
+        issues.push({
+          type: 'duplicate_code',
+          message: 'Referral code is not unique',
+          code: userData.referralCode,
+          duplicateCount: duplicateSnapshot.size,
+        });
+      }
+    }
+
+    return {
+      valid: issues.length === 0,
+      userId,
+      issues,
+      storedReferralCount: storedCount,
+      actualCompletedReferrals: actualCompletedCount,
+      hasReferralCode: !!userData.referralCode,
+      premiumStatus: userData.premiumStatus,
+      timestamp: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error('❌ [verifyReferralConsistency] Error:', error);
+    return { valid: false, error: error.message };
+  }
+};
+
+/**
+ * Debug: Fix referral count discrepancy
+ * @param {string} userId - User ID to fix
+ * @returns {Promise<object>} Fix result
+ */
+export const fixReferralCount = async (userId) => {
+  try {
+    const verification = await verifyReferralConsistency(userId);
+
+    if (verification.valid) {
+      return { fixed: false, message: 'No issues found' };
+    }
+
+    const countIssue = verification.issues.find(i => i.type === 'count_mismatch');
+    if (countIssue) {
+      await updateDoc(doc(db, 'users', userId), {
+        referralCount: countIssue.actualCount,
+      });
+
+      return {
+        fixed: true,
+        message: `Updated count from ${countIssue.storedCount} to ${countIssue.actualCount}`,
+        oldCount: countIssue.storedCount,
+        newCount: countIssue.actualCount,
+      };
+    }
+
+    return { fixed: false, message: 'No count issue to fix' };
+  } catch (error) {
+    console.error('❌ [fixReferralCount] Error:', error);
+    return { fixed: false, error: error.message };
+  }
 };
