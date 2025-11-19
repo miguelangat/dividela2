@@ -155,6 +155,90 @@ export function validateAmount(amount, fieldName = 'amount') {
 }
 
 /**
+ * Validate Firestore field name
+ *
+ * Firestore field name restrictions:
+ * - Cannot contain '.' (dot)
+ * - Cannot start with '__' (double underscore)
+ * - Cannot be exactly '__name__'
+ * - Cannot be empty
+ * - Must be <= 1500 bytes when UTF-8 encoded
+ *
+ * @param {string} fieldName - Field name to validate
+ * @returns {Object} Validation result with isValid and error message
+ */
+export function validateFirestoreFieldName(fieldName) {
+  const errors = [];
+
+  if (!fieldName || fieldName.trim().length === 0) {
+    errors.push('Field name cannot be empty');
+    return { isValid: false, errors };
+  }
+
+  // Check for dots
+  if (fieldName.includes('.')) {
+    errors.push(`Field name "${fieldName}" contains illegal character '.' (dot)`);
+  }
+
+  // Check for double underscore prefix
+  if (fieldName.startsWith('__')) {
+    errors.push(`Field name "${fieldName}" cannot start with '__' (reserved by Firestore)`);
+  }
+
+  // Check for reserved __name__ field
+  if (fieldName === '__name__') {
+    errors.push(`Field name "__name__" is reserved by Firestore`);
+  }
+
+  // Check byte length (UTF-8 encoding)
+  const byteLength = new TextEncoder().encode(fieldName).length;
+  if (byteLength > 1500) {
+    errors.push(`Field name "${fieldName}" exceeds 1500 bytes (${byteLength} bytes)`);
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+  };
+}
+
+/**
+ * Validate all field names in an object (recursively)
+ *
+ * @param {Object} obj - Object to validate
+ * @param {string} prefix - Prefix for nested field paths (for error messages)
+ * @returns {Object} Validation result with all errors
+ */
+export function validateFirestoreFieldNames(obj, prefix = '') {
+  const errors = [];
+
+  if (!obj || typeof obj !== 'object') {
+    return { isValid: true, errors: [] };
+  }
+
+  Object.keys(obj).forEach((key) => {
+    const fullPath = prefix ? `${prefix}.${key}` : key;
+
+    // Validate this field name
+    const validation = validateFirestoreFieldName(key);
+    if (!validation.isValid) {
+      errors.push(...validation.errors.map(e => `${fullPath}: ${e}`));
+    }
+
+    // Recursively validate nested objects
+    if (obj[key] && typeof obj[key] === 'object' && !Array.isArray(obj[key]) && !(obj[key] instanceof Date)) {
+      const nestedValidation = validateFirestoreFieldNames(obj[key], fullPath);
+      errors.push(...nestedValidation.errors);
+    }
+  });
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+  };
+}
+
+/**
  * Validate description
  */
 export function validateDescription(description, fieldName = 'description') {
@@ -328,6 +412,12 @@ export function validateExpense(expense) {
   if (!expense.categoryKey) errors.push('Missing categoryKey');
   if (!expense.splitDetails) errors.push('Missing splitDetails');
 
+  // Validate Firestore field names
+  const firestoreValidation = validateFirestoreFieldNames(expense);
+  if (!firestoreValidation.isValid) {
+    errors.push(...firestoreValidation.errors.map(e => `Invalid field name: ${e}`));
+  }
+
   // Validate amounts in splitDetails
   if (expense.splitDetails) {
     const total =
@@ -431,4 +521,6 @@ export default {
   validateTransactions,
   validateExpense,
   validateImportConfig,
+  validateFirestoreFieldName,
+  validateFirestoreFieldNames,
 };
