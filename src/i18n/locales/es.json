@@ -38,6 +38,7 @@
     "settleUp": "Liquidar",
     "viewHistory": "Ver Historial",
     "expenses": "Gastos",
+    "import": "Importar",
     "noExpensesTitle": "Sin Gastos Todavía",
     "noExpensesText": "Comienza a rastrear tus gastos compartidos tocando el botón + abajo",
     "loadingExpenses": "Cargando gastos...",

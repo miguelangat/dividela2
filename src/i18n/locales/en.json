@@ -38,6 +38,7 @@
     "settleUp": "Settle Up",
     "viewHistory": "View History",
     "expenses": "Expenses",
+    "import": "Import",
     "noExpensesTitle": "No Expenses Yet",
     "noExpensesText": "Start tracking your shared expenses by tapping the + button below",
     "loadingExpenses": "Loading expenses...",

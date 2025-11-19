@@ -621,7 +621,7 @@ export default function HomeScreen({ navigation }) {
               onPress={() => navigation.navigate('ImportExpenses')}
             >
               <Ionicons name="cloud-upload-outline" size={18} color={COLORS.primary} />
-              <Text style={styles.importButtonText}>Import</Text>
+              <Text style={styles.importButtonText}>{t('home.import')}</Text>
             </TouchableOpacity>
           </View>
 
