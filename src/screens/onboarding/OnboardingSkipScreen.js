@@ -13,6 +13,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
+import { CommonActions } from '@react-navigation/native';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES } from '../../constants/theme';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 
@@ -72,47 +73,41 @@ export default function OnboardingSkipScreen({ navigation }) {
 
       if (success) {
         console.log('✅ Onboarding skipped successfully');
-        console.log('🚀 Dismissing onboarding modal and navigating to home...');
+        console.log('🚀 Resetting navigation to MainTabs > HomeTab...');
 
-        // Dismiss the onboarding modal and navigate to home
-        // Use setTimeout to ensure AsyncStorage write completes first
+        // Use setTimeout to ensure AsyncStorage write completes
         setTimeout(() => {
           try {
-            // Navigation hierarchy:
-            // AppNavigator Stack -> Onboarding (modal) -> OnboardingNavigator -> OnboardingStack -> OnboardingSkip (current)
-            // We need to go up 2 levels: getParent() = OnboardingStack, getParent().getParent() = AppNavigator Stack
+            // Get root navigator (go up 2 levels)
+            const onboardingStack = navigation.getParent();
+            const rootNav = onboardingStack?.getParent();
 
-            console.log('🔍 Getting root navigator to dismiss modal...');
-            const onboardingStack = navigation.getParent(); // OnboardingStack
-            const rootNavigator = onboardingStack?.getParent(); // AppNavigator Stack
+            if (rootNav) {
+              console.log('📍 [OnboardingSkip] Resetting navigation state...');
 
-            if (rootNavigator) {
-              console.log('📍 Found root navigator, dismissing Onboarding modal...');
+              // Use reset action to completely replace navigation state
+              // This forces a clean navigation to MainTabs with HomeTab selected
+              rootNav.dispatch(
+                CommonActions.reset({
+                  index: 0,
+                  routes: [
+                    {
+                      name: 'MainTabs',
+                      state: {
+                        routes: [{ name: 'HomeTab' }],
+                        index: 0,
+                      },
+                    },
+                  ],
+                })
+              );
 
-              // Go back to dismiss the modal (goes from Onboarding modal back to MainTabs)
-              if (rootNavigator.canGoBack && rootNavigator.canGoBack()) {
-                rootNavigator.goBack();
-                console.log('✅ Modal dismissed via root navigator');
-
-                // Navigate to home tab after modal dismisses
-                setTimeout(() => {
-                  try {
-                    rootNavigator.navigate('MainTabs', { screen: 'HomeTab' });
-                    console.log('✅ Navigated to HomeTab');
-                  } catch (navError) {
-                    console.log('⚠️ Could not navigate to HomeTab:', navError.message);
-                  }
-                }, 150);
-              } else {
-                console.log('⚠️ Root navigator cannot go back, trying direct navigation...');
-                rootNavigator.navigate('MainTabs', { screen: 'HomeTab' });
-              }
+              console.log('✅ [OnboardingSkip] Navigation reset complete');
             } else {
-              console.log('⚠️ Could not find root navigator, falling back to AppNavigator polling');
+              console.log('⚠️ [OnboardingSkip] Could not get root navigator');
             }
-          } catch (navError) {
-            console.error('❌ Navigation error:', navError);
-            console.log('⏳ Falling back to AppNavigator polling for navigation');
+          } catch (error) {
+            console.error('❌ [OnboardingSkip] Navigation reset error:', error);
           }
         }, 500);
 
