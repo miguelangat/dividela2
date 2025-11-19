@@ -2,14 +2,13 @@
 // Welcome screen - First screen users see when opening the app
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES, SHADOWS } from '../../constants/theme';
 import LanguageSelectorButton from '../../components/LanguageSelectorButton';
-import ScrollableContainer from '../../components/common/ScrollableContainer';
 
 export default function WelcomeScreen({ navigation }) {
   const { t } = useTranslation();
@@ -38,17 +37,11 @@ export default function WelcomeScreen({ navigation }) {
           <LanguageSelectorButton variant="icon" />
         </View>
 
-        <ScrollableContainer
-          containerStyle={styles.scrollableContainer}
-          contentStyle={styles.scrollableContent}
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={true}
-          footer={
-            <View style={styles.footer}>
-              <Text style={styles.footerText}>
-                Made in Colombia 🇨🇴 with ♥
-              </Text>
-            </View>
-          }
+          bounces={true}
         >
           {/* Top Section - Logo and Title */}
           <View style={styles.topSection}>
@@ -111,7 +104,14 @@ export default function WelcomeScreen({ navigation }) {
               </TouchableOpacity>
             </View>
           </View>
-        </ScrollableContainer>
+        </ScrollView>
+
+        {/* Made in Colombia Footer - Fixed at bottom */}
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            Made in Colombia 🇨🇴 with ♥
+          </Text>
+        </View>
       </LinearGradient>
     </View>
   );
@@ -125,11 +125,14 @@ const styles = StyleSheet.create({
   gradientBackground: {
     flex: 1,
   },
-  scrollableContainer: {
-    backgroundColor: 'transparent', // Transparent to show gradient
+  scrollView: {
+    flex: 1,
   },
-  scrollableContent: {
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: SPACING.screenPadding,
     paddingTop: 50,
+    paddingBottom: SPACING.base,
   },
   languageSelectorContainer: {
     position: 'absolute',
@@ -239,7 +242,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: SPACING.base,
     paddingBottom: Platform.OS === 'ios' ? SPACING.large : SPACING.base,
-    paddingHorizontal: 0, // Override ScrollableContainer padding
     backgroundColor: 'rgba(255, 255, 255, 0.1)', // Semi-transparent white on gradient
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.2)', // Subtle white border
