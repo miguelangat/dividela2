@@ -29,6 +29,15 @@ import { useBudget } from '../../contexts/BudgetContext';
 import { COLORS, FONTS, SPACING, COMMON_STYLES } from '../../constants/theme';
 import { calculateEqualSplit, calculateSplit, roundCurrency } from '../../utils/calculations';
 import * as expenseService from '../../services/expenseService';
+import CurrencyPicker from '../../components/CurrencyPicker';
+import ExchangeRateInput from '../../components/ExchangeRateInput';
+import { getCurrencyInfo, getCurrencySymbol } from '../../constants/currencies';
+import { createMultiCurrencyExpense } from '../../utils/currencyUtils';
+import {
+  getPrimaryCurrency,
+  saveRecentExchangeRate,
+  getRecentExchangeRate,
+} from '../../services/coupleSettingsService';
 
 export default function AddExpenseScreen({ navigation, route }) {
   const { user, userDetails } = useAuth();
@@ -47,6 +56,28 @@ export default function AddExpenseScreen({ navigation, route }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Multi-currency state
+  const [primaryCurrency, setPrimaryCurrency] = useState('USD');
+  const [expenseCurrency, setExpenseCurrency] = useState('USD');
+  const [exchangeRate, setExchangeRate] = useState(1.0);
+  const [convertedAmount, setConvertedAmount] = useState(0);
+
+  // Fetch primary currency on mount
+  useEffect(() => {
+    const fetchPrimaryCurrency = async () => {
+      if (userDetails?.coupleId) {
+        try {
+          const currency = await getPrimaryCurrency(userDetails.coupleId);
+          setPrimaryCurrency(currency.code);
+          setExpenseCurrency(currency.code); // Default to primary currency
+        } catch (error) {
+          console.error('Error fetching primary currency:', error);
+        }
+      }
+    };
+    fetchPrimaryCurrency();
+  }, [userDetails?.coupleId]);
+
   // Pre-populate form when editing
   useEffect(() => {
     if (editingExpense) {
@@ -54,6 +85,17 @@ export default function AddExpenseScreen({ navigation, route }) {
       setDescription(editingExpense.description);
       setSelectedCategory(editingExpense.categoryKey || editingExpense.category || 'food');
       setPaidBy(editingExpense.paidBy);
+
+      // Set currency fields if available
+      if (editingExpense.currency) {
+        setExpenseCurrency(editingExpense.currency);
+      }
+      if (editingExpense.exchangeRate) {
+        setExchangeRate(editingExpense.exchangeRate);
+      }
+      if (editingExpense.primaryCurrencyAmount) {
+        setConvertedAmount(editingExpense.primaryCurrencyAmount);
+      }
 
       // Determine split type from split details
       const userPercentage = editingExpense.splitDetails?.user1Percentage || 50;
@@ -144,10 +186,28 @@ export default function AddExpenseScreen({ navigation, route }) {
         splitDetails = calculateSplit(expenseAmount, userPercentage, partnerPercentage);
       }
 
+      // Use converted amount for split calculation if different currency
+      const amountForSplit = expenseCurrency !== primaryCurrency ? convertedAmount : expenseAmount;
+
+      // Recalculate split with the amount in primary currency
+      if (splitType === 'equal') {
+        splitDetails = calculateEqualSplit(amountForSplit);
+      } else {
+        const parsedPercentage = parseInt(userSplitPercentage);
+        const userPercentage = !isNaN(parsedPercentage) ? parsedPercentage : 50;
+        const partnerPercentage = 100 - userPercentage;
+        splitDetails = calculateSplit(amountForSplit, userPercentage, partnerPercentage);
+      }
+
       if (isEditMode) {
         // Update existing expense
         const updates = {
           amount: expenseAmount,
+          currency: expenseCurrency,
+          primaryCurrencyAmount: amountForSplit,
+          primaryCurrency,
+          exchangeRate,
+          exchangeRateSource: expenseCurrency === primaryCurrency ? 'none' : 'manual',
           description: description.trim(),
           category: selectedCategory,
           categoryKey: selectedCategory,
@@ -165,9 +225,11 @@ export default function AddExpenseScreen({ navigation, route }) {
 
         console.log('✓ Expense updated successfully');
       } else {
-        // Create new expense
-        const expenseData = {
+        // Create new expense with multi-currency data
+        const baseExpenseData = {
           amount: expenseAmount,
+          currency: expenseCurrency,
+          exchangeRate,
           description: description.trim(),
           category: selectedCategory, // Legacy field for backward compatibility
           categoryKey: selectedCategory, // New field for budget tracking
@@ -182,8 +244,20 @@ export default function AddExpenseScreen({ navigation, route }) {
           },
         };
 
+        // Add multi-currency fields
+        const expenseData = createMultiCurrencyExpense(baseExpenseData, primaryCurrency);
+
         console.log('Creating expense:', expenseData);
         await expenseService.addExpense(expenseData);
+
+        // Save exchange rate for future reuse
+        if (expenseCurrency !== primaryCurrency) {
+          try {
+            await saveRecentExchangeRate(userDetails.coupleId, expenseCurrency, primaryCurrency, exchangeRate);
+          } catch (err) {
+            console.warn('Could not save exchange rate:', err);
+          }
+        }
 
         console.log('✓ Expense created successfully');
       }
@@ -225,7 +299,7 @@ export default function AddExpenseScreen({ navigation, route }) {
 
         {/* Amount Input */}
         <View style={styles.amountSection}>
-          <Text style={styles.currencySymbol}>$</Text>
+          <Text style={styles.currencySymbol}>{getCurrencySymbol(expenseCurrency)}</Text>
           <TextInput
             style={styles.amountInput}
             value={amount}
@@ -236,6 +310,28 @@ export default function AddExpenseScreen({ navigation, route }) {
             autoFocus
           />
         </View>
+
+        {/* Currency Selection */}
+        <View style={styles.section}>
+          <CurrencyPicker
+            selectedCurrency={expenseCurrency}
+            onSelect={setExpenseCurrency}
+            label="Expense Currency"
+          />
+        </View>
+
+        {/* Exchange Rate Input (only if different from primary) */}
+        {expenseCurrency !== primaryCurrency && parseFloat(amount) > 0 && (
+          <ExchangeRateInput
+            fromAmount={parseFloat(amount) || 0}
+            fromCurrency={expenseCurrency}
+            toCurrency={primaryCurrency}
+            onRateChange={setExchangeRate}
+            onConvertedAmountChange={setConvertedAmount}
+            initialRate={exchangeRate !== 1.0 ? exchangeRate : null}
+            style={styles.exchangeRateSection}
+          />
+        )}
 
         {/* Description */}
         <View style={styles.section}>
@@ -452,6 +548,9 @@ const styles = StyleSheet.create({
     textAlign: 'left',
   },
   section: {
+    marginBottom: SPACING.large,
+  },
+  exchangeRateSection: {
     marginBottom: SPACING.large,
   },
   sectionLabel: {

@@ -30,6 +30,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import { onboardingStorage } from '../../utils/storage';
 import { COLORS, FONTS, SPACING } from '../../constants/theme';
 import { formatCurrency, calculateBalance } from '../../utils/calculations';
+import CurrencyPicker from '../../components/CurrencyPicker';
+import { getCurrencyInfo } from '../../constants/currencies';
+import {
+  updatePrimaryCurrency,
+  getPrimaryCurrency,
+} from '../../services/coupleSettingsService';
 
 const { width: screenWidth } = Dimensions.get('window');
 const isSmallScreen = screenWidth < 375;
@@ -44,6 +50,8 @@ export default function SettingsScreen({ navigation }) {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
   const [signOutModalVisible, setSignOutModalVisible] = useState(false);
+  const [primaryCurrency, setPrimaryCurrency] = useState('USD');
+  const [currencyLoading, setCurrencyLoading] = useState(false);
 
   // Fetch partner details
   useEffect(() => {
@@ -68,6 +76,21 @@ export default function SettingsScreen({ navigation }) {
       setDisplayName(userDetails.displayName);
     }
   }, [userDetails?.displayName]);
+
+  // Fetch primary currency
+  useEffect(() => {
+    const fetchCurrency = async () => {
+      if (userDetails?.coupleId) {
+        try {
+          const currency = await getPrimaryCurrency(userDetails.coupleId);
+          setPrimaryCurrency(currency.code);
+        } catch (error) {
+          console.error('Error fetching primary currency:', error);
+        }
+      }
+    };
+    fetchCurrency();
+  }, [userDetails?.coupleId]);
 
   const handleSaveName = async () => {
     if (!displayName.trim()) {
@@ -100,6 +123,43 @@ export default function SettingsScreen({ navigation }) {
   const handleSignOut = () => {
     console.log('Sign out button pressed');
     setSignOutModalVisible(true);
+  };
+
+  const handleCurrencyChange = async (newCurrency) => {
+    if (!userDetails?.coupleId) return;
+
+    // Show warning if changing from current currency
+    if (newCurrency !== primaryCurrency) {
+      Alert.alert(
+        'Change Primary Currency',
+        `Change from ${primaryCurrency} to ${newCurrency}?\n\nNote: Future expenses will default to ${newCurrency}. Past expenses will keep their original currency.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Change',
+            onPress: async () => {
+              setCurrencyLoading(true);
+              try {
+                const currencyInfo = getCurrencyInfo(newCurrency);
+                await updatePrimaryCurrency(
+                  userDetails.coupleId,
+                  newCurrency,
+                  currencyInfo.symbol,
+                  currencyInfo.locale
+                );
+                setPrimaryCurrency(newCurrency);
+                Alert.alert('Success', `Primary currency changed to ${newCurrency}`);
+              } catch (error) {
+                console.error('Error updating currency:', error);
+                Alert.alert('Error', 'Failed to update currency. Please try again.');
+              } finally {
+                setCurrencyLoading(false);
+              }
+            },
+          },
+        ]
+      );
+    }
   };
 
   const confirmSignOut = async () => {
@@ -285,13 +345,18 @@ export default function SettingsScreen({ navigation }) {
       <Text style={styles.sectionTitle}>Preferences</Text>
 
       <View style={styles.card}>
-        <View style={styles.settingRow}>
+        <View style={[styles.settingRow, styles.currencyPickerRow]}>
           <View style={styles.settingIcon}>
             <Ionicons name="cash" size={20} color={COLORS.primary} />
           </View>
           <View style={styles.settingContent}>
-            <Text style={styles.settingLabel}>Currency</Text>
-            <Text style={styles.settingValue}>USD ($)</Text>
+            <CurrencyPicker
+              selectedCurrency={primaryCurrency}
+              onSelect={handleCurrencyChange}
+              label="Primary Currency"
+              disabled={currencyLoading}
+              style={styles.currencyPicker}
+            />
           </View>
         </View>
 
@@ -508,6 +573,13 @@ const styles = StyleSheet.create({
   },
   settingContent: {
     flex: 1,
+  },
+  currencyPickerRow: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+  },
+  currencyPicker: {
+    marginVertical: 0,
   },
   settingLabel: {
     ...FONTS.small,
