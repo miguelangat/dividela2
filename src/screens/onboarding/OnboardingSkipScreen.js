@@ -78,25 +78,40 @@ export default function OnboardingSkipScreen({ navigation }) {
         // Use setTimeout to ensure AsyncStorage write completes first
         setTimeout(() => {
           try {
-            // Get parent navigator (Stack navigator that contains the modal)
-            const parentNav = navigation.getParent();
-            if (parentNav && parentNav.canGoBack()) {
-              console.log('📍 Dismissing modal via parent navigator');
-              parentNav.goBack();
+            // Navigation hierarchy:
+            // AppNavigator Stack -> Onboarding (modal) -> OnboardingNavigator -> OnboardingStack -> OnboardingSkip (current)
+            // We need to go up 2 levels: getParent() = OnboardingStack, getParent().getParent() = AppNavigator Stack
 
-              // Navigate to home tab after modal dismisses
-              setTimeout(() => {
-                parentNav.navigate('MainTabs', { screen: 'HomeTab' });
-              }, 100);
-            } else if (navigation.canGoBack()) {
-              console.log('📍 Dismissing modal via navigation.goBack()');
-              navigation.goBack();
+            console.log('🔍 Getting root navigator to dismiss modal...');
+            const onboardingStack = navigation.getParent(); // OnboardingStack
+            const rootNavigator = onboardingStack?.getParent(); // AppNavigator Stack
+
+            if (rootNavigator) {
+              console.log('📍 Found root navigator, dismissing Onboarding modal...');
+
+              // Go back to dismiss the modal (goes from Onboarding modal back to MainTabs)
+              if (rootNavigator.canGoBack && rootNavigator.canGoBack()) {
+                rootNavigator.goBack();
+                console.log('✅ Modal dismissed via root navigator');
+
+                // Navigate to home tab after modal dismisses
+                setTimeout(() => {
+                  try {
+                    rootNavigator.navigate('MainTabs', { screen: 'HomeTab' });
+                    console.log('✅ Navigated to HomeTab');
+                  } catch (navError) {
+                    console.log('⚠️ Could not navigate to HomeTab:', navError.message);
+                  }
+                }, 150);
+              } else {
+                console.log('⚠️ Root navigator cannot go back, trying direct navigation...');
+                rootNavigator.navigate('MainTabs', { screen: 'HomeTab' });
+              }
             } else {
-              console.log('📍 Cannot go back, navigation will be handled by AppNavigator polling');
+              console.log('⚠️ Could not find root navigator, falling back to AppNavigator polling');
             }
           } catch (navError) {
             console.error('❌ Navigation error:', navError);
-            // Fallback: AppNavigator polling will handle navigation
             console.log('⏳ Falling back to AppNavigator polling for navigation');
           }
         }, 500);
