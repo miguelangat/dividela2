@@ -57,8 +57,6 @@ jest.mock('./src/config/firebase', () => ({
 }));
 
 // Silence console warnings in tests
-global.console = {
-  ...console,
-  warn: jest.fn(),
-  error: jest.fn(),
-};
+// Note: Using spyOn to avoid issues with frozen console object
+jest.spyOn(console, 'warn').mockImplementation(() => {});
+jest.spyOn(console, 'error').mockImplementation(() => {});
