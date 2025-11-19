@@ -2,6 +2,7 @@ import React, { useState, useContext, useLayoutEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { Text, Button, Card } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { AuthContext } from '../../contexts/AuthContext';
 import { theme } from '../../constants/theme';
 import FilePickerButton from '../../components/import/FilePickerButton';
@@ -17,6 +18,7 @@ import { markDuplicatesForReview } from '../../utils/duplicateDetector';
  * Screen for importing expenses from bank statements
  */
 export default function ImportExpensesScreen({ navigation }) {
+  const { t } = useTranslation();
   const { user, partnerId, coupleId, partnerName } = useContext(AuthContext);
 
   // File state
@@ -73,7 +75,10 @@ export default function ImportExpensesScreen({ navigation }) {
       const result = await previewImport(file.uri, config);
 
       if (!result.success) {
-        Alert.alert('Error', result.error || 'Failed to parse file');
+        Alert.alert(
+          t('import.errors.parseError'),
+          result.error || t('import.errors.parseErrorMessage')
+        );
         setSelectedFile(null);
         return;
       }
@@ -96,7 +101,10 @@ export default function ImportExpensesScreen({ navigation }) {
       });
     } catch (error) {
       console.error('Error previewing file:', error);
-      Alert.alert('Error', 'Failed to preview file. Please try again.');
+      Alert.alert(
+        t('import.errors.previewError'),
+        t('import.errors.previewErrorMessage')
+      );
       setSelectedFile(null);
     } finally {
       setIsLoading(false);
@@ -148,18 +156,21 @@ export default function ImportExpensesScreen({ navigation }) {
         .map(index => parseInt(index));
 
       if (selectedIndices.length === 0) {
-        Alert.alert('No Transactions Selected', 'Please select at least one transaction to import.');
+        Alert.alert(
+          t('import.errors.noTransactions'),
+          t('import.errors.noTransactionsMessage')
+        );
         return;
       }
 
       // Confirm import
       Alert.alert(
-        'Confirm Import',
-        `Import ${selectedIndices.length} expense${selectedIndices.length > 1 ? 's' : ''}?`,
+        t('import.confirmImport'),
+        t('import.confirmImportMessage', { count: selectedIndices.length }),
         [
-          { text: 'Cancel', style: 'cancel' },
+          { text: t('import.cancel'), style: 'cancel' },
           {
-            text: 'Import',
+            text: t('common.confirm'),
             onPress: async () => {
               setImporting(true);
               setImportProgress({ step: 'parsing', progress: 0 });
@@ -216,7 +227,7 @@ export default function ImportExpensesScreen({ navigation }) {
                 }
               } catch (error) {
                 console.error('Import error:', error);
-                Alert.alert('Import Failed', error.message);
+                Alert.alert(t('import.errors.importFailed'), error.message);
                 setImporting(false);
               }
             },
@@ -225,7 +236,10 @@ export default function ImportExpensesScreen({ navigation }) {
       );
     } catch (error) {
       console.error('Error during import:', error);
-      Alert.alert('Error', 'Failed to import expenses. Please try again.');
+      Alert.alert(
+        t('import.errors.importError'),
+        t('import.errors.importErrorMessage')
+      );
       setImporting(false);
     }
   };
@@ -264,10 +278,9 @@ export default function ImportExpensesScreen({ navigation }) {
           {/* Header */}
           <Card style={styles.headerCard}>
             <Card.Content>
-              <Text style={styles.title}>Import from Bank Statement</Text>
+              <Text style={styles.title}>{t('import.title')}</Text>
               <Text style={styles.subtitle}>
-                Import expenses from your bank's CSV or PDF statements.
-                Transactions will be auto-categorized and checked for duplicates.
+                {t('import.subtitle')}
               </Text>
             </Card.Content>
           </Card>
@@ -282,9 +295,12 @@ export default function ImportExpensesScreen({ navigation }) {
             {selectedFile && !isLoading && (
               <Card style={styles.fileInfoCard}>
                 <Card.Content>
-                  <Text style={styles.fileName}>📄 {selectedFile.name}</Text>
+                  <Text style={styles.fileName}>{t('import.fileInfo', { fileName: selectedFile.name })}</Text>
                   <Text style={styles.fileDetails}>
-                    Type: {selectedFile.type.toUpperCase()} • Size: {Math.round(selectedFile.size / 1024)}KB
+                    {t('import.fileDetails', {
+                      type: selectedFile.type.toUpperCase(),
+                      size: Math.round(selectedFile.size / 1024)
+                    })}
                   </Text>
                 </Card.Content>
               </Card>
@@ -304,11 +320,11 @@ export default function ImportExpensesScreen({ navigation }) {
           {/* Instructions */}
           <Card style={styles.instructionsCard}>
             <Card.Content>
-              <Text style={styles.instructionsTitle}>How it works:</Text>
-              <Text style={styles.instruction}>1️⃣ Select your bank statement (CSV or PDF)</Text>
-              <Text style={styles.instruction}>2️⃣ Configure import settings</Text>
-              <Text style={styles.instruction}>3️⃣ Review and edit detected transactions</Text>
-              <Text style={styles.instruction}>4️⃣ Import selected expenses</Text>
+              <Text style={styles.instructionsTitle}>{t('import.howItWorks')}</Text>
+              <Text style={styles.instruction}>{t('import.step1')}</Text>
+              <Text style={styles.instruction}>{t('import.step2')}</Text>
+              <Text style={styles.instruction}>{t('import.step3')}</Text>
+              <Text style={styles.instruction}>{t('import.step4')}</Text>
             </Card.Content>
           </Card>
         </ScrollView>
@@ -339,7 +355,7 @@ export default function ImportExpensesScreen({ navigation }) {
               }}
               style={styles.cancelButton}
             >
-              Cancel
+              {t('import.cancel')}
             </Button>
             <Button
               mode="contained"
@@ -347,7 +363,7 @@ export default function ImportExpensesScreen({ navigation }) {
               disabled={selectedCount === 0}
               style={styles.importButton}
             >
-              Import {selectedCount} Expense{selectedCount !== 1 ? 's' : ''}
+              {t('import.importButton', { count: selectedCount })}
             </Button>
           </View>
         </View>
