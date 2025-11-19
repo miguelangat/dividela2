@@ -4,9 +4,13 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { useTranslation } from 'react-i18next';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES } from '../../constants/theme';
+import LanguageSelectorButton from '../../components/LanguageSelectorButton';
 
 export default function WelcomeScreen({ navigation }) {
+  const { t } = useTranslation();
+
   const handleGetStarted = () => {
     navigation.navigate('SignUp');
   };
@@ -19,6 +23,11 @@ export default function WelcomeScreen({ navigation }) {
     <View style={styles.container}>
       <StatusBar style="dark" />
 
+      {/* Language Selector */}
+      <View style={styles.languageSelectorContainer}>
+        <LanguageSelectorButton variant="icon" />
+      </View>
+
       {/* Logo/Icon */}
       <View style={styles.logoContainer}>
         <Text style={styles.logoEmoji}>💑</Text>
@@ -26,9 +35,9 @@ export default function WelcomeScreen({ navigation }) {
 
       {/* Title and Tagline */}
       <View style={styles.textContainer}>
-        <Text style={styles.title}>Dividela</Text>
+        <Text style={styles.title}>{t('auth.welcome.title')}</Text>
         <Text style={styles.tagline}>
-          Track shared expenses with your partner, effortlessly
+          {t('auth.welcome.tagline')}
         </Text>
       </View>
 
@@ -39,7 +48,7 @@ export default function WelcomeScreen({ navigation }) {
           onPress={handleGetStarted}
           activeOpacity={0.8}
         >
-          <Text style={styles.primaryButtonText}>Get Started</Text>
+          <Text style={styles.primaryButtonText}>{t('auth.welcome.getStarted')}</Text>
         </TouchableOpacity>
 
         {/* Sign In Link */}
@@ -49,7 +58,7 @@ export default function WelcomeScreen({ navigation }) {
           activeOpacity={0.6}
         >
           <Text style={styles.signInLinkText}>
-            Already have an account? <Text style={styles.signInLinkBold}>Sign in</Text>
+            {t('auth.welcome.alreadyHaveAccount')} <Text style={styles.signInLinkBold}>{t('auth.welcome.signIn')}</Text>
           </Text>
         </TouchableOpacity>
       </View>
@@ -63,6 +72,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: SPACING.screenPadding,
+  },
+  languageSelectorContainer: {
+    position: 'absolute',
+    top: 40,
+    right: SPACING.screenPadding,
+    zIndex: 1000,
   },
   logoContainer: {
     marginBottom: SPACING.xxlarge,

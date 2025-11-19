@@ -27,10 +27,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { onboardingStorage } from '../../utils/storage';
 import { COLORS, FONTS, SPACING } from '../../constants/theme';
 import { formatCurrency, calculateBalance } from '../../utils/calculations';
 import { hasActivePremium } from '../../services/referralService';
+import { useTranslation } from 'react-i18next';
 
 const { width: screenWidth } = Dimensions.get('window');
 const isSmallScreen = screenWidth < 375;
@@ -39,12 +41,15 @@ const isLargeScreen = screenWidth >= 768;
 
 export default function SettingsScreen({ navigation }) {
   const { user, userDetails, signOut, getPartnerDetails } = useAuth();
+  const { currentLanguage, changeLanguage, availableLanguages, getCurrentLanguageInfo } = useLanguage();
+  const { t } = useTranslation();
   const [editingName, setEditingName] = useState(false);
   const [displayName, setDisplayName] = useState(userDetails?.displayName || '');
   const [partnerName, setPartnerName] = useState('Partner');
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
   const [signOutModalVisible, setSignOutModalVisible] = useState(false);
+  const [languageModalVisible, setLanguageModalVisible] = useState(false);
   const [restartOnboardingModalVisible, setRestartOnboardingModalVisible] = useState(false);
 
   // Fetch partner details
@@ -73,7 +78,7 @@ export default function SettingsScreen({ navigation }) {
 
   const handleSaveName = async () => {
     if (!displayName.trim()) {
-      Alert.alert('Error', 'Name cannot be empty');
+      Alert.alert(t('common.error'), t('settings.nameEmpty'));
       return;
     }
 
@@ -90,10 +95,10 @@ export default function SettingsScreen({ navigation }) {
       });
 
       setEditingName(false);
-      Alert.alert('Success', 'Name updated successfully');
+      Alert.alert(t('common.success'), t('settings.nameUpdated'));
     } catch (error) {
       console.error('Error updating name:', error);
-      Alert.alert('Error', 'Failed to update name. Please try again.');
+      Alert.alert(t('common.error'), t('settings.nameUpdateFailed'));
     } finally {
       setSaving(false);
     }
@@ -113,7 +118,7 @@ export default function SettingsScreen({ navigation }) {
       console.log('Sign out successful');
     } catch (error) {
       console.error('Sign out error:', error);
-      Alert.alert('Error', `Failed to sign out: ${error.message}`);
+      Alert.alert(t('common.error'), `Failed to sign out: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -121,7 +126,7 @@ export default function SettingsScreen({ navigation }) {
 
   const renderProfileSection = () => (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Profile</Text>
+      <Text style={styles.sectionTitle}>{t('settings.profile')}</Text>
 
       <View style={styles.card}>
         {/* Display Name */}
@@ -130,7 +135,7 @@ export default function SettingsScreen({ navigation }) {
             <Ionicons name="person" size={20} color={COLORS.primary} />
           </View>
           <View style={styles.settingContent}>
-            <Text style={styles.settingLabel}>Display Name</Text>
+            <Text style={styles.settingLabel}>{t('settings.displayName')}</Text>
             {editingName ? (
               <TextInput
                 style={styles.input}
@@ -184,7 +189,7 @@ export default function SettingsScreen({ navigation }) {
             <Ionicons name="mail" size={20} color={COLORS.primary} />
           </View>
           <View style={styles.settingContent}>
-            <Text style={styles.settingLabel}>Email</Text>
+            <Text style={styles.settingLabel}>{t('settings.email')}</Text>
             <Text style={styles.settingValue}>{user?.email}</Text>
           </View>
         </View>
@@ -194,7 +199,7 @@ export default function SettingsScreen({ navigation }) {
 
   const renderPartnerSection = () => (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Partner</Text>
+      <Text style={styles.sectionTitle}>{t('settings.partner')}</Text>
 
       <View style={styles.card}>
         <View style={styles.settingRow}>
@@ -202,7 +207,7 @@ export default function SettingsScreen({ navigation }) {
             <Ionicons name="people" size={20} color={COLORS.primary} />
           </View>
           <View style={styles.settingContent}>
-            <Text style={styles.settingLabel}>Partner Name</Text>
+            <Text style={styles.settingLabel}>{t('settings.partnerName')}</Text>
             <Text style={styles.settingValue}>{partnerName}</Text>
           </View>
         </View>
@@ -213,7 +218,7 @@ export default function SettingsScreen({ navigation }) {
               <Ionicons name="heart" size={20} color={COLORS.error} />
             </View>
             <View style={styles.settingContent}>
-              <Text style={styles.settingLabel}>Couple ID</Text>
+              <Text style={styles.settingLabel}>{t('settings.coupleId')}</Text>
               <Text style={[styles.settingValue, styles.settingValueSmall]}>
                 {userDetails.coupleId.substring(0, 20)}...
               </Text>
@@ -287,16 +292,24 @@ export default function SettingsScreen({ navigation }) {
     );
   };
 
-  const handleRestartOnboarding = () => {
+  const handleLanguageSelect = async (languageCode) => {
+    try {
+      await changeLanguage(languageCode);
+      setLanguageModalVisible(false);
+    } catch (error) {
+      console.error('Error changing language:', error);
+      Alert.alert(t('common.error'), 'Failed to change language. Please try again.');
+    }
+  };
+
+  const handleRestartOnboarding = async () => {
     console.log('🚨 RESTART BUTTON CLICKED - HANDLER CALLED');
     setRestartOnboardingModalVisible(true);
   };
 
   const confirmRestartOnboarding = async () => {
-    console.log('✅ User confirmed restart - executing...');
-    setRestartOnboardingModalVisible(false);
-
     try {
+      setRestartOnboardingModalVisible(false);
       console.log('🔄 Restarting onboarding...');
 
       // Clear the onboarding completion flag using storage utility
@@ -332,21 +345,36 @@ export default function SettingsScreen({ navigation }) {
       }
     } catch (error) {
       console.error('❌ Error restarting onboarding:', error);
-      Alert.alert('Error', 'Failed to restart onboarding. Please try again.');
+      Alert.alert(t('common.error'), t('settings.restartError'));
     }
   };
 
   const renderPreferencesSection = () => (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Preferences</Text>
+      <Text style={styles.sectionTitle}>{t('settings.preferences')}</Text>
 
       <View style={styles.card}>
+        <TouchableOpacity
+          style={styles.settingRow}
+          onPress={() => setLanguageModalVisible(true)}
+          activeOpacity={0.6}
+        >
+          <View style={styles.settingIcon}>
+            <Ionicons name="language" size={20} color={COLORS.primary} />
+          </View>
+          <View style={styles.settingContent}>
+            <Text style={styles.settingLabel}>{t('settings.language')}</Text>
+            <Text style={styles.settingValue}>{getCurrentLanguageInfo().nativeName}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+        </TouchableOpacity>
+
         <View style={styles.settingRow}>
           <View style={styles.settingIcon}>
             <Ionicons name="cash" size={20} color={COLORS.primary} />
           </View>
           <View style={styles.settingContent}>
-            <Text style={styles.settingLabel}>Currency</Text>
+            <Text style={styles.settingLabel}>{t('settings.currency')}</Text>
             <Text style={styles.settingValue}>USD ($)</Text>
           </View>
         </View>
@@ -356,7 +384,7 @@ export default function SettingsScreen({ navigation }) {
             <Ionicons name="pie-chart" size={20} color={COLORS.primary} />
           </View>
           <View style={styles.settingContent}>
-            <Text style={styles.settingLabel}>Default Split</Text>
+            <Text style={styles.settingLabel}>{t('settings.defaultSplit')}</Text>
             <Text style={styles.settingValue}>50 / 50</Text>
           </View>
         </View>
@@ -370,8 +398,8 @@ export default function SettingsScreen({ navigation }) {
             <Ionicons name="refresh" size={20} color={COLORS.primary} />
           </View>
           <View style={styles.settingContent}>
-            <Text style={styles.settingLabel}>Budget Setup</Text>
-            <Text style={styles.settingValue}>Restart onboarding</Text>
+            <Text style={styles.settingLabel}>{t('settings.budgetSetup')}</Text>
+            <Text style={styles.settingValue}>{t('settings.restartOnboarding')}</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
         </TouchableOpacity>
@@ -381,7 +409,7 @@ export default function SettingsScreen({ navigation }) {
 
   const renderAboutSection = () => (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>About</Text>
+      <Text style={styles.sectionTitle}>{t('settings.about')}</Text>
 
       <View style={styles.card}>
         <View style={styles.settingRow}>
@@ -389,7 +417,7 @@ export default function SettingsScreen({ navigation }) {
             <Ionicons name="information-circle" size={20} color={COLORS.primary} />
           </View>
           <View style={styles.settingContent}>
-            <Text style={styles.settingLabel}>App Version</Text>
+            <Text style={styles.settingLabel}>{t('settings.appVersion')}</Text>
             <Text style={styles.settingValue}>1.0.0</Text>
           </View>
         </View>
@@ -399,14 +427,62 @@ export default function SettingsScreen({ navigation }) {
             <Ionicons name="code-slash" size={20} color={COLORS.primary} />
           </View>
           <View style={styles.settingContent}>
-            <Text style={styles.settingLabel}>Dividela</Text>
+            <Text style={styles.settingLabel}>{t('settings.appName')}</Text>
             <Text style={[styles.settingValue, styles.settingValueSmall]}>
-              Couple expense tracker
+              {t('settings.appDescription')}
             </Text>
           </View>
         </View>
       </View>
     </View>
+  );
+
+  const renderLanguageModal = () => (
+    <Modal
+      visible={languageModalVisible}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={() => setLanguageModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Ionicons name="language" size={32} color={COLORS.primary} />
+            <Text style={styles.modalTitle}>{t('settings.language')}</Text>
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setLanguageModalVisible(false)}
+            >
+              <Ionicons name="close" size={24} color={COLORS.text} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            style={styles.languageList}
+            showsVerticalScrollIndicator={true}
+          >
+            {availableLanguages.map((lang) => (
+              <TouchableOpacity
+                key={lang.code}
+                style={[
+                  styles.languageOption,
+                  currentLanguage === lang.code && styles.languageOptionSelected,
+                ]}
+                onPress={() => handleLanguageSelect(lang.code)}
+              >
+                <View style={styles.languageOptionContent}>
+                  <Text style={styles.languageOptionName}>{lang.nativeName}</Text>
+                  <Text style={styles.languageOptionSubname}>{lang.name}</Text>
+                </View>
+                {currentLanguage === lang.code && (
+                  <Ionicons name="checkmark-circle" size={24} color={COLORS.primary} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
   );
 
   return (
@@ -418,8 +494,8 @@ export default function SettingsScreen({ navigation }) {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Settings</Text>
-          <Text style={styles.headerSubtitle}>Manage your profile and preferences</Text>
+          <Text style={styles.headerTitle}>{t('settings.title')}</Text>
+          <Text style={styles.headerSubtitle}>{t('settings.subtitle')}</Text>
         </View>
 
         {/* Profile Section */}
@@ -450,7 +526,7 @@ export default function SettingsScreen({ navigation }) {
               <Ionicons name="log-out" size={20} color={COLORS.error} />
             )}
             <Text style={styles.signOutButtonText}>
-              {loading ? 'Signing Out...' : 'Sign Out'}
+              {loading ? t('settings.signingOut') : t('settings.signOut')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -469,9 +545,9 @@ export default function SettingsScreen({ navigation }) {
               <Ionicons name="log-out" size={32} color={COLORS.error} />
             </View>
 
-            <Text style={styles.modalTitle}>Sign Out</Text>
+            <Text style={styles.modalTitle}>{t('settings.signOutConfirmTitle')}</Text>
             <Text style={styles.modalMessage}>
-              Are you sure you want to sign out? You'll need to sign in again to access your account.
+              {t('settings.signOutConfirmMessage')}
             </Text>
 
             <View style={styles.modalButtons}>
@@ -482,14 +558,57 @@ export default function SettingsScreen({ navigation }) {
                   setSignOutModalVisible(false);
                 }}
               >
-                <Text style={styles.modalButtonTextSecondary}>Cancel</Text>
+                <Text style={styles.modalButtonTextSecondary}>{t('common.cancel')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={[styles.modalButton, styles.modalButtonPrimary]}
                 onPress={confirmSignOut}
               >
-                <Text style={styles.modalButtonTextPrimary}>Sign Out</Text>
+                <Text style={styles.modalButtonTextPrimary}>{t('settings.signOut')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Language Selector Modal */}
+      {renderLanguageModal()}
+
+      {/* Restart Onboarding Confirmation Modal */}
+      <Modal
+        visible={restartOnboardingModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setRestartOnboardingModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="refresh" size={32} color={COLORS.primary} />
+            </View>
+
+            <Text style={styles.modalTitle}>{t('settings.restartOnboardingTitle')}</Text>
+            <Text style={styles.modalMessage}>
+              {t('settings.restartOnboardingMessage')}
+            </Text>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonSecondary]}
+                onPress={() => {
+                  console.log('Restart onboarding cancelled');
+                  setRestartOnboardingModalVisible(false);
+                }}
+              >
+                <Text style={styles.modalButtonTextSecondary}>{t('common.cancel')}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonPrimary]}
+                onPress={confirmRestartOnboarding}
+              >
+                <Text style={styles.modalButtonTextPrimary}>{t('settings.restart')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -720,5 +839,37 @@ const styles = StyleSheet.create({
     ...FONTS.body,
     color: COLORS.background,
     fontWeight: '600',
+  },
+  languageList: {
+    maxHeight: 400,
+    width: '100%',
+    marginTop: SPACING.base,
+  },
+  languageOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: SPACING.base,
+    borderRadius: 12,
+    marginBottom: SPACING.small,
+    backgroundColor: COLORS.backgroundSecondary,
+  },
+  languageOptionSelected: {
+    backgroundColor: COLORS.primary + '15',
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+  },
+  languageOptionContent: {
+    flex: 1,
+  },
+  languageOptionName: {
+    ...FONTS.body,
+    color: COLORS.text,
+    fontWeight: '600',
+    marginBottom: SPACING.tiny,
+  },
+  languageOptionSubname: {
+    ...FONTS.small,
+    color: COLORS.textSecondary,
   },
 });

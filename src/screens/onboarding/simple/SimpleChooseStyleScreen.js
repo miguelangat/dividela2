@@ -16,8 +16,10 @@ import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES } from '../../../constants
 import ProgressStepper from '../../../components/onboarding/ProgressStepper';
 import OnboardingCard from '../../../components/onboarding/OnboardingCard';
 import { useOnboarding } from '../../../contexts/OnboardingContext';
+import { useTranslation } from 'react-i18next';
 
 export default function SimpleChooseStyleScreen({ navigation }) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { budgetStyle, setBudgetStyle } = useOnboarding();
   const [selectedStyle, setSelectedStyle] = useState(budgetStyle || 'smart');
@@ -50,9 +52,9 @@ export default function SimpleChooseStyleScreen({ navigation }) {
 
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>How do you want to budget?</Text>
+          <Text style={styles.title}>{t('onboarding.simple.chooseStyle.title')}</Text>
           <Text style={styles.subtitle}>
-            Choose the approach that works best for you
+            {t('onboarding.simple.chooseStyle.subtitle')}
           </Text>
         </View>
 
@@ -61,9 +63,9 @@ export default function SimpleChooseStyleScreen({ navigation }) {
           {/* Smart Budget Option */}
           <OnboardingCard
             icon="💚"
-            title="Smart Budget"
-            description="We'll suggest budgets based on your spending patterns"
-            details="📊 Updates monthly"
+            title={t('onboarding.simple.chooseStyle.smartTitle')}
+            description={t('onboarding.simple.chooseStyle.smartDescription')}
+            details={t('onboarding.simple.chooseStyle.smartDetails')}
             selected={selectedStyle === 'smart'}
             recommended={true}
             onPress={() => setSelectedStyle('smart')}
@@ -72,9 +74,9 @@ export default function SimpleChooseStyleScreen({ navigation }) {
           {/* Fixed Budget Option */}
           <OnboardingCard
             icon="📝"
-            title="Fixed Budget"
-            description="Set a total monthly amount, we'll divide it across categories"
-            details="💰 You choose total"
+            title={t('onboarding.simple.chooseStyle.fixedTitle')}
+            description={t('onboarding.simple.chooseStyle.fixedDescription')}
+            details={t('onboarding.simple.chooseStyle.fixedDetails')}
             selected={selectedStyle === 'fixed'}
             onPress={() => setSelectedStyle('fixed')}
           />
@@ -86,7 +88,7 @@ export default function SimpleChooseStyleScreen({ navigation }) {
           onPress={handleSwitchToAdvanced}
         >
           <Text style={styles.advancedLinkText}>
-            Switch to Advanced Mode
+            {t('onboarding.simple.chooseStyle.switchToAdvanced')}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -106,7 +108,7 @@ export default function SimpleChooseStyleScreen({ navigation }) {
           style={COMMON_STYLES.primaryButton}
           onPress={handleContinue}
         >
-          <Text style={COMMON_STYLES.primaryButtonText}>Continue</Text>
+          <Text style={COMMON_STYLES.primaryButtonText}>{t('onboarding.simple.chooseStyle.continue')}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
