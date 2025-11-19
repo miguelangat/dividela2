@@ -1,6 +1,7 @@
-import React, { useState, useContext } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
+import React, { useState, useContext, useLayoutEffect } from 'react';
+import { View, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { Text, Button, Card } from 'react-native-paper';
+import { Ionicons } from '@expo/vector-icons';
 import { AuthContext } from '../../contexts/AuthContext';
 import { theme } from '../../constants/theme';
 import FilePickerButton from '../../components/import/FilePickerButton';
@@ -8,6 +9,7 @@ import ImportConfigPanel from '../../components/import/ImportConfigPanel';
 import TransactionPreviewList from '../../components/import/TransactionPreviewList';
 import ImportProgressModal from '../../components/import/ImportProgressModal';
 import ImportSummary from '../../components/import/ImportSummary';
+import DebugPanel from '../../components/import/DebugPanel';
 import { previewImport, importFromFile } from '../../services/importService';
 import { markDuplicatesForReview } from '../../utils/duplicateDetector';
 
@@ -42,6 +44,23 @@ export default function ImportExpensesScreen({ navigation }) {
   const [importProgress, setImportProgress] = useState(null);
   const [importResult, setImportResult] = useState(null);
   const [showSummary, setShowSummary] = useState(false);
+
+  // Debug state
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
+
+  // Add debug button to header
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => setShowDebugPanel(true)}
+          style={{ marginRight: 16 }}
+        >
+          <Ionicons name="settings-outline" size={24} color={theme.colors.primary} />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
 
   // Handle file selection
   const handleFileSelected = async (file) => {
@@ -339,6 +358,13 @@ export default function ImportExpensesScreen({ navigation }) {
         visible={importing}
         progress={importProgress}
         onDismiss={() => {}}
+      />
+
+      {/* Debug panel */}
+      <DebugPanel
+        visible={showDebugPanel}
+        onDismiss={() => setShowDebugPanel(false)}
+        userId={user?.uid}
       />
     </View>
   );
