@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Card, Text, SegmentedButtons, Chip } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import { theme } from '../../constants/theme';
 import { CATEGORIES } from '../../constants/categories';
 
@@ -13,6 +14,7 @@ export default function ImportConfigPanel({
   currentUser,
   partner,
 }) {
+  const { t } = useTranslation();
   const handlePaidByChange = (value) => {
     onConfigChange({
       ...config,
@@ -40,22 +42,22 @@ export default function ImportConfigPanel({
   const paidByOptions = [
     {
       value: currentUser.uid,
-      label: 'You',
+      label: t('import.config.you'),
     },
     {
       value: partner.partnerId,
-      label: partner.partnerName || 'Partner',
+      label: t('import.config.partner', { partnerName: partner.partnerName || 'Partner' }),
     },
   ];
 
   const splitOptions = [
     {
       value: '50/50',
-      label: '50/50',
+      label: t('import.config.equal'),
     },
     {
       value: 'custom',
-      label: 'Custom',
+      label: t('import.config.custom'),
       disabled: true, // For now, disable custom split in import
     },
   ];
@@ -63,11 +65,11 @@ export default function ImportConfigPanel({
   return (
     <Card style={styles.card}>
       <Card.Content>
-        <Text style={styles.sectionTitle}>Import Settings</Text>
+        <Text style={styles.sectionTitle}>{t('import.config.title')}</Text>
 
         {/* Who Paid */}
         <View style={styles.section}>
-          <Text style={styles.label}>Who paid for these expenses?</Text>
+          <Text style={styles.label}>{t('import.config.whoPaid')}</Text>
           <SegmentedButtons
             value={config.paidBy}
             onValueChange={handlePaidByChange}
@@ -78,7 +80,7 @@ export default function ImportConfigPanel({
 
         {/* Split Type */}
         <View style={styles.section}>
-          <Text style={styles.label}>How to split?</Text>
+          <Text style={styles.label}>{t('import.config.split')}</Text>
           <SegmentedButtons
             value={config.splitConfig?.type || '50/50'}
             onValueChange={handleSplitTypeChange}
@@ -89,7 +91,7 @@ export default function ImportConfigPanel({
 
         {/* Default Category */}
         <View style={styles.section}>
-          <Text style={styles.label}>Default category (if auto-mapping fails)</Text>
+          <Text style={styles.label}>{t('import.config.defaultCategory')}</Text>
           <View style={styles.categoryGrid}>
             {CATEGORIES.map((category) => (
               <Chip
@@ -108,8 +110,7 @@ export default function ImportConfigPanel({
         {/* Info text */}
         <View style={styles.infoBox}>
           <Text style={styles.infoText}>
-            💡 Categories will be auto-detected based on transaction descriptions.
-            You can review and change them before importing.
+            {t('import.config.detectDuplicatesHelp')}
           </Text>
         </View>
       </Card.Content>
