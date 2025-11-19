@@ -37,41 +37,87 @@ function isDateFormat(value) {
 
 /**
  * Parse date string to Date object with multiple format support
+ *
+ * @param {string} dateString - Date string to parse
+ * @param {string} preferredFormat - Preferred date format ('auto', 'MM/DD/YYYY', 'DD/MM/YYYY')
+ * @returns {Date|null} Parsed date or null
  */
-function parseDate(dateString) {
+function parseDate(dateString, preferredFormat = 'auto') {
   if (!dateString) return null;
 
   const cleaned = dateString.trim();
 
-  // Try YYYY-MM-DD format
+  // Try YYYY-MM-DD format (unambiguous)
   if (/^\d{4}-\d{2}-\d{2}$/.test(cleaned)) {
     return new Date(cleaned);
   }
 
-  // Try MM/DD/YYYY or DD/MM/YYYY
+  // Try MM/DD/YYYY or DD/MM/YYYY with preference
   if (/^\d{2}\/\d{2}\/\d{4}$/.test(cleaned)) {
     const [first, second, year] = cleaned.split('/');
-    // Try MM/DD/YYYY first (US format)
+
+    // Use preferred format if specified
+    if (preferredFormat === 'MM/DD/YYYY') {
+      // Month/Day/Year (US format)
+      const date = new Date(year, parseInt(first) - 1, parseInt(second));
+      if (!isNaN(date.getTime())) {
+        return date;
+      }
+    } else if (preferredFormat === 'DD/MM/YYYY') {
+      // Day/Month/Year (International format)
+      const date = new Date(year, parseInt(second) - 1, parseInt(first));
+      if (!isNaN(date.getTime())) {
+        return date;
+      }
+    }
+
+    // Auto-detect: Try MM/DD/YYYY first (US format), validate month
     const dateUS = new Date(year, parseInt(first) - 1, parseInt(second));
-    if (dateUS.getMonth() === parseInt(first) - 1) {
+    if (dateUS.getMonth() === parseInt(first) - 1 && parseInt(first) <= 12) {
       return dateUS;
     }
+
     // Try DD/MM/YYYY (International format)
     const dateIntl = new Date(year, parseInt(second) - 1, parseInt(first));
-    return dateIntl;
+    if (!isNaN(dateIntl.getTime())) {
+      return dateIntl;
+    }
+
+    return null;
   }
 
-  // Try DD-MM-YYYY or MM-DD-YYYY
+  // Try DD-MM-YYYY or MM-DD-YYYY with preference
   if (/^\d{2}-\d{2}-\d{4}$/.test(cleaned)) {
     const [first, second, year] = cleaned.split('-');
-    // Try MM-DD-YYYY first
+
+    // Use preferred format if specified
+    if (preferredFormat === 'MM/DD/YYYY') {
+      // Month-Day-Year (US format)
+      const date = new Date(year, parseInt(first) - 1, parseInt(second));
+      if (!isNaN(date.getTime())) {
+        return date;
+      }
+    } else if (preferredFormat === 'DD/MM/YYYY') {
+      // Day-Month-Year (International format)
+      const date = new Date(year, parseInt(second) - 1, parseInt(first));
+      if (!isNaN(date.getTime())) {
+        return date;
+      }
+    }
+
+    // Auto-detect: Try MM-DD-YYYY first, validate month
     const dateUS = new Date(year, parseInt(first) - 1, parseInt(second));
-    if (dateUS.getMonth() === parseInt(first) - 1) {
+    if (dateUS.getMonth() === parseInt(first) - 1 && parseInt(first) <= 12) {
       return dateUS;
     }
+
     // Try DD-MM-YYYY
     const dateIntl = new Date(year, parseInt(second) - 1, parseInt(first));
-    return dateIntl;
+    if (!isNaN(dateIntl.getTime())) {
+      return dateIntl;
+    }
+
+    return null;
   }
 
   // Fallback to native Date parsing
@@ -200,9 +246,13 @@ function stripBOM(content) {
  * Parse CSV file content
  *
  * @param {string} fileContent - CSV file content as string
+ * @param {Object} options - Parsing options
+ * @param {string} options.dateFormat - Preferred date format ('auto', 'MM/DD/YYYY', 'DD/MM/YYYY')
  * @returns {Promise<Object>} Parsed transactions and metadata
  */
-export async function parseCSV(fileContent) {
+export async function parseCSV(fileContent, options = {}) {
+  const { dateFormat = 'auto' } = options;
+
   return new Promise((resolve, reject) => {
     // Strip BOM if present (common in Excel-exported CSVs)
     const cleanedContent = stripBOM(fileContent);
@@ -219,7 +269,7 @@ export async function parseCSV(fileContent) {
               try {
                 const retryResult = Papa.parse(fileContent, { delimiter });
                 if (retryResult.data.length > 0) {
-                  return resolve(processCSVData(retryResult.data));
+                  return resolve(processCSVData(retryResult.data, dateFormat));
                 }
               } catch (e) {
                 continue;
@@ -231,7 +281,7 @@ export async function parseCSV(fileContent) {
             return reject(new Error('CSV file is empty'));
           }
 
-          resolve(processCSVData(data));
+          resolve(processCSVData(data, dateFormat));
         } catch (error) {
           reject(error);
         }
@@ -247,8 +297,12 @@ export async function parseCSV(fileContent) {
 
 /**
  * Process parsed CSV data into standardized transaction format
+ *
+ * @param {Array} rows - Parsed CSV rows
+ * @param {string} dateFormat - Preferred date format
+ * @returns {Object} Processed transactions and metadata
  */
-function processCSVData(rows) {
+function processCSVData(rows, dateFormat = 'auto') {
   if (!rows || rows.length === 0) {
     throw new Error('No data found in CSV file');
   }
@@ -288,9 +342,9 @@ function processCSVData(rows) {
     try {
       if (!row || row.length === 0) return;
 
-      // Parse date
+      // Parse date with preferred format
       const dateValue = row[dateIndex];
-      const date = parseDate(dateValue);
+      const date = parseDate(dateValue, dateFormat);
 
       if (!date || isNaN(date.getTime())) {
         errors.push({ row: index + headerIndex + 2, error: 'Invalid date format', value: dateValue });

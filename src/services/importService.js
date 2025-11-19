@@ -14,6 +14,7 @@ import { validateFile, validateTransactions, validateImportConfig } from '../uti
 import { startTimer, logParsing, logDuplicateDetection, logCategorySuggestions, logValidation, logBatchProgress, info, error as logError } from '../utils/importDebug';
 import { createSession, updateProgress, completeSession, failSession, SESSION_STATES, updateSession } from '../utils/importSession';
 import { retryOperation, rollbackImport, CancellationToken, validateImportIntegrity } from '../utils/importResilience';
+import { formatErrorForUser, createErrorSummary, formatValidationErrors } from '../utils/importErrorHandler';
 
 const MAX_BATCH_SIZE = 500; // Firestore batch limit
 const MAX_IMPORT_SIZE = 1000; // User-defined limit
@@ -33,7 +34,11 @@ export async function parseFile(fileUri, fileInfo = null) {
     if (fileInfo) {
       const fileValidation = validateFile(fileInfo);
       if (!fileValidation.isValid) {
-        throw new Error(`File validation failed: ${fileValidation.errors.join(', ')}`);
+        const structuredError = formatErrorForUser(
+          new Error(`File validation failed: ${fileValidation.errors.join(', ')}`),
+          { fileName: fileInfo.name }
+        );
+        throw structuredError;
       }
       if (fileValidation.hasWarnings) {
         info('PARSER', 'File validation warnings', { warnings: fileValidation.warnings });
@@ -48,7 +53,11 @@ export async function parseFile(fileUri, fileInfo = null) {
     );
 
     if (!result.success) {
-      throw new Error(result.error || 'Failed to parse file');
+      const structuredError = formatErrorForUser(
+        new Error(result.error || 'Failed to parse file'),
+        { fileName: fileInfo?.name }
+      );
+      throw structuredError;
     }
 
     // Log parsing result
@@ -62,6 +71,13 @@ export async function parseFile(fileUri, fileInfo = null) {
         logError('PARSER', 'Transaction validation failed', {
           errors: transactionValidation.errors.slice(0, 5),
         });
+
+        // Format validation errors with structured error handler
+        const formattedErrors = formatValidationErrors(
+          transactionValidation.errors,
+          transactionValidation.warnings
+        );
+        result.structuredErrors = formattedErrors;
       }
 
       if (transactionValidation.hasWarnings) {
@@ -80,7 +96,17 @@ export async function parseFile(fileUri, fileInfo = null) {
   } catch (error) {
     timer.end({ error: error.message });
     logError('PARSER', 'File parsing failed', { error: error.message });
-    throw new Error(`File parsing failed: ${error.message}`);
+
+    // If error is already structured, rethrow it; otherwise, format it
+    if (error.type && error.userMessage) {
+      throw error;
+    }
+
+    const structuredError = formatErrorForUser(error, {
+      fileName: fileInfo?.name,
+      operation: 'File parsing'
+    });
+    throw structuredError;
   }
 }
 
@@ -105,12 +131,28 @@ export async function processTransactions(transactions, config) {
   try {
     // Validate config
     if (!config.coupleId || !config.paidBy || !config.partnerId) {
-      throw new Error('Missing required configuration: coupleId, paidBy, or partnerId');
+      const structuredError = formatErrorForUser(
+        new Error('Missing required configuration: coupleId, paidBy, or partnerId'),
+        { operation: 'Transaction processing' }
+      );
+      return {
+        success: false,
+        error: structuredError,
+        expenses: [],
+      };
     }
 
     // Check max import size
     if (transactions.length > MAX_IMPORT_SIZE) {
-      throw new Error(`Too many transactions. Maximum ${MAX_IMPORT_SIZE} allowed, found ${transactions.length}`);
+      const structuredError = formatErrorForUser(
+        new Error(`Too many transactions. Maximum ${MAX_IMPORT_SIZE} allowed, found ${transactions.length}`),
+        { transactionCount: transactions.length, operation: 'Transaction processing' }
+      );
+      return {
+        success: false,
+        error: structuredError,
+        expenses: [],
+      };
     }
 
     let processedTransactions = [...transactions];
@@ -185,9 +227,14 @@ export async function processTransactions(transactions, config) {
       },
     };
   } catch (error) {
+    const structuredError = formatErrorForUser(error, {
+      transactionCount: transactions.length,
+      operation: 'Transaction processing'
+    });
+
     return {
       success: false,
-      error: error.message,
+      error: structuredError,
       expenses: [],
     };
   }
@@ -273,14 +320,28 @@ export async function importSelectedTransactions(
  * @param {Object} options - Import options
  * @param {boolean} options.rollbackOnFailure - Auto-rollback if any batch fails (default: true)
  * @param {string} options.sessionId - Import session ID for tracking
- * @returns {Promise<Object>} Import result
+ * @param {CancellationToken} options.cancellationToken - Token to cancel import operation
+ * @returns {Promise<Object>} Import result with structured errors
  */
 export async function batchImportExpenses(expenses, onProgress = null, options = {}) {
-  const { rollbackOnFailure = true, sessionId = null } = options;
+  const { rollbackOnFailure = true, sessionId = null, cancellationToken = null } = options;
 
   try {
     if (!expenses || expenses.length === 0) {
-      throw new Error('No expenses to import');
+      const structuredError = formatErrorForUser(
+        new Error('No expenses to import'),
+        { operation: 'Batch import' }
+      );
+      throw structuredError;
+    }
+
+    // Check for cancellation
+    if (cancellationToken?.isCancelled()) {
+      const structuredError = formatErrorForUser(
+        new Error('Import cancelled by user'),
+        { operation: 'Batch import' }
+      );
+      throw structuredError;
     }
 
     const totalExpenses = expenses.length;
@@ -297,6 +358,41 @@ export async function batchImportExpenses(expenses, onProgress = null, options =
 
     // Import each batch
     for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+      // Check for cancellation before each batch
+      if (cancellationToken?.isCancelled()) {
+        console.warn(`🛑 Import cancelled at batch ${batchIndex + 1}/${batches.length}`);
+
+        // Rollback imported batches if cancellation occurs
+        if (rollbackOnFailure && importedIds.length > 0) {
+          const rollbackResult = await rollbackImport(sessionId || batchTimestamp, importedIds);
+          return {
+            success: false,
+            error: formatErrorForUser(
+              new Error('Import cancelled by user'),
+              {
+                operation: 'Batch import',
+                importedCount: importedIds.length,
+                rolledBack: rollbackResult.deletedCount
+              }
+            ),
+            importedCount: 0,
+            totalExpenses,
+            importedIds: [],
+            cancelled: true,
+            rolledBack: true,
+            rollbackResult,
+            summary: {
+              requested: totalExpenses,
+              successful: 0,
+              failed: totalExpenses,
+              batches: batches.length,
+              errors: 0,
+              rolledBack: rollbackResult.deletedCount,
+            },
+          };
+        }
+      }
+
       const batchExpenses = batches[batchIndex];
 
       try {
@@ -331,9 +427,17 @@ export async function batchImportExpenses(expenses, onProgress = null, options =
         console.log(`✅ Batch ${batchIndex + 1}/${batches.length} imported (${batchExpenses.length} expenses)`);
       } catch (error) {
         console.error(`❌ Error importing batch ${batchIndex + 1}:`, error);
+
+        const structuredBatchError = formatErrorForUser(error, {
+          operation: 'Batch import',
+          batch: batchIndex + 1,
+          totalBatches: batches.length,
+          batchSize: batchExpenses.length
+        });
+
         errors.push({
           batch: batchIndex + 1,
-          error: error.message,
+          error: structuredBatchError,
           count: batchExpenses.length,
         });
 
@@ -351,9 +455,19 @@ export async function batchImportExpenses(expenses, onProgress = null, options =
             }
 
             // Return failure with rollback info
+            const rollbackError = formatErrorForUser(
+              new Error(`Batch ${batchIndex + 1} failed: ${error.message}. All ${rollbackResult.deletedCount} previously imported expenses have been rolled back.`),
+              {
+                operation: 'Batch import with rollback',
+                batch: batchIndex + 1,
+                importedCount: importedIds.length,
+                rolledBackCount: rollbackResult.deletedCount
+              }
+            );
+
             return {
               success: false,
-              error: `Batch ${batchIndex + 1} failed: ${error.message}. All ${rollbackResult.deletedCount} previously imported expenses have been rolled back.`,
+              error: rollbackError,
               importedCount: 0,
               totalExpenses,
               importedIds: [],
@@ -373,13 +487,23 @@ export async function batchImportExpenses(expenses, onProgress = null, options =
             console.error('❌ Critical: Rollback failed:', rollbackError);
 
             // Return critical error - partial data left in database
+            const criticalError = formatErrorForUser(
+              new Error(`Batch ${batchIndex + 1} failed and rollback also failed. Database may be in inconsistent state. Please contact support with session ID: ${sessionId || batchTimestamp}`),
+              {
+                operation: 'Critical batch import failure',
+                batch: batchIndex + 1,
+                importedCount: importedIds.length,
+                sessionId: sessionId || batchTimestamp
+              }
+            );
+
             return {
               success: false,
-              error: `Batch ${batchIndex + 1} failed and rollback also failed. Database may be in inconsistent state. Please contact support with session ID: ${sessionId || batchTimestamp}`,
+              error: criticalError,
               importedCount: importedIds.length,
               totalExpenses,
               importedIds,
-              errors: [...errors, { error: `Rollback failed: ${rollbackError.message}`, critical: true }],
+              errors: [...errors, { error: formatErrorForUser(rollbackError, { operation: 'Rollback' }), critical: true }],
               rolledBack: false,
               rollbackError: rollbackError.message,
               summary: {
@@ -418,13 +542,21 @@ export async function batchImportExpenses(expenses, onProgress = null, options =
       },
     };
   } catch (error) {
+    // Format the final error with structured error handler
+    const structuredError = error.type && error.userMessage
+      ? error
+      : formatErrorForUser(error, {
+          operation: 'Batch import',
+          expenseCount: expenses?.length || 0
+        });
+
     return {
       success: false,
-      error: error.message,
+      error: structuredError,
       importedCount: 0,
-      totalExpenses: expenses.length,
+      totalExpenses: expenses?.length || 0,
       importedIds: [],
-      errors: [{ error: error.message }],
+      errors: [{ error: structuredError }],
       rolledBack: false,
     };
   }
