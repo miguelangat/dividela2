@@ -19,7 +19,14 @@
     "settlements": "Abrechnungen",
     "settings": "Einstellungen",
     "addExpense": "Ausgabe Hinzufügen",
-    "budgetSetup": "Budget Einrichten"
+    "budgetSetup": "Budget Einrichten",
+    "budget": "Budget",
+    "budgetDashboard": "Budget",
+    "categoryManager": "Kategorien Verwalten",
+    "annualBudget": "Jahresbudget",
+    "settlementHistory": "Abrechnungshistorie",
+    "settlementDetails": "Abrechnungsdetails",
+    "back": "Zurück"
   },
   "home": {
     "greeting": "Hallo, {{name}}!",
@@ -124,5 +131,50 @@
     "permission": "Zugriff verweigert.",
     "notFound": "Nicht gefunden.",
     "timeout": "Zeitüberschreitung. Bitte versuche es erneut."
+  },
+  "auth": {
+    "welcome": {
+      "title": "Dividela",
+      "tagline": "Verfolgen Sie gemeinsame Ausgaben mit Ihrem Partner, mühelos",
+      "getStarted": "Loslegen",
+      "alreadyHaveAccount": "Haben Sie bereits ein Konto?",
+      "signIn": "Anmelden"
+    },
+    "signIn": {
+      "title": "Anmelden",
+      "subtitle": "Willkommen zurück!",
+      "email": "E-Mail",
+      "emailPlaceholder": "ihre@email.com",
+      "password": "Passwort",
+      "passwordPlaceholder": "Geben Sie Ihr Passwort ein",
+      "forgotPassword": "Passwort vergessen?",
+      "signInButton": "Anmelden",
+      "orDivider": "oder",
+      "continueWithApple": "Mit Apple fortfahren",
+      "continueWithGoogle": "Mit Google fortfahren",
+      "dontHaveAccount": "Sie haben kein Konto?",
+      "signUp": "Registrieren",
+      "invalidCredentials": "Ungültige E-Mail oder Passwort. Bitte versuchen Sie es erneut.",
+      "signInError": "Anmeldung fehlgeschlagen. Bitte versuchen Sie es erneut."
+    },
+    "signUp": {
+      "title": "Konto Erstellen",
+      "subtitle": "Treten Sie Dividela bei",
+      "name": "Name",
+      "namePlaceholder": "Ihr Name",
+      "email": "E-Mail",
+      "emailPlaceholder": "ihre@email.com",
+      "password": "Passwort",
+      "passwordPlaceholder": "Erstellen Sie ein Passwort",
+      "acceptTerms": "Ich akzeptiere die Bedingungen und Datenschutzrichtlinien",
+      "termsRequired": "Sie müssen die Bedingungen und Datenschutzrichtlinien akzeptieren",
+      "signUpButton": "Konto Erstellen",
+      "orDivider": "oder",
+      "continueWithApple": "Mit Apple fortfahren",
+      "continueWithGoogle": "Mit Google fortfahren",
+      "alreadyHaveAccount": "Haben Sie bereits ein Konto?",
+      "signIn": "Anmelden",
+      "signUpError": "Konto konnte nicht erstellt werden. Bitte versuchen Sie es erneut."
+    }
   }
 }

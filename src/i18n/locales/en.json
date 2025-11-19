@@ -17,9 +17,16 @@
     "home": "Home",
     "stats": "Stats",
     "settlements": "Settlements",
+    "budget": "Budget",
     "settings": "Settings",
     "addExpense": "Add Expense",
-    "budgetSetup": "Budget Setup"
+    "budgetSetup": "Budget Setup",
+    "budgetDashboard": "Budget",
+    "categoryManager": "Manage Categories",
+    "annualBudget": "Annual Budget",
+    "settlementHistory": "Settlement History",
+    "settlementDetails": "Settlement Details",
+    "back": "Back"
   },
   "home": {
     "greeting": "Hello, {{name}}!",
@@ -117,6 +124,51 @@
     "custom": "Custom Split",
     "save": "Save Expense",
     "delete": "Delete Expense"
+  },
+  "auth": {
+    "welcome": {
+      "title": "Dividela",
+      "tagline": "Track shared expenses with your partner, effortlessly",
+      "getStarted": "Get Started",
+      "alreadyHaveAccount": "Already have an account?",
+      "signIn": "Sign in"
+    },
+    "signIn": {
+      "title": "Sign In",
+      "subtitle": "Welcome back!",
+      "email": "Email",
+      "emailPlaceholder": "your@email.com",
+      "password": "Password",
+      "passwordPlaceholder": "Enter your password",
+      "forgotPassword": "Forgot password?",
+      "signInButton": "Sign In",
+      "orDivider": "or",
+      "continueWithApple": "Continue with Apple",
+      "continueWithGoogle": "Continue with Google",
+      "dontHaveAccount": "Don't have an account?",
+      "signUp": "Sign up",
+      "invalidCredentials": "Invalid email or password. Please try again.",
+      "signInError": "Failed to sign in. Please try again."
+    },
+    "signUp": {
+      "title": "Create Account",
+      "subtitle": "Join Dividela",
+      "name": "Name",
+      "namePlaceholder": "Your name",
+      "email": "Email",
+      "emailPlaceholder": "your@email.com",
+      "password": "Password",
+      "passwordPlaceholder": "Create a password",
+      "acceptTerms": "I accept the terms and privacy policy",
+      "termsRequired": "You must accept the terms and privacy policy",
+      "signUpButton": "Create Account",
+      "orDivider": "or",
+      "continueWithApple": "Continue with Apple",
+      "continueWithGoogle": "Continue with Google",
+      "alreadyHaveAccount": "Already have an account?",
+      "signIn": "Sign in",
+      "signUpError": "Failed to create account. Please try again."
+    }
   },
   "errors": {
     "generic": "An error occurred. Please try again.",

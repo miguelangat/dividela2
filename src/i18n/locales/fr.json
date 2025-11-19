@@ -19,7 +19,14 @@
     "settlements": "Règlements",
     "settings": "Paramètres",
     "addExpense": "Ajouter une Dépense",
-    "budgetSetup": "Configuration du Budget"
+    "budgetSetup": "Configuration du Budget",
+    "budget": "Budget",
+    "budgetDashboard": "Budget",
+    "categoryManager": "Gérer les Catégories",
+    "annualBudget": "Budget Annuel",
+    "settlementHistory": "Historique des Règlements",
+    "settlementDetails": "Détails du Règlement",
+    "back": "Retour"
   },
   "home": {
     "greeting": "Bonjour, {{name}} !",
@@ -124,5 +131,50 @@
     "permission": "Permission refusée.",
     "notFound": "Non trouvé.",
     "timeout": "Délai d'attente dépassé. Veuillez réessayer."
+  },
+  "auth": {
+    "welcome": {
+      "title": "Dividela",
+      "tagline": "Suivez les dépenses partagées avec votre partenaire, sans effort",
+      "getStarted": "Commencer",
+      "alreadyHaveAccount": "Vous avez déjà un compte ?",
+      "signIn": "Se connecter"
+    },
+    "signIn": {
+      "title": "Se Connecter",
+      "subtitle": "Bon retour !",
+      "email": "E-mail",
+      "emailPlaceholder": "votre@email.com",
+      "password": "Mot de Passe",
+      "passwordPlaceholder": "Entrez votre mot de passe",
+      "forgotPassword": "Mot de passe oublié ?",
+      "signInButton": "Se Connecter",
+      "orDivider": "ou",
+      "continueWithApple": "Continuer avec Apple",
+      "continueWithGoogle": "Continuer avec Google",
+      "dontHaveAccount": "Vous n'avez pas de compte ?",
+      "signUp": "S'inscrire",
+      "invalidCredentials": "E-mail ou mot de passe invalide. Veuillez réessayer.",
+      "signInError": "Échec de la connexion. Veuillez réessayer."
+    },
+    "signUp": {
+      "title": "Créer un Compte",
+      "subtitle": "Rejoignez Dividela",
+      "name": "Nom",
+      "namePlaceholder": "Votre nom",
+      "email": "E-mail",
+      "emailPlaceholder": "votre@email.com",
+      "password": "Mot de Passe",
+      "passwordPlaceholder": "Créez un mot de passe",
+      "acceptTerms": "J'accepte les conditions et la politique de confidentialité",
+      "termsRequired": "Vous devez accepter les conditions et la politique de confidentialité",
+      "signUpButton": "Créer un Compte",
+      "orDivider": "ou",
+      "continueWithApple": "Continuer avec Apple",
+      "continueWithGoogle": "Continuer avec Google",
+      "alreadyHaveAccount": "Vous avez déjà un compte ?",
+      "signIn": "Se connecter",
+      "signUpError": "Échec de la création du compte. Veuillez réessayer."
+    }
   }
 }

@@ -19,7 +19,14 @@
     "settlements": "Liquidaciones",
     "settings": "Ajustes",
     "addExpense": "Agregar Gasto",
-    "budgetSetup": "Configurar Presupuesto"
+    "budgetSetup": "Configurar Presupuesto",
+    "budget": "Presupuesto",
+    "budgetDashboard": "Presupuesto",
+    "categoryManager": "Administrar Categorías",
+    "annualBudget": "Presupuesto Anual",
+    "settlementHistory": "Historial de Liquidaciones",
+    "settlementDetails": "Detalles de Liquidación",
+    "back": "Atrás"
   },
   "home": {
     "greeting": "¡Hola, {{name}}!",
@@ -124,5 +131,50 @@
     "permission": "Permiso denegado.",
     "notFound": "No encontrado.",
     "timeout": "Tiempo de espera agotado. Por favor, intenta de nuevo."
+  },
+  "auth": {
+    "welcome": {
+      "title": "Dividela",
+      "tagline": "Rastrea gastos compartidos con tu pareja, sin esfuerzo",
+      "getStarted": "Comenzar",
+      "alreadyHaveAccount": "¿Ya tienes una cuenta?",
+      "signIn": "Iniciar sesión"
+    },
+    "signIn": {
+      "title": "Iniciar Sesión",
+      "subtitle": "¡Bienvenido de nuevo!",
+      "email": "Correo Electrónico",
+      "emailPlaceholder": "tu@correo.com",
+      "password": "Contraseña",
+      "passwordPlaceholder": "Ingresa tu contraseña",
+      "forgotPassword": "¿Olvidaste tu contraseña?",
+      "signInButton": "Iniciar Sesión",
+      "orDivider": "o",
+      "continueWithApple": "Continuar con Apple",
+      "continueWithGoogle": "Continuar con Google",
+      "dontHaveAccount": "¿No tienes una cuenta?",
+      "signUp": "Regístrate",
+      "invalidCredentials": "Correo o contraseña inválidos. Por favor, intenta de nuevo.",
+      "signInError": "Error al iniciar sesión. Por favor, intenta de nuevo."
+    },
+    "signUp": {
+      "title": "Crear Cuenta",
+      "subtitle": "Únete a Dividela",
+      "name": "Nombre",
+      "namePlaceholder": "Tu nombre",
+      "email": "Correo Electrónico",
+      "emailPlaceholder": "tu@correo.com",
+      "password": "Contraseña",
+      "passwordPlaceholder": "Crea una contraseña",
+      "acceptTerms": "Acepto los términos y política de privacidad",
+      "termsRequired": "Debes aceptar los términos y política de privacidad",
+      "signUpButton": "Crear Cuenta",
+      "orDivider": "o",
+      "continueWithApple": "Continuar con Apple",
+      "continueWithGoogle": "Continuar con Google",
+      "alreadyHaveAccount": "¿Ya tienes una cuenta?",
+      "signIn": "Iniciar sesión",
+      "signUpError": "Error al crear la cuenta. Por favor, intenta de nuevo."
+    }
   }
 }

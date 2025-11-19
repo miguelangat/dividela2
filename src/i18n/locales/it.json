@@ -19,7 +19,14 @@
     "settlements": "Pagamenti",
     "settings": "Impostazioni",
     "addExpense": "Aggiungi Spesa",
-    "budgetSetup": "Configurazione Budget"
+    "budgetSetup": "Configurazione Budget",
+    "budget": "Budget",
+    "budgetDashboard": "Budget",
+    "categoryManager": "Gestisci Categorie",
+    "annualBudget": "Budget Annuale",
+    "settlementHistory": "Cronologia Pagamenti",
+    "settlementDetails": "Dettagli Pagamento",
+    "back": "Indietro"
   },
   "home": {
     "greeting": "Ciao, {{name}}!",
@@ -124,5 +131,50 @@
     "permission": "Autorizzazione negata.",
     "notFound": "Non trovato.",
     "timeout": "Timeout della richiesta. Per favore, riprova."
+  },
+  "auth": {
+    "welcome": {
+      "title": "Dividela",
+      "tagline": "Traccia le spese condivise con il tuo partner, senza sforzo",
+      "getStarted": "Inizia",
+      "alreadyHaveAccount": "Hai già un account?",
+      "signIn": "Accedi"
+    },
+    "signIn": {
+      "title": "Accedi",
+      "subtitle": "Bentornato!",
+      "email": "Email",
+      "emailPlaceholder": "tua@email.com",
+      "password": "Password",
+      "passwordPlaceholder": "Inserisci la tua password",
+      "forgotPassword": "Password dimenticata?",
+      "signInButton": "Accedi",
+      "orDivider": "oppure",
+      "continueWithApple": "Continua con Apple",
+      "continueWithGoogle": "Continua con Google",
+      "dontHaveAccount": "Non hai un account?",
+      "signUp": "Registrati",
+      "invalidCredentials": "Email o password non validi. Per favore, riprova.",
+      "signInError": "Accesso fallito. Per favore, riprova."
+    },
+    "signUp": {
+      "title": "Crea Account",
+      "subtitle": "Unisciti a Dividela",
+      "name": "Nome",
+      "namePlaceholder": "Il tuo nome",
+      "email": "Email",
+      "emailPlaceholder": "tua@email.com",
+      "password": "Password",
+      "passwordPlaceholder": "Crea una password",
+      "acceptTerms": "Accetto i termini e la politica sulla privacy",
+      "termsRequired": "Devi accettare i termini e la politica sulla privacy",
+      "signUpButton": "Crea Account",
+      "orDivider": "oppure",
+      "continueWithApple": "Continua con Apple",
+      "continueWithGoogle": "Continua con Google",
+      "alreadyHaveAccount": "Hai già un account?",
+      "signIn": "Accedi",
+      "signUpError": "Creazione account fallita. Per favore, riprova."
+    }
   }
 }

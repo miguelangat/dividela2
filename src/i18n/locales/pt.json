@@ -19,7 +19,14 @@
     "settlements": "Acertos",
     "settings": "Configurações",
     "addExpense": "Adicionar Despesa",
-    "budgetSetup": "Configurar Orçamento"
+    "budgetSetup": "Configurar Orçamento",
+    "budget": "Orçamento",
+    "budgetDashboard": "Orçamento",
+    "categoryManager": "Gerenciar Categorias",
+    "annualBudget": "Orçamento Anual",
+    "settlementHistory": "Histórico de Acertos",
+    "settlementDetails": "Detalhes do Acerto",
+    "back": "Voltar"
   },
   "home": {
     "greeting": "Olá, {{name}}!",
@@ -124,5 +131,50 @@
     "permission": "Permissão negada.",
     "notFound": "Não encontrado.",
     "timeout": "Tempo limite excedido. Por favor, tente novamente."
+  },
+  "auth": {
+    "welcome": {
+      "title": "Dividela",
+      "tagline": "Rastreie despesas compartilhadas com seu parceiro, sem esforço",
+      "getStarted": "Começar",
+      "alreadyHaveAccount": "Já tem uma conta?",
+      "signIn": "Entrar"
+    },
+    "signIn": {
+      "title": "Entrar",
+      "subtitle": "Bem-vindo de volta!",
+      "email": "E-mail",
+      "emailPlaceholder": "seu@email.com",
+      "password": "Senha",
+      "passwordPlaceholder": "Digite sua senha",
+      "forgotPassword": "Esqueceu a senha?",
+      "signInButton": "Entrar",
+      "orDivider": "ou",
+      "continueWithApple": "Continuar com Apple",
+      "continueWithGoogle": "Continuar com Google",
+      "dontHaveAccount": "Não tem uma conta?",
+      "signUp": "Cadastre-se",
+      "invalidCredentials": "E-mail ou senha inválidos. Por favor, tente novamente.",
+      "signInError": "Falha ao entrar. Por favor, tente novamente."
+    },
+    "signUp": {
+      "title": "Criar Conta",
+      "subtitle": "Junte-se ao Dividela",
+      "name": "Nome",
+      "namePlaceholder": "Seu nome",
+      "email": "E-mail",
+      "emailPlaceholder": "seu@email.com",
+      "password": "Senha",
+      "passwordPlaceholder": "Crie uma senha",
+      "acceptTerms": "Aceito os termos e política de privacidade",
+      "termsRequired": "Você deve aceitar os termos e política de privacidade",
+      "signUpButton": "Criar Conta",
+      "orDivider": "ou",
+      "continueWithApple": "Continuar com Apple",
+      "continueWithGoogle": "Continuar com Google",
+      "alreadyHaveAccount": "Já tem uma conta?",
+      "signIn": "Entrar",
+      "signUpError": "Falha ao criar conta. Por favor, tente novamente."
+    }
   }
 }

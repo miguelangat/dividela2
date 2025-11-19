@@ -532,7 +532,7 @@ export default function HomeScreen({ navigation }) {
         onPress={() => setExpenseFilter('active')}
       >
         <Text style={[styles.filterButtonText, expenseFilter === 'active' && styles.filterButtonTextActive]}>
-          Active ({unsettledCount})
+          {t('home.active')} ({unsettledCount})
         </Text>
       </TouchableOpacity>
 
@@ -541,7 +541,7 @@ export default function HomeScreen({ navigation }) {
         onPress={() => setExpenseFilter('all')}
       >
         <Text style={[styles.filterButtonText, expenseFilter === 'all' && styles.filterButtonTextActive]}>
-          All ({expenses.length})
+          {t('home.all')} ({expenses.length})
         </Text>
       </TouchableOpacity>
 
@@ -550,7 +550,7 @@ export default function HomeScreen({ navigation }) {
         onPress={() => setExpenseFilter('settled')}
       >
         <Text style={[styles.filterButtonText, expenseFilter === 'settled' && styles.filterButtonTextActive]}>
-          Settled ({settledCount})
+          {t('home.settled')} ({settledCount})
         </Text>
       </TouchableOpacity>
     </View>
