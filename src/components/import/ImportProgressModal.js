@@ -1,28 +1,31 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Modal, Portal, Text, ProgressBar, ActivityIndicator } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import { theme } from '../../constants/theme';
 
 /**
  * Modal showing import progress
  */
 export default function ImportProgressModal({ visible, progress, onDismiss }) {
+  const { t } = useTranslation();
+
   const getStepText = (step) => {
     switch (step) {
       case 'parsing':
-        return 'Parsing bank statement...';
+        return t('import.progress.parsing');
       case 'checking_duplicates':
-        return 'Checking for duplicates...';
+        return t('import.progress.processing');
       case 'processing':
-        return 'Processing transactions...';
+        return t('import.progress.processing');
       case 'importing':
-        return 'Importing expenses...';
+        return t('import.progress.importing');
       default:
-        return 'Processing...';
+        return t('import.progress.processing');
     }
   };
 
-  const stepText = progress?.step ? getStepText(progress.step) : 'Processing...';
+  const stepText = progress?.step ? getStepText(progress.step) : t('import.progress.processing');
   const progressValue = progress?.progress ? progress.progress / 100 : 0;
   const showProgress = progress?.step === 'importing' && progress?.total > 0;
 
@@ -47,7 +50,7 @@ export default function ImportProgressModal({ visible, progress, onDismiss }) {
                 style={styles.progressBar}
               />
               <Text style={styles.progressText}>
-                {progress.current} / {progress.total} expenses
+                {progress.current} / {progress.total} {t('import.progress.almostDone')}
               </Text>
             </View>
           ) : (
@@ -58,7 +61,7 @@ export default function ImportProgressModal({ visible, progress, onDismiss }) {
             />
           )}
 
-          <Text style={styles.subtitle}>Please wait...</Text>
+          <Text style={styles.subtitle}>{t('import.progress.almostDone')}</Text>
         </View>
       </Modal>
     </Portal>
