@@ -280,11 +280,45 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
 
       // Complete onboarding and save budget
       // Pass budget data explicitly to avoid React state timing issues
+      // Reconstruct categoryBudgets and monthlyIncome from finalData
+      const isAnnual = finalData.mode === 'annual';
+      const divisor = isAnnual ? 12 : 1;
+
+      const categoryBudgets = {};
+      if (finalData.allocations) {
+        Object.entries(finalData.allocations).forEach(([key, value]) => {
+          categoryBudgets[key] = value / divisor;
+        });
+      }
+
+      const monthlyIncome = (finalData.totalBudget || 0) / divisor;
+
       const explicitBudgetData = {
         categoryBudgets,
         monthlyIncome,
         annualBudgets: [],
       };
+
+      console.log('📦 Explicit budget data:', JSON.stringify(explicitBudgetData, null, 2));
+
+      // Validate that we have the necessary data
+      if (!explicitBudgetData.categoryBudgets || Object.keys(explicitBudgetData.categoryBudgets).length === 0) {
+        console.error('❌ Category budgets not defined');
+        alert('Error: Category budgets are not defined. Please go back and ensure all categories have budget values.');
+        setCompleting(false);
+        setCompletionAttempted(false);
+        return;
+      }
+
+      if (!explicitBudgetData.monthlyIncome || explicitBudgetData.monthlyIncome <= 0) {
+        console.error('❌ Monthly income not defined');
+        alert('Error: Monthly income is not defined. Please go back and enter your budget.');
+        setCompleting(false);
+        setCompletionAttempted(false);
+        return;
+      }
+
+      console.log('✅ Budget data validation passed');
 
       const success = await completeOnboarding(budgetCategories, explicitBudgetData);
 

@@ -276,9 +276,9 @@ export const OnboardingProvider = ({ children }) => {
    * @param {object} explicitBudgetData - Optional explicit budget data to override context state
    * @returns {Promise<boolean>} Success status
    */
-  const completeOnboarding = useCallback(async (categoriesObj) => {
+  const completeOnboarding = useCallback(async (categoriesObj, explicitBudgetData = null) => {
     console.log('🟦 === completeOnboarding FUNCTION CALLED ===');
-    console.log('🟦 Arguments:', { categoriesObj });
+    console.log('🟦 Arguments:', { categoriesObj, explicitBudgetData });
     console.log('🟦 coupleId:', coupleId);
     console.log('🟦 selectedMode:', selectedMode);
     console.log('🟦 budgetData:', JSON.stringify(budgetData, null, 2));
