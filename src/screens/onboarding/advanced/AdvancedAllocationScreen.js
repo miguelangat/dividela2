@@ -16,10 +16,12 @@ import { StatusBar } from 'expo-status-bar';
 import Slider from '@react-native-community/slider';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES, SHADOWS } from '../../../constants/theme';
 import { useTranslation } from 'react-i18next';
+import { useOnboarding } from '../../../contexts/OnboardingContext';
 
 export default function AdvancedAllocationScreen({ navigation, route }) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const { setMonthlyIncome, setCategoryBudgets, setMode } = useOnboarding();
   const { categoriesData } = route.params || {};
   const { mode, annualAmount, monthlyAmount, selectedCategories } = categoriesData || {};
 
@@ -71,6 +73,28 @@ export default function AdvancedAllocationScreen({ navigation, route }) {
       alert(t('onboarding.advanced.allocation.validationError'));
       return;
     }
+
+    // Calculate monthly income (important for validation in completeOnboarding)
+    const calculatedMonthlyIncome = mode === 'annual' ? annualAmount / 12 : monthlyAmount;
+
+    // Convert annual allocations to monthly for context storage
+    // Note: totalBudget is always annual (see line 28), so allocations are always annual
+    // We need to store monthly values in context for validation
+    const monthlyAllocations = {};
+    Object.entries(allocations).forEach(([key, value]) => {
+      monthlyAllocations[key] = Math.round(value / 12);
+    });
+
+    console.log('💾 Saving budget data to OnboardingContext...');
+    console.log('Monthly Income:', calculatedMonthlyIncome);
+    console.log('Monthly Category Budgets:', monthlyAllocations);
+    console.log('Annual Allocations:', allocations);
+
+    // CRITICAL: Save to OnboardingContext so completeOnboarding can validate
+    // Store monthly values since validation checks monthlyIncome vs categoryBudgets
+    setMode('advanced'); // Set the onboarding complexity mode
+    setMonthlyIncome(calculatedMonthlyIncome);
+    setCategoryBudgets(monthlyAllocations);
 
     const allocationData = {
       ...categoriesData,
