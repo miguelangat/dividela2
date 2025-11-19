@@ -276,17 +276,28 @@ export const OnboardingProvider = ({ children }) => {
    * @returns {Promise<boolean>} Success status
    */
   const completeOnboarding = useCallback(async (categoriesObj) => {
+    console.log('🟦 === completeOnboarding FUNCTION CALLED ===');
+    console.log('🟦 Arguments:', { categoriesObj });
+    console.log('🟦 coupleId:', coupleId);
+    console.log('🟦 selectedMode:', selectedMode);
+    console.log('🟦 budgetData:', JSON.stringify(budgetData, null, 2));
+
     if (!coupleId) {
+      console.error('❌ No couple ID found');
       setError('No couple ID found');
       return false;
     }
+    console.log('✅ coupleId check passed');
 
     setLoading(true);
     setError(null);
+    console.log('🟦 Loading set to true, starting try block...');
 
     try {
+      console.log('🟦 Inside try block');
       // For 'none' mode, just mark as complete
       if (selectedMode === COMPLEXITY_MODES.NONE || selectedMode === 'skip') {
+        console.log('🟦 Mode is NONE or skip');
         setCompletion({
           isComplete: true,
           completedAt: new Date(),
@@ -315,15 +326,20 @@ export const OnboardingProvider = ({ children }) => {
       }
 
       // Validate budget before saving
+      console.log('🟦 About to validate budget...');
       const validation = validateBudget();
+      console.log('🟦 Validation result:', validation);
       if (!validation.isValid) {
+        console.error('❌ Budget validation failed:', validation.errors);
         setError(validation.errors[0]?.message || 'Budget validation failed');
         setLoading(false);
         return false;
       }
+      console.log('✅ Budget validation passed');
 
       // Save budget with complexity mode (network operation)
       const { month, year } = getCurrentMonthYear();
+      console.log('🟦 About to save budget:', { month, year, coupleId });
       try {
         await saveBudget(
           coupleId,
@@ -338,8 +354,9 @@ export const OnboardingProvider = ({ children }) => {
             canAutoAdjust: false,
           }
         );
+        console.log('✅ Budget saved successfully to Firebase');
       } catch (budgetError) {
-        console.error('Failed to save budget:', budgetError);
+        console.error('❌ Failed to save budget:', budgetError);
         // Check if it's a network error
         if (budgetError.message?.includes('network') || budgetError.message?.includes('offline')) {
           setError('Network error - please check your connection and try again');
@@ -350,16 +367,20 @@ export const OnboardingProvider = ({ children }) => {
         return false;
       }
 
+      console.log('🟦 Setting completion state...');
       setCompletion({
         isComplete: true,
         completedAt: new Date(),
       });
+      console.log('✅ Completion state set');
 
       // Persist completion to AsyncStorage with error handling
+      console.log('🟦 About to persist to AsyncStorage...');
       try {
         await onboardingStorage.setCompleted(coupleId);
-        console.log('✅ Onboarding completed successfully');
+        console.log('✅ Onboarding completed successfully - AsyncStorage updated');
       } catch (storageError) {
+        console.error('❌ Failed to save completion status to storage:', storageError);
         // Log error but don't fail since budget was saved successfully
         console.error('Failed to save completion status to storage:', storageError);
         if (storageError instanceof StorageError) {
@@ -368,10 +389,14 @@ export const OnboardingProvider = ({ children }) => {
         // Still consider it successful since the budget was saved to Firebase
       }
 
+      console.log('🟦 Setting loading to false...');
       setLoading(false);
+      console.log('✅ completeOnboarding returning TRUE');
       return true;
     } catch (err) {
-      console.error('Error completing onboarding:', err);
+      console.error('❌ ERROR in completeOnboarding catch block:', err);
+      console.error('❌ Error type:', typeof err);
+      console.error('❌ Error stack:', err.stack);
       setError(err.message || 'Unknown error occurred');
       setLoading(false);
       return false;
