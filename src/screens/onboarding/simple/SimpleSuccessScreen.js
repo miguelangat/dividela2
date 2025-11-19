@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { CommonActions } from '@react-navigation/native';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES, SHADOWS } from '../../../constants/theme';
 import { useOnboarding } from '../../../contexts/OnboardingContext';
 import { useBudget } from '../../../contexts/BudgetContext';
@@ -137,7 +138,44 @@ export default function SimpleSuccessScreen({ navigation, route }) {
 
       if (success) {
         console.log('✅ Simple onboarding completed successfully');
-        console.log('⏳ Waiting for AppNavigator to detect completion (polls every 2 seconds)...');
+        console.log('🚀 Resetting navigation to MainTabs > HomeTab...');
+
+        // Use setTimeout to ensure AsyncStorage write completes
+        setTimeout(() => {
+          try {
+            // Get root navigator (go up 2 levels)
+            const onboardingStack = navigation.getParent();
+            const rootNav = onboardingStack?.getParent();
+
+            if (rootNav) {
+              console.log('📍 [SimpleSuccess] Resetting navigation state...');
+
+              // Use reset action to completely replace navigation state
+              // This forces a clean navigation to MainTabs with HomeTab selected
+              rootNav.dispatch(
+                CommonActions.reset({
+                  index: 0,
+                  routes: [
+                    {
+                      name: 'MainTabs',
+                      state: {
+                        routes: [{ name: 'HomeTab' }],
+                        index: 0,
+                      },
+                    },
+                  ],
+                })
+              );
+
+              console.log('✅ [SimpleSuccess] Navigation reset complete');
+            } else {
+              console.log('⚠️ [SimpleSuccess] Could not get root navigator');
+            }
+          } catch (error) {
+            console.error('❌ [SimpleSuccess] Navigation reset error:', error);
+          }
+        }, 500);
+
         // Keep completion flag set to prevent further attempts
       } else {
         console.error('❌ Onboarding completion returned false');

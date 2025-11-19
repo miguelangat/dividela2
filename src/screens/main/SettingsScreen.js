@@ -327,10 +327,7 @@ export default function SettingsScreen({ navigation }) {
 
         <TouchableOpacity
           style={[styles.settingRow, styles.settingRowLast]}
-          onPress={() => {
-            console.log('🔴 BUTTON ONPRESS FIRED');
-            handleRestartOnboarding();
-          }}
+          onPress={handleRestartOnboarding}
           activeOpacity={0.6}
         >
           <View style={styles.settingIcon}>
@@ -545,6 +542,46 @@ export default function SettingsScreen({ navigation }) {
                 onPress={confirmRestartOnboarding}
               >
                 <Text style={styles.modalButtonTextPrimary}>{t('settings.restart')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Restart Onboarding Confirmation Modal */}
+      <Modal
+        visible={restartOnboardingModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setRestartOnboardingModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="refresh" size={32} color={COLORS.primary} />
+            </View>
+
+            <Text style={styles.modalTitle}>Restart Budget Onboarding</Text>
+            <Text style={styles.modalMessage}>
+              This will take you through the budget setup process again. Your current budget will be replaced.
+            </Text>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonSecondary]}
+                onPress={() => {
+                  console.log('Restart onboarding cancelled');
+                  setRestartOnboardingModalVisible(false);
+                }}
+              >
+                <Text style={styles.modalButtonTextSecondary}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonPrimary]}
+                onPress={confirmRestartOnboarding}
+              >
+                <Text style={styles.modalButtonTextPrimary}>Restart</Text>
               </TouchableOpacity>
             </View>
           </View>

@@ -273,6 +273,7 @@ export const OnboardingProvider = ({ children }) => {
   /**
    * Complete onboarding and save budget
    * @param {object} categoriesObj - Categories object from BudgetContext
+   * @param {object} explicitBudgetData - Optional explicit budget data to override context state
    * @returns {Promise<boolean>} Success status
    */
   const completeOnboarding = useCallback(async (categoriesObj) => {
@@ -292,6 +293,15 @@ export const OnboardingProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     console.log('🟦 Loading set to true, starting try block...');
+
+    // Use explicit budget data if provided, otherwise fall back to context state
+    const effectiveBudgetData = explicitBudgetData || budgetData;
+
+    console.log('');
+    console.log('🔍 [completeOnboarding] Starting...');
+    console.log('explicitBudgetData provided:', !!explicitBudgetData);
+    console.log('effectiveBudgetData:', effectiveBudgetData);
+    console.log('');
 
     try {
       console.log('🟦 Inside try block');
@@ -337,6 +347,8 @@ export const OnboardingProvider = ({ children }) => {
       }
       console.log('✅ Budget validation passed');
 
+      console.log('✅ Validation passed!');
+
       // Save budget with complexity mode (network operation)
       const { month, year } = getCurrentMonthYear();
       console.log('🟦 About to save budget:', { month, year, coupleId });
@@ -345,11 +357,11 @@ export const OnboardingProvider = ({ children }) => {
           coupleId,
           month,
           year,
-          budgetData.categoryBudgets,
+          effectiveBudgetData.categoryBudgets,
           {
             enabled: true,
             complexity: selectedMode,
-            autoCalculated: budgetData.autoCalculated || false,
+            autoCalculated: effectiveBudgetData.autoCalculated || false,
             onboardingMode: selectedMode,
             canAutoAdjust: false,
           }

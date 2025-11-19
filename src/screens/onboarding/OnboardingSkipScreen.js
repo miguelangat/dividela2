@@ -13,6 +13,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
+import { CommonActions } from '@react-navigation/native';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES } from '../../constants/theme';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import { useTranslation } from 'react-i18next';
@@ -72,9 +73,44 @@ export default function OnboardingSkipScreen({ navigation }) {
       const success = await completeOnboarding(null);
 
       if (success) {
-        // AppNavigator will automatically navigate to MainTabs
-        // after onboarding is marked as complete
-        console.log('Onboarding skipped successfully');
+        console.log('✅ Onboarding skipped successfully');
+        console.log('🚀 Resetting navigation to MainTabs > HomeTab...');
+
+        // Use setTimeout to ensure AsyncStorage write completes
+        setTimeout(() => {
+          try {
+            // Get root navigator (go up 2 levels)
+            const onboardingStack = navigation.getParent();
+            const rootNav = onboardingStack?.getParent();
+
+            if (rootNav) {
+              console.log('📍 [OnboardingSkip] Resetting navigation state...');
+
+              // Use reset action to completely replace navigation state
+              // This forces a clean navigation to MainTabs with HomeTab selected
+              rootNav.dispatch(
+                CommonActions.reset({
+                  index: 0,
+                  routes: [
+                    {
+                      name: 'MainTabs',
+                      state: {
+                        routes: [{ name: 'HomeTab' }],
+                        index: 0,
+                      },
+                    },
+                  ],
+                })
+              );
+
+              console.log('✅ [OnboardingSkip] Navigation reset complete');
+            } else {
+              console.log('⚠️ [OnboardingSkip] Could not get root navigator');
+            }
+          } catch (error) {
+            console.error('❌ [OnboardingSkip] Navigation reset error:', error);
+          }
+        }, 500);
 
         // Keep completion flag set to prevent further attempts
         // Don't reset completing state to keep UI disabled
