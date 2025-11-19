@@ -78,10 +78,27 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
     }))
   ).current;
 
+  // Log component mount and received data
+  useEffect(() => {
+    console.log('');
+    console.log('========================================');
+    console.log('🎬 [AdvancedSuccess] Component Mounted');
+    console.log('========================================');
+    console.log('📦 Route params:', route.params);
+    console.log('📦 finalData:', finalData);
+    console.log('✅ isDataValid:', isDataValid);
+    console.log('========================================');
+    console.log('');
+  }, []);
+
   useEffect(() => {
     // Check if data is valid before proceeding
     if (!isDataValid) {
-      console.error('Invalid data detected - navigation back to previous screen');
+      console.error('❌ [AdvancedSuccess] Invalid data detected');
+      console.error('mode:', mode);
+      console.error('totalBudget:', totalBudget);
+      console.error('selectedCategories:', selectedCategories);
+      console.error('finalData:', finalData);
       // Could navigate back or show error
       // For now, just log - animations won't run
       return;
@@ -160,33 +177,48 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
   // CRITICAL: Initialize context with budget data from params
   // This is required for completeOnboarding() to work properly
   useEffect(() => {
+    console.log('');
+    console.log('========================================');
+    console.log('🔄 [AdvancedSuccess] Context Initialization useEffect Running');
+    console.log('========================================');
+    console.log('isDataValid:', isDataValid);
+    console.log('finalData:', finalData);
+    console.log('contextBudgetData:', contextBudgetData);
+
     if (!isDataValid || !finalData) {
       console.error('❌ [AdvancedSuccess] Cannot initialize context - invalid data');
+      console.error('isDataValid:', isDataValid);
+      console.error('finalData:', finalData);
       return;
     }
 
     // Check if context already has budget data
     if (contextBudgetData?.monthlyIncome > 0 && Object.keys(contextBudgetData?.categoryBudgets || {}).length > 0) {
       console.log('✅ [AdvancedSuccess] Context already has budget data');
+      console.log('contextBudgetData.monthlyIncome:', contextBudgetData.monthlyIncome);
+      console.log('contextBudgetData.categoryBudgets keys:', Object.keys(contextBudgetData.categoryBudgets));
       return;
     }
 
     console.log('⚠️ [AdvancedSuccess] Context data empty, setting from params...');
-    console.log('Final Data:', JSON.stringify(finalData, null, 2));
+    console.log('📦 Final Data received:', JSON.stringify(finalData, null, 2));
 
     try {
       // Transform allocations into categoryBudgets format
       // allocations is { categoryKey: annualAmount, ... }
       const categoryBudgets = {};
       if (finalData.allocations) {
+        console.log('📊 Allocations from finalData:', finalData.allocations);
         Object.entries(finalData.allocations).forEach(([key, value]) => {
           categoryBudgets[key] = value;
         });
+      } else {
+        console.error('❌ No allocations in finalData!');
       }
 
-      console.log('Setting category budgets:', categoryBudgets);
-      console.log('Setting total budget:', finalData.totalBudget);
-      console.log('Setting mode:', finalData.mode || 'advanced');
+      console.log('💾 Setting category budgets:', categoryBudgets);
+      console.log('💾 Setting total budget (monthlyIncome):', finalData.totalBudget);
+      console.log('💾 Setting mode:', finalData.mode || 'advanced');
 
       // Set budget data in context
       setCategoryBudgets(categoryBudgets);
@@ -194,30 +226,48 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
       setMode(finalData.mode || 'advanced');
 
       console.log('✅ [AdvancedSuccess] Context data initialized successfully');
+      console.log('========================================');
+      console.log('');
     } catch (error) {
       console.error('❌ [AdvancedSuccess] Error setting context data:', error);
+      console.error('Error stack:', error.stack);
     }
   }, [finalData, isDataValid, contextBudgetData, setCategoryBudgets, setMonthlyIncome, setMode]);
 
   const handleGoToDashboard = async () => {
+    console.log('');
+    console.log('========================================');
+    console.log('🔵 [AdvancedSuccess] GO TO DASHBOARD CLICKED');
+    console.log('========================================');
+
     // Double-tap prevention: Check if already completing or recently completed
     if (completing || completionAttempted) {
-      console.log('Preventing duplicate completion attempt');
+      console.log('⚠️ Preventing duplicate completion attempt');
       return;
     }
 
     // Validate data before attempting completion
     if (!isDataValid) {
-      console.error('Cannot complete onboarding with invalid data');
+      console.error('❌ Cannot complete onboarding with invalid data');
+      console.error('finalData:', finalData);
       return;
     }
+
+    console.log('✅ Data validation passed');
+    console.log('📊 Final Data:', JSON.stringify(finalData, null, 2));
+    console.log('📊 Context Budget Data:', JSON.stringify(contextBudgetData, null, 2));
+    console.log('📊 Budget Categories from Context:', budgetCategories);
 
     setCompleting(true);
     setCompletionAttempted(true);
 
     try {
+      console.log('🚀 Calling completeOnboarding...');
+
       // Complete onboarding and save budget
       const success = await completeOnboarding(budgetCategories);
+
+      console.log('📝 completeOnboarding returned:', success);
 
       if (success) {
         console.log('✅ Advanced onboarding completed successfully');
@@ -262,12 +312,27 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
         // Keep completion flag set to prevent further attempts
         // Don't reset completing state to keep UI disabled
       } else {
+        console.error('');
+        console.error('❌❌❌ COMPLETION FAILED ❌❌❌');
+        console.error('completeOnboarding returned false');
+        console.error('This means validation or save failed');
+        console.error('Check OnboardingContext logs above for details');
+        console.error('');
+
         // Reset if not successful to allow retry
         setCompleting(false);
         setCompletionAttempted(false);
+        alert('Failed to complete onboarding. Check browser console for details.');
       }
     } catch (error) {
+      console.error('');
+      console.error('❌❌❌ EXCEPTION IN COMPLETION ❌❌❌');
       console.error('Error completing advanced onboarding:', error);
+      console.error('Error stack:', error.stack);
+      console.error('');
+
+      alert(`Error: ${error.message}`);
+
       // Reset on error to allow retry
       setCompleting(false);
 
