@@ -14,9 +14,11 @@ import {
   Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialCommunityIcons, AntDesign } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { validateEmail, validatePassword, validateDisplayName } from '../../utils/validators';
-import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES } from '../../constants/theme';
+import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES, SHADOWS } from '../../constants/theme';
 
 export default function SignUpScreen({ navigation }) {
   const { signUp, signInWithGoogle, signInWithApple } = useAuth();
@@ -113,61 +115,122 @@ export default function SignUpScreen({ navigation }) {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <StatusBar style="dark" />
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={handleBackPress} style={styles.backButton} activeOpacity={0.6}>
-            <Text style={styles.backButtonText}>← Back</Text>
+      <StatusBar style="light" />
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Gradient Header */}
+        <LinearGradient
+          colors={[COLORS.gradientStart, COLORS.gradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.gradientHeader}
+        >
+          {/* Back Button */}
+          <TouchableOpacity
+            onPress={handleBackPress}
+            style={styles.backButton}
+            activeOpacity={0.7}
+          >
+            <MaterialCommunityIcons name="arrow-left" size={24} color={COLORS.textWhite} />
+            <Text style={styles.backButtonText}>Back</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Create Account</Text>
-        </View>
 
-        {/* Form */}
-        <View style={styles.form}>
+          {/* Header Content */}
+          <View style={styles.headerContent}>
+            <MaterialCommunityIcons
+              name="account-plus"
+              size={60}
+              color={COLORS.textWhite}
+              style={styles.headerIcon}
+            />
+            <Text style={styles.headerTitle}>Create Account</Text>
+            <Text style={styles.headerSubtitle}>Join Dividela today</Text>
+          </View>
+        </LinearGradient>
+
+        {/* Form Card */}
+        <View style={styles.formCard}>
+          {/* General Error */}
+          {errors.general && (
+            <View style={styles.generalErrorContainer}>
+              <MaterialCommunityIcons name="alert-circle" size={20} color={COLORS.error} />
+              <Text style={styles.generalErrorText}>{errors.general}</Text>
+            </View>
+          )}
+
           {/* Name Input */}
           <View style={styles.formGroup}>
             <Text style={styles.label}>Name</Text>
-            <TextInput
-              style={[styles.input, errors.name && styles.inputError]}
-              placeholder="Your name"
-              value={name}
-              onChangeText={setName}
-              autoCapitalize="words"
-              autoCorrect={false}
-            />
+            <View style={[styles.inputContainer, errors.name && styles.inputError]}>
+              <MaterialCommunityIcons
+                name="account-outline"
+                size={20}
+                color={errors.name ? COLORS.error : COLORS.textSecondary}
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Your name"
+                placeholderTextColor={COLORS.textTertiary}
+                value={name}
+                onChangeText={setName}
+                autoCapitalize="words"
+                autoCorrect={false}
+              />
+            </View>
             {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
           </View>
 
           {/* Email Input */}
           <View style={styles.formGroup}>
             <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={[styles.input, errors.email && styles.inputError]}
-              placeholder="your@email.com"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoComplete="email"
-            />
+            <View style={[styles.inputContainer, errors.email && styles.inputError]}>
+              <MaterialCommunityIcons
+                name="email-outline"
+                size={20}
+                color={errors.email ? COLORS.error : COLORS.textSecondary}
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="your@email.com"
+                placeholderTextColor={COLORS.textTertiary}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="email"
+              />
+            </View>
             {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
           </View>
 
           {/* Password Input */}
           <View style={styles.formGroup}>
             <Text style={styles.label}>Password</Text>
-            <TextInput
-              style={[styles.input, errors.password && styles.inputError]}
-              placeholder="At least 8 characters"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoComplete="password-new"
-            />
+            <View style={[styles.inputContainer, errors.password && styles.inputError]}>
+              <MaterialCommunityIcons
+                name="lock-outline"
+                size={20}
+                color={errors.password ? COLORS.error : COLORS.textSecondary}
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="At least 8 characters"
+                placeholderTextColor={COLORS.textTertiary}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="password-new"
+              />
+            </View>
             {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
           </View>
 
@@ -187,13 +250,6 @@ export default function SignUpScreen({ navigation }) {
           </TouchableOpacity>
           {errors.terms && <Text style={styles.errorText}>{errors.terms}</Text>}
 
-          {/* General Error */}
-          {errors.general && (
-            <View style={styles.generalErrorContainer}>
-              <Text style={styles.generalErrorText}>{errors.general}</Text>
-            </View>
-          )}
-
           {/* Submit Button */}
           <TouchableOpacity
             style={[styles.submitButton, loading && styles.submitButtonDisabled]}
@@ -201,11 +257,18 @@ export default function SignUpScreen({ navigation }) {
             disabled={loading}
             activeOpacity={0.8}
           >
-            {loading ? (
-              <ActivityIndicator color={COLORS.textWhite} />
-            ) : (
-              <Text style={styles.submitButtonText}>Create Account</Text>
-            )}
+            <LinearGradient
+              colors={[COLORS.gradientStart, COLORS.gradientEnd]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.submitButtonGradient}
+            >
+              {loading ? (
+                <ActivityIndicator color={COLORS.textWhite} />
+              ) : (
+                <Text style={styles.submitButtonText}>Create Account</Text>
+              )}
+            </LinearGradient>
           </TouchableOpacity>
 
           {/* Divider */}
@@ -217,28 +280,38 @@ export default function SignUpScreen({ navigation }) {
 
           {/* Social Sign In Buttons */}
           <TouchableOpacity
-            style={[styles.socialButton, socialLoading === 'apple' && styles.submitButtonDisabled]}
-            activeOpacity={0.8}
-            onPress={handleAppleSignIn}
-            disabled={socialLoading !== null}
-          >
-            {socialLoading === 'apple' ? (
-              <ActivityIndicator color={COLORS.primary} />
-            ) : (
-              <Text style={styles.socialButtonText}>Continue with Apple</Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.socialButton, socialLoading === 'google' && styles.submitButtonDisabled]}
+            style={[styles.socialButton, styles.googleButton, socialLoading === 'google' && styles.submitButtonDisabled]}
             activeOpacity={0.8}
             onPress={handleGoogleSignIn}
             disabled={socialLoading !== null}
           >
             {socialLoading === 'google' ? (
-              <ActivityIndicator color={COLORS.primary} />
+              <ActivityIndicator color="#DB4437" />
             ) : (
-              <Text style={styles.socialButtonText}>Continue with Google</Text>
+              <>
+                <View style={styles.socialIconContainer}>
+                  <AntDesign name="google" size={20} color="#DB4437" />
+                </View>
+                <Text style={styles.socialButtonText}>Continue with Google</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.socialButton, styles.appleButton, socialLoading === 'apple' && styles.submitButtonDisabled]}
+            activeOpacity={0.8}
+            onPress={handleAppleSignIn}
+            disabled={socialLoading !== null}
+          >
+            {socialLoading === 'apple' ? (
+              <ActivityIndicator color="#000000" />
+            ) : (
+              <>
+                <View style={styles.socialIconContainer}>
+                  <AntDesign name="apple1" size={20} color="#000000" />
+                </View>
+                <Text style={styles.socialButtonText}>Continue with Apple</Text>
+              </>
             )}
           </TouchableOpacity>
         </View>
@@ -249,49 +322,98 @@ export default function SignUpScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: {
-    ...COMMON_STYLES.container,
+    flex: 1,
+    backgroundColor: COLORS.backgroundSecondary,
   },
   scrollContent: {
     flexGrow: 1,
-    padding: SPACING.screenPadding,
+    paddingBottom: SPACING.xxlarge,
   },
-  header: {
-    marginTop: SPACING.large,
-    marginBottom: SPACING.xxlarge,
+  gradientHeader: {
+    paddingTop: Platform.OS === 'ios' ? 50 : 30,
+    paddingBottom: SPACING.xxlarge * 2,
+    paddingHorizontal: SPACING.screenPadding,
+    borderBottomLeftRadius: SIZES.borderRadius.xlarge * 2,
+    borderBottomRightRadius: SIZES.borderRadius.xlarge * 2,
   },
   backButton: {
-    marginBottom: SPACING.large,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.xlarge,
   },
   backButtonText: {
     fontSize: FONTS.sizes.body,
-    color: COLORS.primary,
+    color: COLORS.textWhite,
     fontWeight: FONTS.weights.medium,
+    marginLeft: SPACING.small,
+  },
+  headerContent: {
+    alignItems: 'center',
+    paddingVertical: SPACING.large,
+  },
+  headerIcon: {
+    marginBottom: SPACING.base,
   },
   headerTitle: {
-    ...COMMON_STYLES.heading,
+    fontSize: FONTS.sizes.xlarge,
+    fontWeight: FONTS.weights.bold,
+    color: COLORS.textWhite,
+    marginBottom: SPACING.small,
+    textAlign: 'center',
   },
-  form: {
-    width: '100%',
+  headerSubtitle: {
+    fontSize: FONTS.sizes.body,
+    color: COLORS.textWhite,
+    opacity: 0.9,
+    textAlign: 'center',
+  },
+  formCard: {
+    backgroundColor: COLORS.background,
+    borderRadius: SIZES.borderRadius.xlarge,
+    marginHorizontal: SPACING.screenPadding,
+    marginTop: -SPACING.xxlarge,
+    padding: SPACING.xlarge,
+    ...SHADOWS.large,
   },
   formGroup: {
     marginBottom: SPACING.large,
   },
   label: {
     fontSize: FONTS.sizes.small,
-    color: COLORS.textSecondary,
+    color: COLORS.text,
     marginBottom: SPACING.small,
-    fontWeight: FONTS.weights.medium,
+    fontWeight: FONTS.weights.semibold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.backgroundLight,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    borderRadius: SIZES.borderRadius.medium,
+    paddingHorizontal: SPACING.base,
+    minHeight: SIZES.input.height,
+  },
+  inputIcon: {
+    marginRight: SPACING.medium,
   },
   input: {
-    ...COMMON_STYLES.input,
+    flex: 1,
+    fontSize: FONTS.sizes.body,
+    color: COLORS.text,
+    paddingVertical: SPACING.medium,
   },
   inputError: {
     borderColor: COLORS.error,
+    backgroundColor: COLORS.error + '08',
   },
   errorText: {
     fontSize: FONTS.sizes.small,
     color: COLORS.error,
     marginTop: SPACING.tiny,
+    marginLeft: SPACING.tiny,
   },
   checkboxContainer: {
     flexDirection: 'row',
@@ -328,46 +450,91 @@ const styles = StyleSheet.create({
     fontWeight: FONTS.weights.semibold,
   },
   generalErrorContainer: {
-    backgroundColor: COLORS.error + '15',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.error + '10',
     padding: SPACING.medium,
     borderRadius: SIZES.borderRadius.medium,
     marginBottom: SPACING.large,
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.error,
   },
   generalErrorText: {
+    flex: 1,
     color: COLORS.error,
     fontSize: FONTS.sizes.small,
-    textAlign: 'center',
+    marginLeft: SPACING.small,
   },
   submitButton: {
-    ...COMMON_STYLES.primaryButton,
     marginBottom: SPACING.large,
+    borderRadius: SIZES.borderRadius.medium,
+    overflow: 'hidden',
+    ...SHADOWS.medium,
+  },
+  submitButtonGradient: {
+    paddingVertical: SPACING.buttonPadding,
+    paddingHorizontal: SPACING.large,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: SIZES.button.height,
   },
   submitButtonDisabled: {
     opacity: 0.6,
   },
   submitButtonText: {
-    ...COMMON_STYLES.primaryButtonText,
+    color: COLORS.textWhite,
+    fontSize: FONTS.sizes.body,
+    fontWeight: FONTS.weights.bold,
+    letterSpacing: 0.5,
   },
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: SPACING.large,
+    marginVertical: SPACING.xlarge,
   },
   divider: {
     flex: 1,
     height: 1,
-    backgroundColor: COLORS.border,
+    backgroundColor: COLORS.divider,
   },
   dividerText: {
     marginHorizontal: SPACING.base,
     fontSize: FONTS.sizes.small,
     color: COLORS.textSecondary,
+    fontWeight: FONTS.weights.medium,
   },
   socialButton: {
-    ...COMMON_STYLES.secondaryButton,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.background,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    borderRadius: SIZES.borderRadius.medium,
+    paddingVertical: SPACING.buttonPadding,
+    paddingHorizontal: SPACING.large,
+    minHeight: SIZES.button.height,
     marginBottom: SPACING.medium,
+    ...SHADOWS.small,
+  },
+  googleButton: {
+    borderColor: '#DB4437' + '30',
+    backgroundColor: '#DB4437' + '08',
+  },
+  appleButton: {
+    borderColor: '#000000' + '30',
+    backgroundColor: '#000000' + '05',
+  },
+  socialIconContainer: {
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: SPACING.medium,
   },
   socialButtonText: {
-    ...COMMON_STYLES.secondaryButtonText,
+    color: COLORS.text,
+    fontSize: FONTS.sizes.body,
+    fontWeight: FONTS.weights.semibold,
   },
 });
