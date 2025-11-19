@@ -22,7 +22,14 @@ import { useBudget } from '../../../contexts/BudgetContext';
 export default function AdvancedSuccessScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const { finalData } = route.params || {};
-  const { completeOnboarding, loading: onboardingLoading } = useOnboarding();
+  const {
+    completeOnboarding,
+    loading: onboardingLoading,
+    budgetData: contextBudgetData,
+    setCategoryBudgets,
+    setMonthlyIncome,
+    setMode,
+  } = useOnboarding();
   const { categories: budgetCategories } = useBudget();
   const [completing, setCompleting] = useState(false);
   const [completionAttempted, setCompletionAttempted] = useState(false);
@@ -149,6 +156,48 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
       }
     };
   }, [isDataValid]);
+
+  // CRITICAL: Initialize context with budget data from params
+  // This is required for completeOnboarding() to work properly
+  useEffect(() => {
+    if (!isDataValid || !finalData) {
+      console.error('❌ [AdvancedSuccess] Cannot initialize context - invalid data');
+      return;
+    }
+
+    // Check if context already has budget data
+    if (contextBudgetData?.monthlyIncome > 0 && Object.keys(contextBudgetData?.categoryBudgets || {}).length > 0) {
+      console.log('✅ [AdvancedSuccess] Context already has budget data');
+      return;
+    }
+
+    console.log('⚠️ [AdvancedSuccess] Context data empty, setting from params...');
+    console.log('Final Data:', JSON.stringify(finalData, null, 2));
+
+    try {
+      // Transform allocations into categoryBudgets format
+      // allocations is { categoryKey: annualAmount, ... }
+      const categoryBudgets = {};
+      if (finalData.allocations) {
+        Object.entries(finalData.allocations).forEach(([key, value]) => {
+          categoryBudgets[key] = value;
+        });
+      }
+
+      console.log('Setting category budgets:', categoryBudgets);
+      console.log('Setting total budget:', finalData.totalBudget);
+      console.log('Setting mode:', finalData.mode || 'advanced');
+
+      // Set budget data in context
+      setCategoryBudgets(categoryBudgets);
+      setMonthlyIncome(finalData.totalBudget || 0);
+      setMode(finalData.mode || 'advanced');
+
+      console.log('✅ [AdvancedSuccess] Context data initialized successfully');
+    } catch (error) {
+      console.error('❌ [AdvancedSuccess] Error setting context data:', error);
+    }
+  }, [finalData, isDataValid, contextBudgetData, setCategoryBudgets, setMonthlyIncome, setMode]);
 
   const handleGoToDashboard = async () => {
     // Double-tap prevention: Check if already completing or recently completed
