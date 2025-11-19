@@ -37,18 +37,13 @@ export default function WelcomeScreen({ navigation }) {
           <LanguageSelectorButton variant="icon" />
         </View>
 
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={true}
-          bounces={true}
-        >
+        <View style={styles.contentWrapper}>
           {/* Top Section - Logo and Title */}
           <View style={styles.topSection}>
             {/* Logo with gradient border */}
             <View style={styles.logoContainer}>
               <View style={styles.logoCircle}>
-                <MaterialCommunityIcons name="finance" size={80} color={COLORS.textWhite} />
+                <MaterialCommunityIcons name="finance" size={50} color={COLORS.textWhite} />
               </View>
             </View>
 
@@ -104,7 +99,7 @@ export default function WelcomeScreen({ navigation }) {
               </TouchableOpacity>
             </View>
           </View>
-        </ScrollView>
+        </View>
 
         {/* Made in Colombia Footer - Fixed at bottom */}
         <View style={styles.footer}>
@@ -125,33 +120,32 @@ const styles = StyleSheet.create({
   gradientBackground: {
     flex: 1,
   },
-  scrollView: {
+  contentWrapper: {
     flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
+    justifyContent: 'space-between',
     paddingHorizontal: SPACING.screenPadding,
-    paddingTop: 50,
+    paddingTop: 60,
     paddingBottom: SPACING.base,
   },
   languageSelectorContainer: {
     position: 'absolute',
-    top: 50,
+    top: 40,
     right: SPACING.screenPadding,
     zIndex: 1000,
   },
   topSection: {
-    minHeight: 400,
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingVertical: SPACING.small,
   },
   logoContainer: {
-    marginBottom: SPACING.xxlarge,
+    marginBottom: SPACING.base,
   },
   logoCircle: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -161,10 +155,10 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     alignItems: 'center',
-    paddingHorizontal: SPACING.large,
+    paddingHorizontal: SPACING.base,
   },
   title: {
-    fontSize: FONTS.sizes.xxlarge,
+    fontSize: FONTS.sizes.xlarge,
     fontWeight: FONTS.weights.bold,
     color: COLORS.textWhite,
     marginBottom: SPACING.medium,
@@ -183,21 +177,21 @@ const styles = StyleSheet.create({
   },
   featuresCard: {
     backgroundColor: COLORS.background,
-    borderRadius: SIZES.borderRadius.xlarge,
-    padding: SPACING.large,
-    marginBottom: SPACING.xlarge,
-    ...SHADOWS.large,
+    borderRadius: SIZES.borderRadius.large,
+    padding: SPACING.base,
+    marginBottom: SPACING.base,
+    ...SHADOWS.medium,
   },
   featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: SPACING.medium,
+    paddingVertical: SPACING.tiny,
   },
   featureText: {
-    fontSize: FONTS.sizes.body,
+    fontSize: FONTS.sizes.small,
     color: COLORS.text,
     fontWeight: FONTS.weights.medium,
-    marginLeft: SPACING.base,
+    marginLeft: SPACING.small,
   },
   buttonContainer: {
     width: '100%',
@@ -206,11 +200,11 @@ const styles = StyleSheet.create({
   primaryButton: {
     backgroundColor: COLORS.background,
     borderRadius: SIZES.borderRadius.medium,
-    paddingVertical: SPACING.buttonPadding,
-    paddingHorizontal: SPACING.large,
+    paddingVertical: SPACING.medium,
+    paddingHorizontal: SPACING.base,
     width: '100%',
-    minHeight: SIZES.button.height,
-    marginBottom: SPACING.base,
+    minHeight: 48,
+    marginBottom: SPACING.small,
     ...SHADOWS.medium,
   },
   primaryButtonContent: {
@@ -223,10 +217,10 @@ const styles = StyleSheet.create({
     fontSize: FONTS.sizes.body,
     fontWeight: FONTS.weights.bold,
     letterSpacing: 0.5,
-    marginRight: SPACING.small,
+    marginRight: SPACING.tiny,
   },
   signInLink: {
-    paddingVertical: SPACING.medium,
+    paddingVertical: SPACING.small,
   },
   signInLinkText: {
     fontSize: FONTS.sizes.body,

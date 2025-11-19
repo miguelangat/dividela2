@@ -118,14 +118,8 @@ export default function SignUpScreen({ navigation }) {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={true}
-          bounces={true}
-        >
-        {/* Gradient Header */}
+        <View style={styles.contentWrapper}>
+          {/* Gradient Header */}
         <LinearGradient
           colors={[COLORS.gradientStart, COLORS.gradientEnd]}
           start={{ x: 0, y: 0 }}
@@ -320,7 +314,7 @@ export default function SignUpScreen({ navigation }) {
           </TouchableOpacity>
 
         </View>
-        </ScrollView>
+        </View>
 
         {/* Made in Colombia Footer - Fixed at bottom */}
         <View style={styles.footer}>
@@ -341,16 +335,13 @@ const styles = StyleSheet.create({
   keyboardAvoidingView: {
     flex: 1,
   },
-  scrollView: {
+  contentWrapper: {
     flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: SPACING.base,
+    justifyContent: 'space-between',
   },
   gradientHeader: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 30,
-    paddingBottom: SPACING.xxlarge * 2,
+    paddingTop: Platform.OS === 'ios' ? 40 : 20,
+    paddingBottom: SPACING.large,
     paddingHorizontal: SPACING.screenPadding,
     borderBottomLeftRadius: SIZES.borderRadius.xlarge * 2,
     borderBottomRightRadius: SIZES.borderRadius.xlarge * 2,
@@ -368,34 +359,38 @@ const styles = StyleSheet.create({
   },
   headerContent: {
     alignItems: 'center',
-    paddingVertical: SPACING.large,
+    paddingVertical: SPACING.small,
   },
   headerIcon: {
-    marginBottom: SPACING.base,
+    marginBottom: SPACING.tiny,
   },
   headerTitle: {
-    fontSize: FONTS.sizes.xlarge,
+    fontSize: FONTS.sizes.large,
     fontWeight: FONTS.weights.bold,
     color: COLORS.textWhite,
-    marginBottom: SPACING.small,
+    marginBottom: SPACING.tiny,
     textAlign: 'center',
   },
   headerSubtitle: {
-    fontSize: FONTS.sizes.body,
+    fontSize: FONTS.sizes.small,
     color: COLORS.textWhite,
     opacity: 0.9,
     textAlign: 'center',
   },
   formCard: {
+    flex: 1,
     backgroundColor: COLORS.background,
     borderRadius: SIZES.borderRadius.xlarge,
     marginHorizontal: SPACING.screenPadding,
-    marginTop: -SPACING.xxlarge,
-    padding: SPACING.xlarge,
+    marginTop: -SPACING.large,
+    marginBottom: SPACING.base,
+    padding: SPACING.base,
+    paddingTop: SPACING.large,
     ...SHADOWS.large,
+    maxHeight: '70%',
   },
   formGroup: {
-    marginBottom: SPACING.large,
+    marginBottom: SPACING.small,
   },
   label: {
     fontSize: FONTS.sizes.small,
@@ -485,7 +480,7 @@ const styles = StyleSheet.create({
     marginLeft: SPACING.small,
   },
   submitButton: {
-    marginBottom: SPACING.large,
+    marginBottom: SPACING.small,
     borderRadius: SIZES.borderRadius.medium,
     overflow: 'hidden',
     ...SHADOWS.medium,
@@ -509,7 +504,7 @@ const styles = StyleSheet.create({
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: SPACING.xlarge,
+    marginVertical: SPACING.small,
   },
   divider: {
     flex: 1,
@@ -518,7 +513,7 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     marginHorizontal: SPACING.base,
-    fontSize: FONTS.sizes.small,
+    fontSize: FONTS.sizes.tiny,
     color: COLORS.textSecondary,
     fontWeight: FONTS.weights.medium,
   },
@@ -530,10 +525,10 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: COLORS.border,
     borderRadius: SIZES.borderRadius.medium,
-    paddingVertical: SPACING.buttonPadding,
-    paddingHorizontal: SPACING.large,
-    minHeight: SIZES.button.height,
-    marginBottom: SPACING.medium,
+    paddingVertical: SPACING.tiny,
+    paddingHorizontal: SPACING.base,
+    minHeight: 40,
+    marginBottom: SPACING.tiny,
     ...SHADOWS.small,
   },
   googleButton: {

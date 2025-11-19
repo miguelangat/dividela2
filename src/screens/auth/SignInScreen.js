@@ -117,14 +117,8 @@ export default function SignInScreen({ navigation }) {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={true}
-          bounces={true}
-        >
-        {/* Gradient Header */}
+        <View style={styles.contentWrapper}>
+          {/* Gradient Header */}
         <LinearGradient
           colors={[COLORS.gradientStart, COLORS.gradientEnd]}
           start={{ x: 0, y: 0 }}
@@ -305,7 +299,7 @@ export default function SignInScreen({ navigation }) {
             </Text>
           </TouchableOpacity>
         </View>
-        </ScrollView>
+        </View>
 
         {/* Made in Colombia Footer - Fixed at bottom */}
         <View style={styles.footer}>
@@ -326,16 +320,13 @@ const styles = StyleSheet.create({
   keyboardAvoidingView: {
     flex: 1,
   },
-  scrollView: {
+  contentWrapper: {
     flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: SPACING.base,
+    justifyContent: 'space-between',
   },
   gradientHeader: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 30,
-    paddingBottom: SPACING.xxlarge * 2,
+    paddingTop: Platform.OS === 'ios' ? 40 : 20,
+    paddingBottom: SPACING.xlarge,
     paddingHorizontal: SPACING.screenPadding,
     borderBottomLeftRadius: SIZES.borderRadius.xlarge * 2,
     borderBottomRightRadius: SIZES.borderRadius.xlarge * 2,
@@ -357,34 +348,38 @@ const styles = StyleSheet.create({
   },
   headerContent: {
     alignItems: 'center',
-    paddingVertical: SPACING.large,
+    paddingVertical: SPACING.medium,
   },
   headerIcon: {
-    marginBottom: SPACING.base,
+    marginBottom: SPACING.small,
   },
   headerTitle: {
-    fontSize: FONTS.sizes.xlarge,
+    fontSize: FONTS.sizes.large,
     fontWeight: FONTS.weights.bold,
     color: COLORS.textWhite,
-    marginBottom: SPACING.small,
+    marginBottom: SPACING.tiny,
     textAlign: 'center',
   },
   headerSubtitle: {
-    fontSize: FONTS.sizes.body,
+    fontSize: FONTS.sizes.small,
     color: COLORS.textWhite,
     opacity: 0.9,
     textAlign: 'center',
   },
   formCard: {
+    flex: 1,
     backgroundColor: COLORS.background,
     borderRadius: SIZES.borderRadius.xlarge,
     marginHorizontal: SPACING.screenPadding,
-    marginTop: -SPACING.xxlarge,
-    padding: SPACING.xlarge,
+    marginTop: -SPACING.large,
+    marginBottom: SPACING.base,
+    padding: SPACING.base,
+    paddingTop: SPACING.large,
     ...SHADOWS.large,
+    maxHeight: '70%',
   },
   formGroup: {
-    marginBottom: SPACING.large,
+    marginBottom: SPACING.base,
   },
   label: {
     fontSize: FONTS.sizes.small,
@@ -425,10 +420,10 @@ const styles = StyleSheet.create({
   },
   forgotPassword: {
     alignSelf: 'flex-end',
-    marginBottom: SPACING.large,
+    marginBottom: SPACING.medium,
   },
   forgotPasswordText: {
-    fontSize: FONTS.sizes.small,
+    fontSize: FONTS.sizes.tiny,
     color: COLORS.primary,
     fontWeight: FONTS.weights.semibold,
   },
@@ -436,20 +431,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.error + '10',
-    padding: SPACING.medium,
+    padding: SPACING.small,
     borderRadius: SIZES.borderRadius.medium,
-    marginBottom: SPACING.large,
+    marginBottom: SPACING.medium,
     borderLeftWidth: 4,
     borderLeftColor: COLORS.error,
   },
   generalErrorText: {
     flex: 1,
     color: COLORS.error,
-    fontSize: FONTS.sizes.small,
+    fontSize: FONTS.sizes.tiny,
     marginLeft: SPACING.small,
   },
   submitButton: {
-    marginBottom: SPACING.large,
+    marginBottom: SPACING.medium,
     borderRadius: SIZES.borderRadius.medium,
     overflow: 'hidden',
     ...SHADOWS.medium,
@@ -473,7 +468,7 @@ const styles = StyleSheet.create({
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: SPACING.xlarge,
+    marginVertical: SPACING.medium,
   },
   divider: {
     flex: 1,
@@ -482,7 +477,7 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     marginHorizontal: SPACING.base,
-    fontSize: FONTS.sizes.small,
+    fontSize: FONTS.sizes.tiny,
     color: COLORS.textSecondary,
     fontWeight: FONTS.weights.medium,
   },
@@ -494,10 +489,10 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: COLORS.border,
     borderRadius: SIZES.borderRadius.medium,
-    paddingVertical: SPACING.buttonPadding,
-    paddingHorizontal: SPACING.large,
-    minHeight: SIZES.button.height,
-    marginBottom: SPACING.medium,
+    paddingVertical: SPACING.small,
+    paddingHorizontal: SPACING.base,
+    minHeight: 44,
+    marginBottom: SPACING.small,
     ...SHADOWS.small,
   },
   googleButton: {
@@ -522,11 +517,11 @@ const styles = StyleSheet.create({
   },
   signUpLink: {
     alignSelf: 'center',
-    marginTop: SPACING.large,
-    paddingVertical: SPACING.medium,
+    marginTop: SPACING.small,
+    paddingVertical: SPACING.small,
   },
   signUpLinkText: {
-    fontSize: FONTS.sizes.body,
+    fontSize: FONTS.sizes.small,
     color: COLORS.textSecondary,
   },
   signUpLinkBold: {
