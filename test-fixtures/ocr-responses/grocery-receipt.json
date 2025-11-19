@@ -1,0 +1,22 @@
+{
+  "merchant": "Whole Foods Market",
+  "amount": 87.45,
+  "date": "2025-11-15",
+  "confidence": 0.95,
+  "rawText": "WHOLE FOODS MARKET\n123 Main Street\nAnytown, CA 94000\n\nDate: 11/15/2025\nTime: 14:32\n\nOrganic Bananas          $4.99\nAlmond Milk              $6.49\nWhole Wheat Bread        $5.29\nChicken Breast           $18.99\nSpinach                  $3.99\nGreek Yogurt            $12.99\nOlive Oil               $14.99\nTomatoes                 $6.99\nGarlic                   $2.99\nOnions                   $3.99\nCheese                   $5.75\n\nSubtotal:               $87.45\nTax:                     $0.00\nTotal:                  $87.45\n\nPayment Method: VISA ****1234\nThank you for shopping!",
+  "items": [
+    {"name": "Organic Bananas", "price": 4.99},
+    {"name": "Almond Milk", "price": 6.49},
+    {"name": "Whole Wheat Bread", "price": 5.29},
+    {"name": "Chicken Breast", "price": 18.99},
+    {"name": "Spinach", "price": 3.99},
+    {"name": "Greek Yogurt", "price": 12.99},
+    {"name": "Olive Oil", "price": 14.99},
+    {"name": "Tomatoes", "price": 6.99},
+    {"name": "Garlic", "price": 2.99},
+    {"name": "Onions", "price": 3.99},
+    {"name": "Cheese", "price": 5.75}
+  ],
+  "currency": "USD",
+  "category": "Groceries"
+}

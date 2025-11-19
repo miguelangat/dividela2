@@ -1,0 +1,17 @@
+{
+  "merchant": "CVS Pharmacy",
+  "amount": 43.98,
+  "date": "2025-11-16",
+  "confidence": 0.91,
+  "rawText": "CVS PHARMACY #1234\n555 Medical Center Dr\nAnytown, CA 94000\n\nDate: 11/16/2025\nTime: 16:20\n\nIbuprofen 200mg          $8.99\nVitamin D3              $12.99\nBand-Aids               $6.49\nHand Sanitizer          $4.99\nToothpaste              $5.49\nTissues                 $5.03\n\nSubtotal:               $43.98\nTax:                     $0.00\nTotal:                  $43.98\n\nPayment: DEBIT ****3456\nExtraCare Savings: $3.50",
+  "items": [
+    {"name": "Ibuprofen 200mg", "price": 8.99},
+    {"name": "Vitamin D3", "price": 12.99},
+    {"name": "Band-Aids", "price": 6.49},
+    {"name": "Hand Sanitizer", "price": 4.99},
+    {"name": "Toothpaste", "price": 5.49},
+    {"name": "Tissues", "price": 5.03}
+  ],
+  "currency": "USD",
+  "category": "Health"
+}

@@ -1,0 +1,16 @@
+{
+  "merchant": "Shell Gas Station",
+  "amount": 52.30,
+  "date": "2025-11-17",
+  "confidence": 0.89,
+  "rawText": "SHELL GAS STATION #4521\n789 Highway Blvd\nAnytown, CA 94000\n\nDate: 11/17/2025\nTime: 08:15 AM\n\nPump: 5\nGallons: 12.450\nPrice/Gallon: $4.199\n\nFuel Total:            $52.30\n\nPayment: MASTERCARD ****5678\nThank you!",
+  "items": [
+    {"name": "Unleaded Gasoline", "price": 52.30, "quantity": 12.45, "unit": "gallons"}
+  ],
+  "fuelDetails": {
+    "gallons": 12.45,
+    "pricePerGallon": 4.199
+  },
+  "currency": "USD",
+  "category": "Transportation"
+}
