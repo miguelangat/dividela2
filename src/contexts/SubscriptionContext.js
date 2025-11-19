@@ -518,8 +518,28 @@ export const SubscriptionProvider = ({ children }) => {
     // Check if current user is premium
     if (isPremium) return true;
 
-    // Check if partner is premium
+    // Check if still paired with partner
+    if (!userDetails?.partnerId || !userDetails?.coupleId) {
+      debugLog('No partner relationship found');
+      return false;
+    }
+
+    // Check if partner is premium and still paired
     if (partnerDetails?.subscriptionStatus === 'premium') {
+      // Verify bidirectional relationship (both users point to each other)
+      const partnerStillPaired = partnerDetails.partnerId === userDetails.uid &&
+                                 partnerDetails.coupleId === userDetails.coupleId;
+
+      if (!partnerStillPaired) {
+        debugLog('Partner relationship broken', {
+          userPartnerId: userDetails.partnerId,
+          partnerPartnerId: partnerDetails.partnerId,
+          userCoupleId: userDetails.coupleId,
+          partnerCoupleId: partnerDetails.coupleId,
+        });
+        return false;
+      }
+
       return true;
     }
 
