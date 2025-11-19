@@ -3,6 +3,8 @@
  * Uses keyword matching and learning from user's past categorizations
  */
 
+import { normalizeMerchantName, extractBaseMerchant, getMerchantCategoryFrequency } from './merchantNormalizer';
+
 /**
  * Default keyword mappings for common categories
  * These can be extended or customized by users
@@ -175,12 +177,76 @@ export function suggestCategory(
 
 /**
  * Learn category from user's past transactions
- * Uses fuzzy matching to find similar descriptions
+ * Uses merchant normalization and fuzzy matching to find similar descriptions
  */
 function learnFromPastTransactions(description, pastTransactions) {
   const normalized = normalizeText(description);
+  const merchantName = normalizeMerchantName(description);
+  const baseMerchant = extractBaseMerchant(description);
 
-  // Find exact matches
+  // Try 1: Find exact merchant match (normalized)
+  if (merchantName) {
+    const merchantMatches = pastTransactions.filter(
+      t => normalizeMerchantName(t.description) === merchantName
+    );
+
+    if (merchantMatches.length > 0) {
+      // Find most common category for this merchant
+      const categoryFrequency = merchantMatches.reduce((freq, t) => {
+        const cat = t.categoryKey || t.category;
+        freq[cat] = (freq[cat] || 0) + 1;
+        return freq;
+      }, {});
+
+      const mostCommonCategory = Object.entries(categoryFrequency)
+        .sort((a, b) => b[1] - a[1])[0];
+
+      const [categoryKey, count] = mostCommonCategory;
+      const confidence = Math.min(0.95, 0.7 + (count / merchantMatches.length) * 0.25);
+
+      return {
+        categoryKey,
+        confidence,
+        matchedKeywords: ['merchant_match', merchantName],
+        source: 'learned_merchant',
+        matchCount: count,
+        totalMatches: merchantMatches.length,
+      };
+    }
+  }
+
+  // Try 2: Find base merchant match
+  if (baseMerchant && baseMerchant.length > 2) {
+    const baseMerchantMatches = pastTransactions.filter(
+      t => extractBaseMerchant(t.description) === baseMerchant
+    );
+
+    if (baseMerchantMatches.length > 0) {
+      // Find most common category for this base merchant
+      const categoryFrequency = baseMerchantMatches.reduce((freq, t) => {
+        const cat = t.categoryKey || t.category;
+        freq[cat] = (freq[cat] || 0) + 1;
+        return freq;
+      }, {});
+
+      const mostCommonCategory = Object.entries(categoryFrequency)
+        .sort((a, b) => b[1] - a[1])[0];
+
+      const [categoryKey, count] = mostCommonCategory;
+      const confidence = Math.min(0.9, 0.65 + (count / baseMerchantMatches.length) * 0.25);
+
+      return {
+        categoryKey,
+        confidence,
+        matchedKeywords: ['base_merchant_match', baseMerchant],
+        source: 'learned_base_merchant',
+        matchCount: count,
+        totalMatches: baseMerchantMatches.length,
+      };
+    }
+  }
+
+  // Try 3: Find exact text matches
   const exactMatch = pastTransactions.find(
     t => normalizeText(t.description) === normalized
   );
@@ -194,7 +260,7 @@ function learnFromPastTransactions(description, pastTransactions) {
     };
   }
 
-  // Find similar transactions using Levenshtein distance or word overlap
+  // Try 4: Find similar transactions using word overlap
   const similarTransactions = pastTransactions
     .map(t => ({
       ...t,
@@ -207,7 +273,7 @@ function learnFromPastTransactions(description, pastTransactions) {
     const best = similarTransactions[0];
     return {
       categoryKey: best.categoryKey || best.category,
-      confidence: best.similarity,
+      confidence: best.similarity * 0.9, // Slightly lower confidence for fuzzy match
       matchedKeywords: ['similar_transaction'],
       source: 'learned_similar',
     };
