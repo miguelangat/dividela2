@@ -1,8 +1,12 @@
 // src/contexts/ChatContext.js
 // Context for managing chat interface state
 
-import React, { createContext, useState, useContext, useCallback } from 'react';
+import React, { createContext, useState, useContext, useCallback, useEffect } from 'react';
 import { useAuth } from './AuthContext';
+import { useBudget } from './BudgetContext';
+import { parseCommand } from '../services/nlpPatterns';
+import { executeCommand } from '../services/commandExecutor';
+import * as expenseService from '../services/expenseService';
 
 const ChatContext = createContext({});
 
@@ -16,9 +20,28 @@ export const useChat = () => {
 
 export const ChatProvider = ({ children }) => {
   const { userDetails } = useAuth();
+  const { categories, currentBudget, budgetProgress } = useBudget();
   const [messages, setMessages] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
   const [conversationState, setConversationState] = useState({});
+  const [expenses, setExpenses] = useState([]);
+
+  // Subscribe to expenses for real-time data
+  useEffect(() => {
+    if (!userDetails?.coupleId) {
+      setExpenses([]);
+      return;
+    }
+
+    const unsubscribe = expenseService.subscribeToExpenses(
+      userDetails.coupleId,
+      (newExpenses) => {
+        setExpenses(newExpenses);
+      }
+    );
+
+    return () => unsubscribe && unsubscribe();
+  }, [userDetails?.coupleId]);
 
   // Add a new message to the chat
   const addMessage = useCallback((role, content, metadata = {}) => {
@@ -43,15 +66,42 @@ export const ChatProvider = ({ children }) => {
     // Show typing indicator
     setIsTyping(true);
 
-    // Simulate processing delay for prototype
-    await new Promise(resolve => setTimeout(resolve, 800));
+    try {
+      // Parse the command using NLP
+      const parsed = parseCommand(text);
 
-    // Generate mock response (will be replaced with real NLP)
-    const response = generateMockResponse(text);
+      // Build context for command execution
+      const context = {
+        categories,
+        currentBudget,
+        budgetProgress,
+        expenses,
+        userDetails,
+      };
 
-    setIsTyping(false);
-    addMessage('assistant', response.content, response.metadata);
-  }, [addMessage]);
+      // Execute the command
+      const result = await executeCommand(parsed.intent, parsed.entities, context);
+
+      // Add small delay for better UX
+      await new Promise(resolve => setTimeout(resolve, 400));
+
+      setIsTyping(false);
+
+      // Add assistant response
+      addMessage('assistant', result.message, {
+        intent: parsed.intent,
+        success: result.success,
+        data: result.data,
+      });
+
+    } catch (error) {
+      console.error('Error processing message:', error);
+      setIsTyping(false);
+      addMessage('assistant', '❌ Sorry, something went wrong. Please try again.', {
+        error: error.message,
+      });
+    }
+  }, [addMessage, categories, currentBudget, budgetProgress, expenses, userDetails]);
 
   // Clear all messages
   const clearMessages = useCallback(() => {
@@ -80,41 +130,3 @@ export const ChatProvider = ({ children }) => {
     </ChatContext.Provider>
   );
 };
-
-// Mock response generator for prototype (will be replaced with real NLP)
-function generateMockResponse(userInput) {
-  const input = userInput.toLowerCase();
-
-  // Expense patterns
-  if (input.includes('add') || input.includes('spent') || input.includes('paid')) {
-    const amountMatch = input.match(/\$?(\d+(?:\.\d{2})?)/);
-    const amount = amountMatch ? amountMatch[1] : '0';
-
-    return {
-      content: `I'll help you add a $${amount} expense. This will be connected to the expense service soon!`,
-      metadata: { type: 'expense_add', amount }
-    };
-  }
-
-  // Budget queries
-  if (input.includes('budget') || input.includes('spending')) {
-    return {
-      content: `Here's your budget overview:\n\n💰 Total Budget: $2,500\n✅ Spent: $1,840 (74%)\n📊 Remaining: $660\n\nYou're on track this month!`,
-      metadata: { type: 'budget_query' }
-    };
-  }
-
-  // Balance queries
-  if (input.includes('balance') || input.includes('owe') || input.includes('settle')) {
-    return {
-      content: `Current balance:\n\n💵 Your partner owes you $127.50\n\nWould you like to settle up?`,
-      metadata: { type: 'balance_query' }
-    };
-  }
-
-  // Default response
-  return {
-    content: `I understand you want to: "${userInput}"\n\nI'm currently a prototype. Soon I'll be able to help you with:\n\n• Adding expenses\n• Checking budgets\n• Viewing balances\n• Managing categories\n• And more!`,
-    metadata: { type: 'default' }
-  };
-}
