@@ -1,12 +1,15 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Card, Text, Button, Divider } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import { theme } from '../../constants/theme';
 
 /**
  * Display import summary after completion
  */
 export default function ImportSummary({ result, onClose, onViewExpenses }) {
+  const { t } = useTranslation();
+
   if (!result) return null;
 
   const { success, summary } = result;
@@ -16,31 +19,31 @@ export default function ImportSummary({ result, onClose, onViewExpenses }) {
       <Card.Content>
         <View style={styles.header}>
           <Text style={styles.title}>
-            {success ? '✅ Import Complete' : '❌ Import Failed'}
+            {success ? t('import.summary.success') : t('import.summary.failed')}
           </Text>
         </View>
 
         <Divider style={styles.divider} />
 
         <View style={styles.statsContainer}>
-          <StatRow label="File" value={summary.fileName || 'Unknown'} />
-          <StatRow label="File Type" value={(summary.fileType || 'unknown').toUpperCase()} />
-          <StatRow label="Total Transactions" value={summary.totalTransactions} />
+          <StatRow label={t('import.summary.fileName')} value={summary.fileName || 'Unknown'} />
+          <StatRow label={t('import.summary.fileType')} value={(summary.fileType || 'unknown').toUpperCase()} />
+          <StatRow label={t('import.summary.totalTransactions')} value={summary.totalTransactions} />
           <StatRow
-            label="Successfully Imported"
+            label={t('import.summary.imported')}
             value={summary.imported}
             valueColor={theme.colors.success}
           />
           {summary.duplicates > 0 && (
             <StatRow
-              label="Duplicates Skipped"
+              label={t('import.summary.duplicates')}
               value={summary.duplicates}
               valueColor={theme.colors.warning}
             />
           )}
           {summary.errors > 0 && (
             <StatRow
-              label="Errors"
+              label={t('import.summary.errors')}
               value={summary.errors}
               valueColor={theme.colors.error}
             />
@@ -60,7 +63,7 @@ export default function ImportSummary({ result, onClose, onViewExpenses }) {
               onPress={onViewExpenses}
               style={styles.button}
             >
-              View Expenses
+              {t('import.summary.viewExpenses')}
             </Button>
           )}
           <Button
@@ -68,7 +71,7 @@ export default function ImportSummary({ result, onClose, onViewExpenses }) {
             onPress={onClose}
             style={styles.button}
           >
-            {success ? 'Done' : 'Close'}
+            {success ? t('import.summary.done') : t('common.close')}
           </Button>
         </View>
       </Card.Content>
