@@ -245,7 +245,7 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
       console.error('❌ [AdvancedSuccess] Error setting context data:', error);
       console.error('Error stack:', error.stack);
     }
-  }, [finalData, isDataValid, contextBudgetData, setCategoryBudgets, setMonthlyIncome, setMode]);
+  }, [finalData, isDataValid, setCategoryBudgets, setMonthlyIncome, setMode]); // Removed contextBudgetData to prevent infinite loop
 
   const handleGoToDashboard = async () => {
     console.log('');
@@ -271,22 +271,42 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
     console.log('📊 Context Budget Data:', JSON.stringify(contextBudgetData, null, 2));
     console.log('📊 Budget Categories from Context:', budgetCategories);
 
-    // CRITICAL: Verify context has been populated
+    // CRITICAL: Ensure context has been populated
+    // If not, set it now synchronously from finalData
     if (!contextBudgetData || !contextBudgetData.monthlyIncome || !contextBudgetData.categoryBudgets || Object.keys(contextBudgetData.categoryBudgets).length === 0) {
-      console.error('');
-      console.error('❌❌❌ CONTEXT DATA NOT POPULATED ❌❌❌');
-      console.error('This is a timing issue - the useEffect that sets context data');
-      console.error('has not run yet or did not complete successfully.');
-      console.error('contextBudgetData:', contextBudgetData);
-      console.error('');
-      alert('Context data not ready. Please wait a moment and try again.');
-      return;
-    }
+      console.warn('⚠️ Context not populated yet - setting now from finalData');
 
-    console.log('✅ Context data verified populated');
-    console.log('  - monthlyIncome:', contextBudgetData.monthlyIncome);
-    console.log('  - categoryBudgets keys:', Object.keys(contextBudgetData.categoryBudgets));
-    console.log('  - categoryBudgets:', contextBudgetData.categoryBudgets);
+      // Convert annual to monthly if needed
+      const isAnnual = finalData.mode === 'annual';
+      const divisor = isAnnual ? 12 : 1;
+
+      const categoryBudgets = {};
+      if (finalData.allocations) {
+        Object.entries(finalData.allocations).forEach(([key, value]) => {
+          categoryBudgets[key] = value / divisor;
+        });
+      }
+
+      const monthlyIncome = (finalData.totalBudget || 0) / divisor;
+
+      console.log('📝 Setting context now:');
+      console.log('  - categoryBudgets:', categoryBudgets);
+      console.log('  - monthlyIncome:', monthlyIncome);
+
+      setCategoryBudgets(categoryBudgets);
+      setMonthlyIncome(monthlyIncome);
+      setMode(finalData.mode || 'advanced');
+
+      // Wait for React state update (200ms should be enough)
+      console.log('⏳ Waiting 200ms for React state to update...');
+      await new Promise(resolve => setTimeout(resolve, 200));
+      console.log('✅ Proceeding after state update delay');
+    } else {
+      console.log('✅ Context data already populated');
+      console.log('  - monthlyIncome:', contextBudgetData.monthlyIncome);
+      console.log('  - categoryBudgets keys:', Object.keys(contextBudgetData.categoryBudgets));
+      console.log('  - categoryBudgets:', contextBudgetData.categoryBudgets);
+    }
 
     setCompleting(true);
     setCompletionAttempted(true);
