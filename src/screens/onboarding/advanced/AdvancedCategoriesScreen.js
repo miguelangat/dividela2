@@ -17,8 +17,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES, SHADOWS } from '../../../constants/theme';
 import { DEFAULT_CATEGORIES } from '../../../constants/defaultCategories';
+import { useTranslation } from 'react-i18next';
 
 export default function AdvancedCategoriesScreen({ navigation, route }) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { timeframeData, strategyData } = route.params || {};
   const [useCommonCategories, setUseCommonCategories] = useState(true);
@@ -103,16 +105,16 @@ export default function AdvancedCategoriesScreen({ navigation, route }) {
       >
         {/* Progress Indicator */}
         <View style={styles.progressContainer}>
-          <Text style={styles.progressText}>Step 4 of 7</Text>
+          <Text style={styles.progressText}>{t('onboarding.advanced.categories.progressText')}</Text>
           <View style={styles.progressBar}>
             <View style={[styles.progressFill, { width: '57.1%' }]} />
           </View>
         </View>
 
         {/* Title */}
-        <Text style={styles.title}>Pick your categories</Text>
+        <Text style={styles.title}>{t('onboarding.advanced.categories.title')}</Text>
         <Text style={styles.subtitle}>
-          Choose what you want to track and budget for
+          {t('onboarding.advanced.categories.subtitle')}
         </Text>
 
         {/* Quick Toggle */}
@@ -130,9 +132,9 @@ export default function AdvancedCategoriesScreen({ navigation, route }) {
             >
               {useCommonCategories && <Text style={styles.checkmark}>✓</Text>}
             </View>
-            <Text style={styles.toggleText}>Use Common Categories</Text>
+            <Text style={styles.toggleText}>{t('onboarding.advanced.categories.useCommon')}</Text>
           </View>
-          <Text style={styles.toggleHint}>Recommended for most couples</Text>
+          <Text style={styles.toggleHint}>{t('onboarding.advanced.categories.recommendedText')}</Text>
         </TouchableOpacity>
 
         {/* Category Grid */}
@@ -176,7 +178,7 @@ export default function AdvancedCategoriesScreen({ navigation, route }) {
               activeOpacity={0.7}
             >
               <Text style={styles.addCategoryIcon}>+</Text>
-              <Text style={styles.addCategoryText}>Add Custom</Text>
+              <Text style={styles.addCategoryText}>{t('onboarding.advanced.categories.addCustom')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -192,7 +194,7 @@ export default function AdvancedCategoriesScreen({ navigation, route }) {
         <View style={styles.hintBox}>
           <Text style={styles.hintIcon}>💡</Text>
           <Text style={styles.hintText}>
-            Most couples track 5-7 categories
+            {t('onboarding.advanced.categories.hint')}
           </Text>
         </View>
       </ScrollView>
@@ -217,7 +219,7 @@ export default function AdvancedCategoriesScreen({ navigation, route }) {
           activeOpacity={0.8}
           disabled={selectedCategories.length === 0}
         >
-          <Text style={styles.continueButtonText}>Continue</Text>
+          <Text style={styles.continueButtonText}>{t('onboarding.advanced.categories.continue')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -230,10 +232,10 @@ export default function AdvancedCategoriesScreen({ navigation, route }) {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add Custom Category</Text>
+            <Text style={styles.modalTitle}>{t('onboarding.advanced.categories.modalTitle')}</Text>
 
             {/* Icon Selector */}
-            <Text style={styles.modalLabel}>Choose an icon</Text>
+            <Text style={styles.modalLabel}>{t('onboarding.advanced.categories.chooseIconLabel')}</Text>
             <View style={styles.iconGrid}>
               {commonIcons.map((icon) => (
                 <TouchableOpacity
@@ -250,12 +252,12 @@ export default function AdvancedCategoriesScreen({ navigation, route }) {
             </View>
 
             {/* Name Input */}
-            <Text style={styles.modalLabel}>Category name</Text>
+            <Text style={styles.modalLabel}>{t('onboarding.advanced.categories.categoryNameLabel')}</Text>
             <TextInput
               style={styles.modalInput}
               value={newCategoryName}
               onChangeText={setNewCategoryName}
-              placeholder="e.g., Health & Fitness"
+              placeholder={t('onboarding.advanced.categories.categoryNamePlaceholder')}
               placeholderTextColor={COLORS.textTertiary}
               autoFocus
             />
@@ -270,13 +272,13 @@ export default function AdvancedCategoriesScreen({ navigation, route }) {
                   setNewCategoryIcon('💡');
                 }}
               >
-                <Text style={styles.modalCancelButtonText}>Cancel</Text>
+                <Text style={styles.modalCancelButtonText}>{t('onboarding.advanced.categories.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.modalAddButton}
                 onPress={handleAddCustomCategory}
               >
-                <Text style={styles.modalAddButtonText}>Add</Text>
+                <Text style={styles.modalAddButtonText}>{t('onboarding.advanced.categories.add')}</Text>
               </TouchableOpacity>
             </View>
           </View>
