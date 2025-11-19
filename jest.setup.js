@@ -109,6 +109,18 @@ jest.mock('expo-file-system', () => ({
   documentDirectory: 'file:///',
 }));
 
+// Mock pdf-parse
+jest.mock('pdf-parse', () => {
+  return jest.fn().mockResolvedValue({
+    text: 'Sample PDF text',
+    numpages: 1,
+    numrender: 1,
+    info: {},
+    metadata: {},
+    version: '1.0',
+  });
+});
+
 // Mock react-native-paper Portal
 jest.mock('react-native-paper', () => {
   const RealModule = jest.requireActual('react-native-paper');
