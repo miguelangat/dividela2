@@ -71,9 +71,35 @@ export default function OnboardingSkipScreen({ navigation }) {
       const success = await completeOnboarding(null);
 
       if (success) {
-        // AppNavigator will automatically navigate to MainTabs
-        // after onboarding is marked as complete
-        console.log('Onboarding skipped successfully');
+        console.log('✅ Onboarding skipped successfully');
+        console.log('🚀 Dismissing onboarding modal and navigating to home...');
+
+        // Dismiss the onboarding modal and navigate to home
+        // Use setTimeout to ensure AsyncStorage write completes first
+        setTimeout(() => {
+          try {
+            // Get parent navigator (Stack navigator that contains the modal)
+            const parentNav = navigation.getParent();
+            if (parentNav && parentNav.canGoBack()) {
+              console.log('📍 Dismissing modal via parent navigator');
+              parentNav.goBack();
+
+              // Navigate to home tab after modal dismisses
+              setTimeout(() => {
+                parentNav.navigate('MainTabs', { screen: 'HomeTab' });
+              }, 100);
+            } else if (navigation.canGoBack()) {
+              console.log('📍 Dismissing modal via navigation.goBack()');
+              navigation.goBack();
+            } else {
+              console.log('📍 Cannot go back, navigation will be handled by AppNavigator polling');
+            }
+          } catch (navError) {
+            console.error('❌ Navigation error:', navError);
+            // Fallback: AppNavigator polling will handle navigation
+            console.log('⏳ Falling back to AppNavigator polling for navigation');
+          }
+        }, 500);
 
         // Keep completion flag set to prevent further attempts
         // Don't reset completing state to keep UI disabled
