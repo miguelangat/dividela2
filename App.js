@@ -3,6 +3,7 @@
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { BudgetProvider } from './src/contexts/BudgetContext';
 import AppNavigator from './src/navigation/AppNavigator';
@@ -10,11 +11,13 @@ import AppNavigator from './src/navigation/AppNavigator';
 export default function App() {
   try {
     return (
-      <AuthProvider>
-        <BudgetProvider>
-          <AppNavigator />
-        </BudgetProvider>
-      </AuthProvider>
+      <SafeAreaProvider>
+        <AuthProvider>
+          <BudgetProvider>
+            <AppNavigator />
+          </BudgetProvider>
+        </AuthProvider>
+      </SafeAreaProvider>
     );
   } catch (error) {
     console.error('App Error:', error);

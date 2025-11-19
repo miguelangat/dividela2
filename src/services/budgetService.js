@@ -12,6 +12,7 @@ import {
   onSnapshot,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { COMPLEXITY_MODES } from '../constants/budgetDefaults';
 
 /**
  * Get current month and year
@@ -33,8 +34,13 @@ const getBudgetDocId = (coupleId, month, year) => {
 
 /**
  * Initialize budget for a month with default values
+ * @param {string} coupleId - Couple ID
+ * @param {object} categories - Categories object
+ * @param {number} month - Month (1-12)
+ * @param {number} year - Year
+ * @param {object} options - Additional options (complexity, autoCalculated, etc.)
  */
-export const initializeBudgetForMonth = async (coupleId, categories, month, year) => {
+export const initializeBudgetForMonth = async (coupleId, categories, month, year, options = {}) => {
   try {
     const budgetsRef = collection(db, 'budgets');
     const docId = getBudgetDocId(coupleId, month, year);
@@ -50,14 +56,18 @@ export const initializeBudgetForMonth = async (coupleId, categories, month, year
       month,
       year,
       categoryBudgets,
-      enabled: true,
-      includeSavings: true,
+      enabled: options.enabled !== undefined ? options.enabled : true,
+      includeSavings: options.includeSavings !== undefined ? options.includeSavings : true,
+      complexity: options.complexity || COMPLEXITY_MODES.SIMPLE,
+      autoCalculated: options.autoCalculated || false,
+      onboardingMode: options.onboardingMode || null,
+      canAutoAdjust: options.canAutoAdjust || false,
       createdAt: new Date(),
     };
 
     await setDoc(doc(budgetsRef, docId), budgetDoc);
 
-    console.log(`✅ Budget initialized for ${month}/${year}`);
+    console.log(`✅ Budget initialized for ${month}/${year} with complexity: ${budgetDoc.complexity}`);
     return budgetDoc;
   } catch (error) {
     console.error('Error initializing budget:', error);
@@ -68,8 +78,13 @@ export const initializeBudgetForMonth = async (coupleId, categories, month, year
 /**
  * Get budget for a specific month
  * Creates one if it doesn't exist
+ * @param {string} coupleId - Couple ID
+ * @param {object} categories - Categories object
+ * @param {number} month - Month (1-12)
+ * @param {number} year - Year
+ * @param {object} options - Additional options for initialization
  */
-export const getBudgetForMonth = async (coupleId, categories, month, year) => {
+export const getBudgetForMonth = async (coupleId, categories, month, year, options = {}) => {
   try {
     const budgetsRef = collection(db, 'budgets');
     const docId = getBudgetDocId(coupleId, month, year);
@@ -80,7 +95,7 @@ export const getBudgetForMonth = async (coupleId, categories, month, year) => {
     }
 
     // Budget doesn't exist, initialize it
-    return await initializeBudgetForMonth(coupleId, categories, month, year);
+    return await initializeBudgetForMonth(coupleId, categories, month, year, options);
   } catch (error) {
     console.error('Error getting budget:', error);
     throw error;
@@ -89,10 +104,14 @@ export const getBudgetForMonth = async (coupleId, categories, month, year) => {
 
 /**
  * Get budget for current month
+ * Supports all complexity levels: 'none', 'simple', 'advanced'
+ * @param {string} coupleId - Couple ID
+ * @param {object} categories - Categories object
+ * @param {object} options - Additional options for initialization
  */
-export const getCurrentMonthBudget = async (coupleId, categories) => {
+export const getCurrentMonthBudget = async (coupleId, categories, options = {}) => {
   const { month, year } = getCurrentMonthYear();
-  return getBudgetForMonth(coupleId, categories, month, year);
+  return getBudgetForMonth(coupleId, categories, month, year, options);
 };
 
 /**
@@ -341,4 +360,141 @@ export const isBudgetEnabled = (budget) => {
  */
 export const shouldIncludeSavings = (budget) => {
   return budget && budget.includeSavings !== false;
+};
+
+/**
+ * Get annual budget for advanced mode
+ * Returns budgets for the entire year (12 months)
+ * @param {string} coupleId - Couple ID
+ * @param {object} categories - Categories object
+ * @param {number} year - Year to fetch (defaults to current year)
+ * @returns {Array} Array of 12 budget objects, one per month
+ */
+export const getAnnualBudget = async (coupleId, categories, year = null) => {
+  try {
+    const targetYear = year || new Date().getFullYear();
+    const budgets = [];
+
+    // Fetch all 12 months
+    for (let month = 1; month <= 12; month++) {
+      const budget = await getBudgetForMonth(coupleId, categories, month, targetYear, {
+        complexity: COMPLEXITY_MODES.ADVANCED,
+      });
+      budgets.push(budget);
+    }
+
+    console.log(`✅ Fetched annual budget for ${targetYear}`);
+    return budgets;
+  } catch (error) {
+    console.error('Error getting annual budget:', error);
+    throw error;
+  }
+};
+
+/**
+ * Convert budget complexity level (upgrade/downgrade)
+ * @param {string} coupleId - Couple ID
+ * @param {string} fromComplexity - Current complexity level
+ * @param {string} toComplexity - Target complexity level
+ * @param {object} categories - Categories object
+ * @returns {object} Result of conversion
+ */
+export const convertComplexity = async (coupleId, fromComplexity, toComplexity, categories) => {
+  try {
+    const { month, year } = getCurrentMonthYear();
+    const budgetsRef = collection(db, 'budgets');
+    const docId = getBudgetDocId(coupleId, month, year);
+
+    // Get current budget
+    const currentBudgetDoc = await getDoc(doc(budgetsRef, docId));
+    const currentBudget = currentBudgetDoc.exists() ? currentBudgetDoc.data() : null;
+
+    let result = {
+      success: true,
+      fromComplexity,
+      toComplexity,
+      message: '',
+    };
+
+    // Converting to NONE - disable budgets but keep data
+    if (toComplexity === COMPLEXITY_MODES.NONE) {
+      if (currentBudget) {
+        await updateBudgetSettings(coupleId, month, year, {
+          enabled: false,
+          complexity: COMPLEXITY_MODES.NONE,
+        });
+        result.message = 'Budget tracking disabled. Your budget data is preserved.';
+      }
+      return result;
+    }
+
+    // Converting from NONE to SIMPLE or ADVANCED - enable budgets
+    if (fromComplexity === COMPLEXITY_MODES.NONE) {
+      if (currentBudget) {
+        await updateBudgetSettings(coupleId, month, year, {
+          enabled: true,
+          complexity: toComplexity,
+        });
+      } else {
+        await initializeBudgetForMonth(coupleId, categories, month, year, {
+          enabled: true,
+          complexity: toComplexity,
+        });
+      }
+      result.message = `Budget tracking enabled in ${toComplexity} mode.`;
+      return result;
+    }
+
+    // Converting between SIMPLE and ADVANCED - keep data, just change mode
+    if (currentBudget) {
+      await updateBudgetSettings(coupleId, month, year, {
+        complexity: toComplexity,
+      });
+      result.message = `Complexity changed from ${fromComplexity} to ${toComplexity}.`;
+    } else {
+      await initializeBudgetForMonth(coupleId, categories, month, year, {
+        complexity: toComplexity,
+      });
+      result.message = `Budget initialized in ${toComplexity} mode.`;
+    }
+
+    console.log(`✅ Converted budget complexity from ${fromComplexity} to ${toComplexity}`);
+    return result;
+  } catch (error) {
+    console.error('Error converting complexity:', error);
+    return {
+      success: false,
+      fromComplexity,
+      toComplexity,
+      message: error.message,
+      error,
+    };
+  }
+};
+
+/**
+ * Get budget complexity level
+ * @param {object} budget - Budget object
+ * @returns {string} Complexity level: 'none', 'simple', or 'advanced'
+ */
+export const getBudgetComplexity = (budget) => {
+  return budget?.complexity || COMPLEXITY_MODES.SIMPLE;
+};
+
+/**
+ * Check if budget is auto-calculated
+ * @param {object} budget - Budget object
+ * @returns {boolean} True if auto-calculated
+ */
+export const isAutoCalculated = (budget) => {
+  return budget?.autoCalculated === true;
+};
+
+/**
+ * Check if budget can auto-adjust
+ * @param {object} budget - Budget object
+ * @returns {boolean} True if can auto-adjust
+ */
+export const canAutoAdjust = (budget) => {
+  return budget?.canAutoAdjust === true;
 };

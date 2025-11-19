@@ -22,10 +22,12 @@ import {
   Dimensions,
   Modal,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../contexts/AuthContext';
+import { onboardingStorage } from '../../utils/storage';
 import { COLORS, FONTS, SPACING } from '../../constants/theme';
 import { formatCurrency, calculateBalance } from '../../utils/calculations';
 
@@ -34,7 +36,7 @@ const isSmallScreen = screenWidth < 375;
 const isMediumScreen = screenWidth >= 375 && screenWidth < 768;
 const isLargeScreen = screenWidth >= 768;
 
-export default function SettingsScreen() {
+export default function SettingsScreen({ navigation }) {
   const { user, userDetails, signOut, getPartnerDetails } = useAuth();
   const [editingName, setEditingName] = useState(false);
   const [displayName, setDisplayName] = useState(userDetails?.displayName || '');
@@ -220,6 +222,64 @@ export default function SettingsScreen() {
     </View>
   );
 
+  const handleRestartOnboarding = async () => {
+    console.log('🚨 RESTART BUTTON CLICKED - HANDLER CALLED');
+    Alert.alert(
+      'Restart Budget Onboarding',
+      'This will take you through the budget setup process again. Your current budget will be replaced.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Restart',
+          style: 'default',
+          onPress: async () => {
+            try {
+              console.log('🔄 Restarting onboarding...');
+
+              // Clear the onboarding completion flag using storage utility
+              if (userDetails?.coupleId) {
+                await onboardingStorage.clearCompleted(userDetails.coupleId);
+                await onboardingStorage.clearState();
+                console.log('✅ Cleared onboarding storage');
+              }
+
+              // Log navigation state for debugging
+              console.log('📍 Navigation state before restart:', {
+                hasNavigation: !!navigation,
+                hasParent: !!navigation.getParent,
+                hasGetParent: typeof navigation.getParent === 'function',
+              });
+
+              // Navigate to onboarding modal
+              // CRITICAL: SettingsScreen is in TabNavigator, 'Onboarding' is in parent Stack
+              // Must explicitly access parent navigator
+              try {
+                const parentNav = navigation.getParent();
+                if (parentNav) {
+                  console.log('🎯 Navigating via parent navigator');
+                  parentNav.navigate('Onboarding', { restartMode: true });
+                } else {
+                  console.log('🎯 Navigating directly (no parent found)');
+                  navigation.navigate('Onboarding', { restartMode: true });
+                }
+                console.log('✅ Navigation command executed');
+              } catch (navError) {
+                console.error('❌ Navigation error:', navError);
+                throw navError;
+              }
+            } catch (error) {
+              console.error('❌ Error restarting onboarding:', error);
+              Alert.alert('Error', 'Failed to restart onboarding. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const renderPreferencesSection = () => (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Preferences</Text>
@@ -235,7 +295,7 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        <View style={[styles.settingRow, styles.settingRowLast]}>
+        <View style={styles.settingRow}>
           <View style={styles.settingIcon}>
             <Ionicons name="pie-chart" size={20} color={COLORS.primary} />
           </View>
@@ -244,6 +304,24 @@ export default function SettingsScreen() {
             <Text style={styles.settingValue}>50 / 50</Text>
           </View>
         </View>
+
+        <TouchableOpacity
+          style={[styles.settingRow, styles.settingRowLast]}
+          onPress={() => {
+            console.log('🔴 BUTTON ONPRESS FIRED');
+            handleRestartOnboarding();
+          }}
+          activeOpacity={0.6}
+        >
+          <View style={styles.settingIcon}>
+            <Ionicons name="refresh" size={20} color={COLORS.primary} />
+          </View>
+          <View style={styles.settingContent}>
+            <Text style={styles.settingLabel}>Budget Setup</Text>
+            <Text style={styles.settingValue}>Restart onboarding</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+        </TouchableOpacity>
       </View>
     </View>
   );
