@@ -1,4 +1,20 @@
 // jest.setup.js
+// Fix for jest-expo Object.defineProperty error
+// Must be before any imports
+if (!global.ErrorUtils) {
+  global.ErrorUtils = {};
+}
+Object.defineProperty(global.ErrorUtils, 'setGlobalHandler', {
+  value: jest.fn(),
+  writable: true,
+  configurable: true,
+});
+Object.defineProperty(global.ErrorUtils, 'getGlobalHandler', {
+  value: jest.fn(),
+  writable: true,
+  configurable: true,
+});
+
 import '@testing-library/jest-native/extend-expect';
 
 // Mock AsyncStorage
@@ -54,6 +70,22 @@ jest.mock('./src/config/firebase', () => ({
   auth: {},
   db: {},
   storage: {},
+}));
+
+// Mock Firestore
+jest.mock('firebase/firestore', () => ({
+  collection: jest.fn(),
+  getDocs: jest.fn(),
+  getDoc: jest.fn(),
+  doc: jest.fn(),
+  addDoc: jest.fn(),
+  updateDoc: jest.fn(),
+  deleteDoc: jest.fn(),
+  query: jest.fn(),
+  where: jest.fn(),
+  orderBy: jest.fn(),
+  serverTimestamp: jest.fn(),
+  onSnapshot: jest.fn(),
 }));
 
 // Silence console warnings in tests
