@@ -42,15 +42,14 @@ export default function SimpleSuccessScreen({ navigation, route }) {
   const fadeAnim = new Animated.Value(0);
 
   useEffect(() => {
-    startAnimation();
-
-    // Log budget data on mount to diagnose issues
-    console.log('=== SimpleSuccessScreen Mounted ===');
+    console.log('🟢 === SimpleSuccessScreen Mounted ===');
     console.log('Context Budget Data:', JSON.stringify(contextBudgetData, null, 2));
     console.log('Params Budget Data:', JSON.stringify(paramsBudgetData, null, 2));
     console.log('Using Budget Data:', JSON.stringify(budgetData, null, 2));
     console.log('Budget Style:', budgetStyle);
     console.log('Selected Mode:', selectedMode);
+
+    startAnimation();
 
     // If context data is empty but params data exists, set it in context
     if (paramsBudgetData && (!contextBudgetData || !contextBudgetData.monthlyIncome)) {
@@ -89,6 +88,9 @@ export default function SimpleSuccessScreen({ navigation, route }) {
   };
 
   const handleGoToDashboard = async () => {
+    console.log('🔴 GO TO DASHBOARD BUTTON CLICKED');
+    console.log('Current state - completing:', completing, 'completionAttempted:', completionAttempted);
+
     // Double-tap prevention: Check if already completing or recently completed
     if (completing || completionAttempted) {
       console.log('Preventing duplicate completion attempt');

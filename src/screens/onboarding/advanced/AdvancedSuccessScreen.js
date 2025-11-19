@@ -73,6 +73,10 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
   ).current;
 
   useEffect(() => {
+    console.log('🟢 === AdvancedSuccessScreen Mounted ===');
+    console.log('Final Data:', JSON.stringify(finalData, null, 2));
+    console.log('isDataValid:', isDataValid);
+
     // Check if data is valid before proceeding
     if (!isDataValid) {
       console.error('Invalid data detected - navigation back to previous screen');
@@ -152,6 +156,10 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
   }, [isDataValid]);
 
   const handleGoToDashboard = async () => {
+    console.log('🔴 ADVANCED GO TO DASHBOARD BUTTON CLICKED');
+    console.log('Current state - completing:', completing, 'completionAttempted:', completionAttempted);
+    console.log('isDataValid:', isDataValid);
+
     // Double-tap prevention: Check if already completing or recently completed
     if (completing || completionAttempted) {
       console.log('Preventing duplicate completion attempt');
@@ -164,6 +172,7 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
       return;
     }
 
+    console.log('=== Starting ADVANCED onboarding completion ===');
     setCompleting(true);
     setCompletionAttempted(true);
 
