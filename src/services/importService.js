@@ -266,13 +266,18 @@ export async function importSelectedTransactions(
 }
 
 /**
- * Import expenses in batches
+ * Import expenses in batches with automatic rollback on failure
  *
  * @param {Array} expenses - Expenses to import
  * @param {Function} onProgress - Progress callback (current, total)
+ * @param {Object} options - Import options
+ * @param {boolean} options.rollbackOnFailure - Auto-rollback if any batch fails (default: true)
+ * @param {string} options.sessionId - Import session ID for tracking
  * @returns {Promise<Object>} Import result
  */
-export async function batchImportExpenses(expenses, onProgress = null) {
+export async function batchImportExpenses(expenses, onProgress = null, options = {}) {
+  const { rollbackOnFailure = true, sessionId = null } = options;
+
   try {
     if (!expenses || expenses.length === 0) {
       throw new Error('No expenses to import');
@@ -282,6 +287,7 @@ export async function batchImportExpenses(expenses, onProgress = null) {
     let importedCount = 0;
     const importedIds = [];
     const errors = [];
+    const batchTimestamp = new Date().toISOString();
 
     // Split into batches (Firestore limit is 500 operations per batch)
     const batches = [];
@@ -302,6 +308,13 @@ export async function batchImportExpenses(expenses, onProgress = null) {
             ...expense,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
+            // Add session tracking for rollback capability
+            importMetadata: {
+              ...expense.importMetadata,
+              sessionId: sessionId || batchTimestamp,
+              batchIndex,
+              importedAt: batchTimestamp,
+            },
           });
           importedIds.push(expenseRef.id);
         });
@@ -324,11 +337,69 @@ export async function batchImportExpenses(expenses, onProgress = null) {
           count: batchExpenses.length,
         });
 
-        // Continue with next batch instead of failing completely
+        // ROLLBACK: If rollbackOnFailure is enabled, rollback all previously imported batches
+        if (rollbackOnFailure && importedIds.length > 0) {
+          console.warn(`🔄 Rolling back ${importedIds.length} previously imported expenses due to batch failure...`);
+
+          try {
+            const rollbackResult = await rollbackImport(sessionId || batchTimestamp, importedIds);
+
+            if (rollbackResult.success) {
+              console.log(`✅ Successfully rolled back ${rollbackResult.deletedCount} expenses`);
+            } else {
+              console.error(`❌ Rollback partially failed: ${rollbackResult.message}`);
+            }
+
+            // Return failure with rollback info
+            return {
+              success: false,
+              error: `Batch ${batchIndex + 1} failed: ${error.message}. All ${rollbackResult.deletedCount} previously imported expenses have been rolled back.`,
+              importedCount: 0,
+              totalExpenses,
+              importedIds: [],
+              errors,
+              rolledBack: true,
+              rollbackResult,
+              summary: {
+                requested: totalExpenses,
+                successful: 0,
+                failed: totalExpenses,
+                batches: batches.length,
+                errors: errors.length,
+                rolledBack: rollbackResult.deletedCount,
+              },
+            };
+          } catch (rollbackError) {
+            console.error('❌ Critical: Rollback failed:', rollbackError);
+
+            // Return critical error - partial data left in database
+            return {
+              success: false,
+              error: `Batch ${batchIndex + 1} failed and rollback also failed. Database may be in inconsistent state. Please contact support with session ID: ${sessionId || batchTimestamp}`,
+              importedCount: importedIds.length,
+              totalExpenses,
+              importedIds,
+              errors: [...errors, { error: `Rollback failed: ${rollbackError.message}`, critical: true }],
+              rolledBack: false,
+              rollbackError: rollbackError.message,
+              summary: {
+                requested: totalExpenses,
+                successful: importedIds.length,
+                failed: totalExpenses - importedIds.length,
+                batches: batches.length,
+                errors: errors.length,
+                rolledBack: 0,
+              },
+            };
+          }
+        }
+
+        // If rollbackOnFailure is disabled, stop import but don't rollback
+        break;
       }
     }
 
-    const success = importedCount > 0;
+    const success = importedCount > 0 && errors.length === 0;
 
     return {
       success,
@@ -336,12 +407,14 @@ export async function batchImportExpenses(expenses, onProgress = null) {
       totalExpenses,
       importedIds,
       errors,
+      rolledBack: false,
       summary: {
         requested: totalExpenses,
         successful: importedCount,
         failed: totalExpenses - importedCount,
         batches: batches.length,
         errors: errors.length,
+        rolledBack: 0,
       },
     };
   } catch (error) {
@@ -352,6 +425,7 @@ export async function batchImportExpenses(expenses, onProgress = null) {
       totalExpenses: expenses.length,
       importedIds: [],
       errors: [{ error: error.message }],
+      rolledBack: false,
     };
   }
 }

@@ -338,5 +338,131 @@ Screen (22)        ███████ 7%
 
 ---
 
+## Reliability Improvements
+
+### Recent Enhancements (Phase 1 - P0 Critical)
+
+**Date**: 2025-01-19
+**Status**: 5/6 P0 fixes completed
+
+#### ✅ Implemented Improvements:
+
+1. **Automatic Rollback on Batch Failure**
+   - Location: `src/services/importService.js:278`
+   - Feature: Automatically rolls back all imported expenses if any batch fails
+   - Benefits: Prevents partial imports and data inconsistency
+   - Testing: See `importService.test.js` for rollback scenarios
+
+2. **BOM (Byte Order Mark) Handling**
+   - Location: `src/utils/csvParser.js:182`
+   - Feature: Strips UTF-8/UTF-16 BOM from CSV files before parsing
+   - Benefits: Fixes parsing failures for Excel-exported CSVs
+   - Testing: Add BOM-prefixed CSV fixtures to test suite
+
+3. **Comprehensive Split Amount Validation**
+   - Location: `src/utils/transactionMapper.js:36-66`
+   - Features:
+     - Validates split percentages are 0-100%
+     - Checks split amounts sum to transaction total
+     - Warns user when invalid config falls back to 50/50
+     - Stores warnings in importMetadata
+   - Testing: See `transactionMapper.test.js` (new tests needed)
+
+4. **Better Amount Parsing with Error Tracking**
+   - Location: `src/utils/csvParser.js:87-111`
+   - Feature: Returns `{value, isValid, error}` instead of just returning 0
+   - Benefits: Invalid amounts generate warnings instead of silent conversion
+   - Testing: CSV parser tests should verify error tracking
+
+5. **Firebase v9 Modular API**
+   - Location: `src/utils/importResilience.js:316`
+   - Feature: Updated from deprecated `.get()` to modular `getDoc()`
+   - Benefits: Future-proof Firebase API usage
+   - Testing: Existing tests continue to work
+
+#### ⏳ Pending (P0):
+
+6. **Firebase Field Name Validation**
+   - Validate field names comply with Firestore restrictions
+   - Prevent silent failures from invalid field names
+
+### Testing Requirements for Reliability Features
+
+#### New Test Cases Needed:
+
+1. **Rollback Testing**
+   ```javascript
+   describe('Batch Import with Rollback', () => {
+     it('should rollback all batches when third batch fails', async () => {
+       // Create 3 batches (600 transactions)
+       // Force failure on batch 3
+       // Verify batches 1 & 2 are rolled back
+     });
+
+     it('should provide clear error message when rollback fails', async () => {
+       // Simulate rollback failure
+       // Verify critical error with session ID
+     });
+   });
+   ```
+
+2. **BOM Handling**
+   ```javascript
+   describe('CSV with BOM', () => {
+     it('should parse CSV file with UTF-8 BOM', async () => {
+       const bomCsv = '\uFEFFDate,Description,Amount\n...';
+       // Verify first header is "Date" not "ï»¿Date"
+     });
+   });
+   ```
+
+3. **Split Validation**
+   ```javascript
+   describe('Split Configuration Validation', () => {
+     it('should warn and default to 50/50 for invalid percentage', async () => {
+       // Config with percentage: 150
+       // Verify warning in importMetadata.splitWarning
+     });
+
+     it('should detect when split amounts don\'t sum to total', async () => {
+       // Create expense with mismatched split
+       // Verify validation error
+     });
+   });
+   ```
+
+4. **Amount Parsing Errors**
+   ```javascript
+   describe('Invalid Amount Handling', () => {
+     it('should track errors for unparseable amounts', async () => {
+       // CSV with "N/A" in amount column
+       // Verify error in metadata.errors
+     });
+
+     it('should warn for zero-amount transactions', async () => {
+       // CSV with $0.00 transactions
+       // Verify warning generated
+     });
+   });
+   ```
+
+### Regression Testing
+
+All existing tests must pass with these changes. Run:
+```bash
+npm test
+```
+
+Expected: All 310 existing tests pass + new tests for reliability features.
+
+### Performance Testing
+
+Rollback mechanism adds overhead. Verify:
+- Import of 100 transactions: < 2 seconds (unchanged)
+- Import with rollback (batch 2 fails): < 3 seconds
+- Rollback of 500 expenses: < 2 seconds
+
+---
+
 Last Updated: 2025-01-19
 Contributors: Claude (AI Assistant)

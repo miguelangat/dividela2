@@ -82,9 +82,12 @@ function parseDate(dateString) {
 /**
  * Parse amount string to number
  * Handles: commas, parentheses for negatives, currency symbols
+ * Returns object with value and error flag for better validation
  */
 function parseAmount(amountString) {
-  if (!amountString) return 0;
+  if (!amountString || String(amountString).trim() === '') {
+    return { value: 0, isValid: false, error: 'Empty amount' };
+  }
 
   const cleaned = String(amountString)
     .replace(/[$€£¥,\s]/g, '') // Remove currency symbols, commas, spaces
@@ -93,11 +96,18 @@ function parseAmount(amountString) {
   // Handle parentheses as negative (e.g., "(100.00)" = -100)
   if (cleaned.startsWith('(') && cleaned.endsWith(')')) {
     const value = parseFloat(cleaned.slice(1, -1));
-    return isNaN(value) ? 0 : -Math.abs(value);
+    if (isNaN(value)) {
+      return { value: 0, isValid: false, error: 'Invalid amount format' };
+    }
+    return { value: -Math.abs(value), isValid: true };
   }
 
   const value = parseFloat(cleaned);
-  return isNaN(value) ? 0 : value;
+  if (isNaN(value)) {
+    return { value: 0, isValid: false, error: 'Invalid number' };
+  }
+
+  return { value, isValid: true };
 }
 
 /**
@@ -176,6 +186,17 @@ function removeFooterRows(rows, headerIndex) {
 }
 
 /**
+ * Strip BOM (Byte Order Mark) from string
+ * Many Excel-exported CSVs include UTF-8 BOM (0xEF 0xBB 0xBF)
+ */
+function stripBOM(content) {
+  if (typeof content === 'string' && content.charCodeAt(0) === 0xFEFF) {
+    return content.slice(1);
+  }
+  return content;
+}
+
+/**
  * Parse CSV file content
  *
  * @param {string} fileContent - CSV file content as string
@@ -183,7 +204,10 @@ function removeFooterRows(rows, headerIndex) {
  */
 export async function parseCSV(fileContent) {
   return new Promise((resolve, reject) => {
-    Papa.parse(fileContent, {
+    // Strip BOM if present (common in Excel-exported CSVs)
+    const cleanedContent = stripBOM(fileContent);
+
+    Papa.parse(cleanedContent, {
       complete: (results) => {
         try {
           const { data, errors } = results;
@@ -276,28 +300,41 @@ function processCSVData(rows) {
       // Parse amount
       let amount = 0;
       let type = 'debit';
+      let amountParseError = null;
 
       if (amountIndex !== -1) {
         // Single amount column
-        amount = parseAmount(row[amountIndex]);
-        type = amount < 0 ? 'credit' : 'debit';
-        amount = Math.abs(amount);
+        const amountResult = parseAmount(row[amountIndex]);
+        if (!amountResult.isValid) {
+          amountParseError = amountResult.error;
+        } else {
+          amount = amountResult.value;
+          type = amount < 0 ? 'credit' : 'debit';
+          amount = Math.abs(amount);
+        }
       } else {
         // Separate debit/credit columns
-        const debitValue = debitIndex !== -1 ? parseAmount(row[debitIndex]) : 0;
-        const creditValue = creditIndex !== -1 ? parseAmount(row[creditIndex]) : 0;
+        const debitResult = debitIndex !== -1 ? parseAmount(row[debitIndex]) : { value: 0, isValid: true };
+        const creditResult = creditIndex !== -1 ? parseAmount(row[creditIndex]) : { value: 0, isValid: true };
 
-        if (debitValue > 0) {
-          amount = debitValue;
+        if (debitResult.value > 0) {
+          amount = debitResult.value;
           type = 'debit';
-        } else if (creditValue > 0) {
-          amount = creditValue;
+        } else if (creditResult.value > 0) {
+          amount = creditResult.value;
           type = 'credit';
         }
       }
 
-      // Skip if amount is 0
-      if (amount === 0) return;
+      // Skip if amount is 0 (but add to warnings)
+      if (amount === 0) {
+        if (amountParseError) {
+          errors.push({ row: index + headerIndex + 2, error: `Amount parsing failed: ${amountParseError}`, value: row[amountIndex] });
+        } else {
+          errors.push({ row: index + headerIndex + 2, error: 'Zero amount transaction skipped', value: row });
+        }
+        return;
+      }
 
       // Parse description
       const description = descriptionIndex !== -1

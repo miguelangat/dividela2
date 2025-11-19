@@ -333,16 +333,30 @@ export function validateExpense(expense) {
     const total =
       (expense.splitDetails.user1Amount || 0) + (expense.splitDetails.user2Amount || 0);
 
+    // Check amounts sum to transaction total (1 cent tolerance)
     if (Math.abs(total - expense.amount) > 0.01) {
-      errors.push(`Split amounts don't match total: ${total} vs ${expense.amount}`);
+      errors.push(`Split amounts don't match total: $${total.toFixed(2)} vs $${expense.amount.toFixed(2)}`);
     }
 
+    // Check percentages sum to 100
     const totalPercentage =
       (expense.splitDetails.user1Percentage || 0) + (expense.splitDetails.user2Percentage || 0);
 
     if (Math.abs(totalPercentage - 100) > 0.1) {
-      errors.push(`Split percentages don't add up to 100: ${totalPercentage}%`);
+      errors.push(`Split percentages don't add up to 100: ${totalPercentage.toFixed(1)}%`);
     }
+
+    // Check that amounts are non-negative
+    if (expense.splitDetails.user1Amount < 0 || expense.splitDetails.user2Amount < 0) {
+      errors.push(`Split amounts cannot be negative`);
+    }
+
+    // Check that percentages are non-negative
+    if (expense.splitDetails.user1Percentage < 0 || expense.splitDetails.user2Percentage < 0) {
+      errors.push(`Split percentages cannot be negative`);
+    }
+  } else {
+    errors.push('Missing splitDetails object');
   }
 
   // Validate date

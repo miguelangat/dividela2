@@ -33,16 +33,36 @@ export function mapTransactionToExpense(transaction, config) {
   // Use suggested category if available, otherwise use default
   const finalCategory = suggestedCategory || categoryKey;
 
-  // Calculate split amounts
+  // Calculate split amounts with validation
   let splitDetails;
+  let splitWarning = null;
 
   if (splitConfig.type === '50/50') {
     splitDetails = calculateSplitAmounts(transaction.amount, 50, paidBy);
-  } else if (splitConfig.type === 'custom' && splitConfig.percentage) {
-    splitDetails = calculateSplitAmounts(transaction.amount, splitConfig.percentage, paidBy);
+  } else if (splitConfig.type === 'custom') {
+    if (!splitConfig.percentage || splitConfig.percentage < 0 || splitConfig.percentage > 100) {
+      // Invalid custom percentage - fallback to 50/50 with warning
+      console.warn(`⚠️ Invalid split percentage (${splitConfig.percentage}). Defaulting to 50/50.`);
+      splitDetails = calculateSplitAmounts(transaction.amount, 50, paidBy);
+      splitWarning = `Invalid split percentage, defaulted to 50/50`;
+    } else {
+      splitDetails = calculateSplitAmounts(transaction.amount, splitConfig.percentage, paidBy);
+    }
   } else {
-    // Default to 50/50
+    // Unknown split type - default to 50/50 with warning
+    console.warn(`⚠️ Unknown split type "${splitConfig.type}". Defaulting to 50/50.`);
     splitDetails = calculateSplitAmounts(transaction.amount, 50, paidBy);
+    splitWarning = `Unknown split type, defaulted to 50/50`;
+  }
+
+  // Validate split amounts sum to transaction amount
+  const splitSum = (splitDetails.user1Amount || 0) + (splitDetails.user2Amount || 0);
+  const tolerance = 0.01; // 1 cent tolerance for rounding
+  if (Math.abs(splitSum - transaction.amount) > tolerance) {
+    console.error(`❌ Split validation error: amounts don't sum to total (${splitSum} vs ${transaction.amount})`);
+    // Recalculate with 50/50 to be safe
+    splitDetails = calculateSplitAmounts(transaction.amount, 50, paidBy);
+    splitWarning = `Split amounts didn't match total, recalculated with 50/50`;
   }
 
   return {
@@ -63,6 +83,7 @@ export function mapTransactionToExpense(transaction, config) {
       transactionType: transaction.type,
       source: 'bank_import',
       rawData: transaction.rawData,
+      splitWarning, // Include warning if split had issues
     },
   };
 }

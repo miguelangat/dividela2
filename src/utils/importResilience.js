@@ -3,7 +3,7 @@
  * Provides retry logic, rollback capability, and error recovery
  */
 
-import { collection, writeBatch, doc, deleteDoc, query, where, getDocs } from 'firebase/firestore';
+import { collection, writeBatch, doc, deleteDoc, query, where, getDocs, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { warn, error as logError, info } from './importDebug';
 
@@ -313,7 +313,7 @@ export async function validateImportIntegrity(importedIds, coupleId) {
     for (const expenseId of sampleIds) {
       try {
         const expenseRef = doc(db, 'expenses', expenseId);
-        const expenseDoc = await expenseRef.get();
+        const expenseDoc = await getDoc(expenseRef); // Use modular API getDoc instead of .get()
 
         if (!expenseDoc.exists()) {
           validationErrors.push(`Expense ${expenseId} not found`);
