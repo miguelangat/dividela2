@@ -28,6 +28,7 @@ import { collection, query, where, onSnapshot, orderBy, addDoc, serverTimestamp,
 import { db } from '../../config/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBudget } from '../../contexts/BudgetContext';
+import { useTranslation } from 'react-i18next';
 import { COLORS, FONTS, SPACING, COMMON_STYLES } from '../../constants/theme';
 import {
   calculateBalance,
@@ -44,6 +45,7 @@ import * as settlementService from '../../services/settlementService';
 export default function HomeScreen({ navigation }) {
   const { user, userDetails, getPartnerDetails } = useAuth();
   const { categories, currentBudget } = useBudget();
+  const { t } = useTranslation();
   const [expenses, setExpenses] = useState([]);
   const [settlements, setSettlements] = useState([]); // Track settlements for balance calculation
   const [balance, setBalance] = useState(0);
@@ -502,9 +504,9 @@ export default function HomeScreen({ navigation }) {
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <Text style={styles.emptyStateEmoji}>💸</Text>
-      <Text style={styles.emptyStateTitle}>No Expenses Yet</Text>
+      <Text style={styles.emptyStateTitle}>{t('home.noExpensesTitle')}</Text>
       <Text style={styles.emptyStateText}>
-        Start tracking your shared expenses by tapping the + button below
+        {t('home.noExpensesText')}
       </Text>
     </View>
   );
@@ -518,7 +520,7 @@ export default function HomeScreen({ navigation }) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Loading expenses...</Text>
+        <Text style={styles.loadingText}>{t('home.loadingExpenses')}</Text>
       </View>
     );
   }
@@ -560,8 +562,8 @@ export default function HomeScreen({ navigation }) {
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Hello, {userDetails?.displayName || 'there'}!</Text>
-            <Text style={styles.subtitle}>Here's your balance with {partnerName}</Text>
+            <Text style={styles.greeting}>{t('home.greeting', { name: userDetails?.displayName || 'there' })}</Text>
+            <Text style={styles.subtitle}>{t('home.subtitle', { partnerName })}</Text>
           </View>
           <TouchableOpacity
             style={styles.historyButton}
@@ -577,7 +579,7 @@ export default function HomeScreen({ navigation }) {
           balanceInfo.status === 'positive' && styles.balanceCardPositive,
           balanceInfo.status === 'negative' && styles.balanceCardNegative,
         ]}>
-          <Text style={styles.balanceLabel}>Current Balance</Text>
+          <Text style={styles.balanceLabel}>{t('home.currentBalance')}</Text>
           <Text style={styles.balanceAmount}>
             {formatCurrency(balanceInfo.amount)}
           </Text>
@@ -589,7 +591,7 @@ export default function HomeScreen({ navigation }) {
                 style={styles.settleButton}
                 onPress={() => setSettleUpModalVisible(true)}
               >
-                <Text style={styles.settleButtonText}>Settle Up</Text>
+                <Text style={styles.settleButtonText}>{t('home.settleUp')}</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity
@@ -597,7 +599,7 @@ export default function HomeScreen({ navigation }) {
               onPress={() => navigation.navigate('SettlementsTab')}
             >
               <Ionicons name="list-outline" size={18} color={COLORS.primary} />
-              <Text style={styles.historyButtonText}>View History</Text>
+              <Text style={styles.historyButtonText}>{t('home.viewHistory')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -613,7 +615,7 @@ export default function HomeScreen({ navigation }) {
         {/* Expenses List */}
         <View style={styles.expensesSection}>
           <View style={styles.expensesSectionHeader}>
-            <Text style={styles.sectionTitle}>Expenses</Text>
+            <Text style={styles.sectionTitle}>{t('home.expenses')}</Text>
           </View>
 
           {/* Filter Toggle */}
