@@ -57,6 +57,13 @@ export const AuthProvider = ({ children }) => {
               displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
               partnerId: null,
               coupleId: null,
+              subscriptionStatus: 'free',
+              subscriptionPlatform: null,
+              subscriptionExpiresAt: null,
+              subscriptionProductId: null,
+              revenueCatUserId: firebaseUser.uid,
+              trialUsed: false,
+              trialEndsAt: null,
             };
             setUserDetails(minimalUserDetails);
           }
@@ -102,6 +109,14 @@ export const AuthProvider = ({ children }) => {
           defaultSplit: 50,
           currency: 'USD',
         },
+        // Subscription fields
+        subscriptionStatus: 'free', // 'free' | 'premium' | 'trial' | 'expired'
+        subscriptionPlatform: null, // 'ios' | 'android' | 'web' | null
+        subscriptionExpiresAt: null,
+        subscriptionProductId: null,
+        revenueCatUserId: firebaseUser.uid, // Links to RevenueCat
+        trialUsed: false,
+        trialEndsAt: null,
       };
 
       console.log('Creating Firestore user document...');
@@ -241,6 +256,19 @@ export const AuthProvider = ({ children }) => {
           partnerId: null,
           coupleId: null,
           createdAt: new Date(),
+          settings: {
+            notifications: true,
+            defaultSplit: 50,
+            currency: 'USD',
+          },
+          // Subscription fields
+          subscriptionStatus: 'free',
+          subscriptionPlatform: null,
+          subscriptionExpiresAt: null,
+          subscriptionProductId: null,
+          revenueCatUserId: firebaseUser.uid,
+          trialUsed: false,
+          trialEndsAt: null,
         };
 
         await setDoc(doc(db, 'users', firebaseUser.uid), userData);
@@ -290,6 +318,19 @@ export const AuthProvider = ({ children }) => {
           partnerId: null,
           coupleId: null,
           createdAt: new Date(),
+          settings: {
+            notifications: true,
+            defaultSplit: 50,
+            currency: 'USD',
+          },
+          // Subscription fields
+          subscriptionStatus: 'free',
+          subscriptionPlatform: null,
+          subscriptionExpiresAt: null,
+          subscriptionProductId: null,
+          revenueCatUserId: firebaseUser.uid,
+          trialUsed: false,
+          trialEndsAt: null,
         };
 
         await setDoc(doc(db, 'users', firebaseUser.uid), userData);

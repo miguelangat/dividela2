@@ -18,6 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBudget } from '../../contexts/BudgetContext';
+import { useFeatureGate } from '../../components/FeatureGate';
 import { getCoupleSettings, initializeCoupleSettings } from '../../services/coupleSettingsService';
 import { getCurrentFiscalYear, formatFiscalYearDisplay } from '../../services/fiscalPeriodService';
 import { createAnnualBudget, getCurrentAnnualBudget, updateCategoryBudget } from '../../services/annualBudgetService';
@@ -37,6 +38,7 @@ const CATEGORY_COLORS = {
 export default function AnnualBudgetSetupScreen({ navigation }) {
   const { userDetails } = useAuth();
   const { categories } = useBudget();
+  const { hasAccess, isLocked } = useFeatureGate('annual_view');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -238,6 +240,64 @@ export default function AnnualBudgetSetupScreen({ navigation }) {
       0
     );
   };
+
+  // Check for premium access first
+  if (isLocked) {
+    return (
+      <View style={styles.paywallContainer}>
+        <View style={styles.paywallContent}>
+          <View style={styles.paywallIcon}>
+            <Ionicons name="lock-closed" size={64} color={COLORS.primary} />
+          </View>
+          <Text style={styles.paywallTitle}>Premium Feature</Text>
+          <Text style={styles.paywallSubtitle}>
+            Annual budget tracking is a premium feature. Upgrade to unlock:
+          </Text>
+
+          <View style={styles.featureList}>
+            <View style={styles.featureRow}>
+              <Ionicons name="checkmark-circle" size={24} color="#10B981" />
+              <Text style={styles.featureText}>Track annual budgets across fiscal years</Text>
+            </View>
+            <View style={styles.featureRow}>
+              <Ionicons name="checkmark-circle" size={24} color="#10B981" />
+              <Text style={styles.featureText}>Customize monthly allocations</Text>
+            </View>
+            <View style={styles.featureRow}>
+              <Ionicons name="checkmark-circle" size={24} color="#10B981" />
+              <Text style={styles.featureText}>Advanced analytics & insights</Text>
+            </View>
+            <View style={styles.featureRow}>
+              <Ionicons name="checkmark-circle" size={24} color="#10B981" />
+              <Text style={styles.featureText}>Unlimited budgets</Text>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.upgradeButton}
+            onPress={() => navigation.navigate('Paywall', { feature: 'annual_view' })}
+          >
+            <LinearGradient
+              colors={[COLORS.gradientStart, COLORS.gradientEnd]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.upgradeButtonGradient}
+            >
+              <Ionicons name="sparkles" size={24} color="#FFD700" />
+              <Text style={styles.upgradeButtonText}>Upgrade to Premium</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.backButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   if (loading) {
     return (
@@ -695,5 +755,81 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '700',
     letterSpacing: 0.5,
+  },
+  // Paywall styles
+  paywallContainer: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: SPACING.xl,
+  },
+  paywallContent: {
+    maxWidth: 400,
+    alignItems: 'center',
+  },
+  paywallIcon: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: COLORS.primary + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: SPACING.xl,
+  },
+  paywallTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: SPACING.sm,
+    textAlign: 'center',
+  },
+  paywallSubtitle: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginBottom: SPACING.xl,
+    lineHeight: 24,
+  },
+  featureList: {
+    width: '100%',
+    marginBottom: SPACING.xl,
+  },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.base,
+  },
+  featureText: {
+    fontSize: 16,
+    color: COLORS.text,
+    marginLeft: SPACING.base,
+    flex: 1,
+  },
+  upgradeButton: {
+    width: '100%',
+    borderRadius: 14,
+    overflow: 'hidden',
+    marginBottom: SPACING.base,
+  },
+  upgradeButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SPACING.lg,
+    gap: SPACING.sm,
+  },
+  upgradeButtonText: {
+    color: 'white',
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  backButton: {
+    paddingVertical: SPACING.sm,
+  },
+  backButtonText: {
+    color: COLORS.primary,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
