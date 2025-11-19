@@ -204,25 +204,38 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
     console.log('📦 Final Data received:', JSON.stringify(finalData, null, 2));
 
     try {
+      // CRITICAL: Convert annual amounts to monthly if needed
+      // The allocations might be ANNUAL amounts, but saveBudget expects MONTHLY budgets
+      const isAnnual = finalData.mode === 'annual';
+      const divisor = isAnnual ? 12 : 1;
+
+      console.log('🔍 Mode:', finalData.mode);
+      console.log('🔍 Is Annual?:', isAnnual);
+      console.log('🔍 Divisor:', divisor);
+
       // Transform allocations into categoryBudgets format
-      // allocations is { categoryKey: annualAmount, ... }
+      // If annual mode, divide by 12 to convert to monthly
       const categoryBudgets = {};
       if (finalData.allocations) {
-        console.log('📊 Allocations from finalData:', finalData.allocations);
+        console.log('📊 Allocations from finalData (RAW):', finalData.allocations);
         Object.entries(finalData.allocations).forEach(([key, value]) => {
-          categoryBudgets[key] = value;
+          const monthlyValue = value / divisor;
+          categoryBudgets[key] = monthlyValue;
+          console.log(`  ${key}: ${value} -> ${monthlyValue} (divided by ${divisor})`);
         });
       } else {
         console.error('❌ No allocations in finalData!');
       }
 
-      console.log('💾 Setting category budgets:', categoryBudgets);
-      console.log('💾 Setting total budget (monthlyIncome):', finalData.totalBudget);
+      const monthlyIncome = (finalData.totalBudget || 0) / divisor;
+
+      console.log('💾 Setting category budgets (MONTHLY):', categoryBudgets);
+      console.log('💾 Setting monthly income:', monthlyIncome, `(${finalData.totalBudget} / ${divisor})`);
       console.log('💾 Setting mode:', finalData.mode || 'advanced');
 
-      // Set budget data in context
+      // Set budget data in context (now in MONTHLY amounts)
       setCategoryBudgets(categoryBudgets);
-      setMonthlyIncome(finalData.totalBudget || 0);
+      setMonthlyIncome(monthlyIncome);
       setMode(finalData.mode || 'advanced');
 
       console.log('✅ [AdvancedSuccess] Context data initialized successfully');
