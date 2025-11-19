@@ -189,7 +189,15 @@
       "duplicate": "Doublon Possible",
       "duplicateConfidence": "{{confidence}}% de correspondance",
       "autoCategory": "Auto",
-      "changeCategory": "Changer la Catégorie"
+      "changeCategory": "Changer la Catégorie",
+      "confidenceHigh": "Élevée",
+      "confidenceMedium": "Moyenne",
+      "confidenceLow": "Faible",
+      "duplicateWillSkip": "Doublon (sera ignoré)",
+      "duplicateLikely": "Probablement un doublon",
+      "duplicatePossible": "Doublon possible",
+      "duplicateMatches": "{{count}} correspondance",
+      "duplicateMatches_plural": "{{count}} correspondances"
     },
     "progress": {
       "title": "Importation des Dépenses",

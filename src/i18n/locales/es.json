@@ -189,7 +189,15 @@
       "duplicate": "Posible Duplicado",
       "duplicateConfidence": "{{confidence}}% de coincidencia",
       "autoCategory": "Auto",
-      "changeCategory": "Cambiar Categoría"
+      "changeCategory": "Cambiar Categoría",
+      "confidenceHigh": "Alta",
+      "confidenceMedium": "Media",
+      "confidenceLow": "Baja",
+      "duplicateWillSkip": "Duplicado (se omitirá)",
+      "duplicateLikely": "Probable duplicado",
+      "duplicatePossible": "Posible duplicado",
+      "duplicateMatches": "{{count}} coincidencia",
+      "duplicateMatches_plural": "{{count}} coincidencias"
     },
     "progress": {
       "title": "Importando Gastos",

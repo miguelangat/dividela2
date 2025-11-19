@@ -189,7 +189,15 @@
       "duplicate": "Possível Duplicado",
       "duplicateConfidence": "{{confidence}}% de correspondência",
       "autoCategory": "Auto",
-      "changeCategory": "Mudar Categoria"
+      "changeCategory": "Mudar Categoria",
+      "confidenceHigh": "Alta",
+      "confidenceMedium": "Média",
+      "confidenceLow": "Baixa",
+      "duplicateWillSkip": "Duplicado (será ignorado)",
+      "duplicateLikely": "Provável duplicado",
+      "duplicatePossible": "Possível duplicado",
+      "duplicateMatches": "{{count}} correspondência",
+      "duplicateMatches_plural": "{{count}} correspondências"
     },
     "progress": {
       "title": "Importando Despesas",

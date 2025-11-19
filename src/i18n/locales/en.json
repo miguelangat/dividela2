@@ -189,7 +189,15 @@
       "duplicate": "Possible Duplicate",
       "duplicateConfidence": "{{confidence}}% match",
       "autoCategory": "Auto",
-      "changeCategory": "Change Category"
+      "changeCategory": "Change Category",
+      "confidenceHigh": "High",
+      "confidenceMedium": "Medium",
+      "confidenceLow": "Low",
+      "duplicateWillSkip": "Duplicate (will be skipped)",
+      "duplicateLikely": "Likely duplicate",
+      "duplicatePossible": "Possible duplicate",
+      "duplicateMatches": "{{count}} match",
+      "duplicateMatches_plural": "{{count}} matches"
     },
     "progress": {
       "title": "Importing Expenses",

@@ -1,12 +1,15 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Chip, Text } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import { theme } from '../../constants/theme';
 
 /**
  * Display category suggestion with confidence indicator
  */
 export default function CategorySuggestion({ suggestion, onPress, selected }) {
+  const { t } = useTranslation();
+
   if (!suggestion) return null;
 
   const getConfidenceColor = (confidence) => {
@@ -16,9 +19,9 @@ export default function CategorySuggestion({ suggestion, onPress, selected }) {
   };
 
   const getConfidenceLabel = (confidence) => {
-    if (confidence >= 0.7) return 'High';
-    if (confidence >= 0.4) return 'Medium';
-    return 'Low';
+    if (confidence >= 0.7) return t('import.preview.confidenceHigh');
+    if (confidence >= 0.4) return t('import.preview.confidenceMedium');
+    return t('import.preview.confidenceLow');
   };
 
   const confidenceColor = getConfidenceColor(suggestion.confidence);

@@ -1,12 +1,15 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text, Chip, IconButton } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import { theme } from '../../constants/theme';
 
 /**
  * Display duplicate warning for a transaction
  */
 export default function DuplicateWarning({ duplicateStatus, onViewDetails }) {
+  const { t } = useTranslation();
+
   if (!duplicateStatus || !duplicateStatus.hasDuplicates) {
     return null;
   }
@@ -28,9 +31,9 @@ export default function DuplicateWarning({ duplicateStatus, onViewDetails }) {
 
   const getWarningText = () => {
     const level = getWarningLevel();
-    if (level === 'high') return 'Duplicate (will be skipped)';
-    if (level === 'medium') return 'Likely duplicate';
-    return 'Possible duplicate';
+    if (level === 'high') return t('import.preview.duplicateWillSkip');
+    if (level === 'medium') return t('import.preview.duplicateLikely');
+    return t('import.preview.duplicatePossible');
   };
 
   const warningColor = getWarningColor();
@@ -46,7 +49,7 @@ export default function DuplicateWarning({ duplicateStatus, onViewDetails }) {
       </Chip>
       {duplicateCount > 1 && (
         <Text style={[styles.countText, { color: warningColor }]}>
-          {duplicateCount} matches
+          {t('import.preview.duplicateMatches', { count: duplicateCount })}
         </Text>
       )}
       {onViewDetails && (

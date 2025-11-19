@@ -189,7 +189,15 @@
       "duplicate": "Possibile Duplicato",
       "duplicateConfidence": "{{confidence}}% di corrispondenza",
       "autoCategory": "Auto",
-      "changeCategory": "Cambia Categoria"
+      "changeCategory": "Cambia Categoria",
+      "confidenceHigh": "Alta",
+      "confidenceMedium": "Media",
+      "confidenceLow": "Bassa",
+      "duplicateWillSkip": "Duplicato (verrà ignorato)",
+      "duplicateLikely": "Probabile duplicato",
+      "duplicatePossible": "Possibile duplicato",
+      "duplicateMatches": "{{count}} corrispondenza",
+      "duplicateMatches_plural": "{{count}} corrispondenze"
     },
     "progress": {
       "title": "Importazione Spese",

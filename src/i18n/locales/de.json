@@ -189,7 +189,15 @@
       "duplicate": "Mögliches Duplikat",
       "duplicateConfidence": "{{confidence}}% Übereinstimmung",
       "autoCategory": "Auto",
-      "changeCategory": "Kategorie Ändern"
+      "changeCategory": "Kategorie Ändern",
+      "confidenceHigh": "Hoch",
+      "confidenceMedium": "Mittel",
+      "confidenceLow": "Niedrig",
+      "duplicateWillSkip": "Duplikat (wird übersprungen)",
+      "duplicateLikely": "Wahrscheinlich Duplikat",
+      "duplicatePossible": "Mögliches Duplikat",
+      "duplicateMatches": "{{count}} Übereinstimmung",
+      "duplicateMatches_plural": "{{count}} Übereinstimmungen"
     },
     "progress": {
       "title": "Ausgaben Importieren",
