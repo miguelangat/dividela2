@@ -975,6 +975,233 @@ describe('AddExpenseScreen - OCR Integration', () => {
   });
 
   // ============================================
+  // SUBSCRIPTION MEMORY LEAK TESTS
+  // ============================================
+
+  describe('Subscription Memory Leak Prevention', () => {
+    it('should unsubscribe from OCR results when component unmounts', async () => {
+      ImagePicker.requestCameraPermissionsAsync.mockResolvedValue({
+        status: 'granted',
+      });
+      ImagePicker.launchCameraAsync.mockResolvedValue({
+        canceled: false,
+        assets: [{ uri: 'file:///receipt.jpg' }],
+      });
+
+      ocrService.scanReceiptInBackground.mockResolvedValue({
+        expenseId: 'expense123',
+        receiptUrl: 'https://example.com/receipt.jpg',
+      });
+
+      const mockUnsubscribe = jest.fn();
+      ocrService.subscribeToOCRResults.mockReturnValue(mockUnsubscribe);
+
+      const { getByTestId, unmount } = render(
+        <AddExpenseScreen navigation={mockNavigation} route={mockRoute} />
+      );
+
+      await act(async () => {
+        fireEvent.press(getByTestId('scan-receipt-button'));
+      });
+
+      await waitFor(() => {
+        expect(ocrService.subscribeToOCRResults).toHaveBeenCalled();
+      });
+
+      unmount();
+
+      expect(mockUnsubscribe).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not update state after unmount when OCR completes', async () => {
+      ImagePicker.requestCameraPermissionsAsync.mockResolvedValue({
+        status: 'granted',
+      });
+      ImagePicker.launchCameraAsync.mockResolvedValue({
+        canceled: false,
+        assets: [{ uri: 'file:///receipt.jpg' }],
+      });
+
+      ocrService.scanReceiptInBackground.mockResolvedValue({
+        expenseId: 'expense123',
+        receiptUrl: 'https://example.com/receipt.jpg',
+      });
+
+      let capturedCallback;
+      ocrService.subscribeToOCRResults.mockImplementation((expenseId, callback) => {
+        capturedCallback = callback;
+        return jest.fn();
+      });
+
+      const { getByTestId, unmount } = render(
+        <AddExpenseScreen navigation={mockNavigation} route={mockRoute} />
+      );
+
+      await act(async () => {
+        fireEvent.press(getByTestId('scan-receipt-button'));
+      });
+
+      await waitFor(() => {
+        expect(capturedCallback).toBeDefined();
+      });
+
+      // Unmount component
+      unmount();
+
+      // Try to trigger callback after unmount - should not cause errors
+      expect(() => {
+        capturedCallback({
+          status: 'completed',
+          data: { amount: 100, merchant: 'Test' },
+        });
+      }).not.toThrow();
+    });
+
+    it('should create only one subscription per scan', async () => {
+      ImagePicker.requestCameraPermissionsAsync.mockResolvedValue({
+        status: 'granted',
+      });
+      ImagePicker.launchCameraAsync.mockResolvedValue({
+        canceled: false,
+        assets: [{ uri: 'file:///receipt.jpg' }],
+      });
+
+      ocrService.scanReceiptInBackground.mockResolvedValue({
+        expenseId: 'expense123',
+        receiptUrl: 'https://example.com/receipt.jpg',
+      });
+
+      const mockUnsubscribe = jest.fn();
+      ocrService.subscribeToOCRResults.mockReturnValue(mockUnsubscribe);
+
+      const { getByTestId } = render(
+        <AddExpenseScreen navigation={mockNavigation} route={mockRoute} />
+      );
+
+      await act(async () => {
+        fireEvent.press(getByTestId('scan-receipt-button'));
+      });
+
+      await waitFor(() => {
+        expect(ocrService.subscribeToOCRResults).toHaveBeenCalled();
+      });
+
+      // Should be called exactly once per scan
+      expect(ocrService.subscribeToOCRResults).toHaveBeenCalledTimes(1);
+    });
+
+    it('should cleanup old subscription when scanning again', async () => {
+      ImagePicker.requestCameraPermissionsAsync.mockResolvedValue({
+        status: 'granted',
+      });
+
+      let callCount = 0;
+      ImagePicker.launchCameraAsync.mockImplementation(async () => {
+        callCount++;
+        return {
+          canceled: false,
+          assets: [{ uri: `file:///receipt${callCount}.jpg` }],
+        };
+      });
+
+      const mockUnsubscribe1 = jest.fn();
+      const mockUnsubscribe2 = jest.fn();
+      let callback1, callback2;
+
+      ocrService.scanReceiptInBackground.mockImplementation(async (uri) => {
+        // Use uri to generate unique expenseIds
+        const id = uri.includes('receipt1') ? 'expense1' : 'expense2';
+        return {
+          expenseId: id,
+          receiptUrl: `https://example.com/${id}.jpg`,
+        };
+      });
+
+      ocrService.subscribeToOCRResults
+        .mockImplementationOnce((expenseId, callback) => {
+          callback1 = callback;
+          return mockUnsubscribe1;
+        })
+        .mockImplementationOnce((expenseId, callback) => {
+          callback2 = callback;
+          return mockUnsubscribe2;
+        });
+
+      const { getByTestId } = render(
+        <AddExpenseScreen navigation={mockNavigation} route={mockRoute} />
+      );
+
+      // First scan
+      await act(async () => {
+        fireEvent.press(getByTestId('scan-receipt-button'));
+      });
+
+      await waitFor(() => {
+        expect(ocrService.subscribeToOCRResults).toHaveBeenCalledTimes(1);
+        expect(ocrService.subscribeToOCRResults).toHaveBeenCalledWith('expense1', expect.any(Function));
+      }, { timeout: 3000 });
+
+      // Complete first scan by dismissing it
+      await act(async () => {
+        callback1({
+          status: 'completed',
+          data: {
+            amount: 100,
+            merchant: 'Test Store',
+            date: '2025-11-19',
+            category: {
+              category: 'food',
+              confidence: 0.85,
+              reasoning: 'Test reasoning',
+              alternatives: [],
+              belowThreshold: false,
+            },
+            confidence: 85,
+          },
+        });
+      });
+
+      await waitFor(() => {
+        expect(getByTestId('ocr-suggestion-card')).toBeTruthy();
+      });
+
+      // Dismiss the suggestions to reset state
+      await act(async () => {
+        fireEvent.press(getByTestId('ocr-dismiss-button'));
+      });
+
+      // Second scan - should cleanup first subscription and create new one
+      await act(async () => {
+        fireEvent.press(getByTestId('scan-receipt-button'));
+      });
+
+      await waitFor(() => {
+        expect(ocrService.subscribeToOCRResults).toHaveBeenCalledTimes(2);
+        expect(ocrService.subscribeToOCRResults).toHaveBeenCalledWith('expense2', expect.any(Function));
+      }, { timeout: 3000 });
+
+      // First subscription should be cleaned up when state changed
+      expect(mockUnsubscribe1).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not create subscription if status is not processing', async () => {
+      ocrService.subscribeToOCRResults.mockReturnValue(jest.fn());
+
+      const { rerender } = render(
+        <AddExpenseScreen navigation={mockNavigation} route={mockRoute} />
+      );
+
+      // Initial render with idle state - should not subscribe
+      expect(ocrService.subscribeToOCRResults).not.toHaveBeenCalled();
+
+      // Rerender should still not subscribe
+      rerender(<AddExpenseScreen navigation={mockNavigation} route={mockRoute} />);
+
+      expect(ocrService.subscribeToOCRResults).not.toHaveBeenCalled();
+    });
+  });
+
+  // ============================================
   // INTEGRATION WITH EXISTING FUNCTIONALITY
   // ============================================
 

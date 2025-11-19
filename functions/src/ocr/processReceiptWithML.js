@@ -187,15 +187,28 @@ async function updateExpenseDocument(expenseId, coupleId, updateData) {
  * @param {string} params.receiptUrl - Storage path to receipt image
  * @param {string} params.coupleId - Couple document ID
  * @param {string} params.userId - User ID who uploaded the receipt
+ * @param {Object} context - Firebase callable function context
+ * @param {Object} context.auth - Authentication context
+ * @param {string} context.auth.uid - Authenticated user ID
  * @returns {Promise<Object>} Processing result
  */
-async function processReceiptWithML(params) {
+async function processReceiptWithML(params, context) {
   const startTime = Date.now();
 
   console.log('Processing receipt for ML analysis', {
     expenseId: params?.expenseId,
     timestamp: new Date().toISOString()
   });
+
+  // SECURITY: Verify authentication
+  if (!context || !context.auth) {
+    return {
+      success: false,
+      error: 'Unauthorized: Authentication required'
+    };
+  }
+
+  const authenticatedUserId = context.auth.uid;
 
   // Validate input
   const validation = validateInput(params);
@@ -207,6 +220,43 @@ async function processReceiptWithML(params) {
   }
 
   const { expenseId, receiptUrl, coupleId, userId } = params;
+
+  // SECURITY: Verify user has access to this couple
+  try {
+    const coupleRef = db.collection('couples').doc(coupleId);
+    const coupleDoc = await coupleRef.get();
+
+    if (!coupleDoc.exists) {
+      return {
+        success: false,
+        error: 'Couple not found'
+      };
+    }
+
+    const coupleData = coupleDoc.data();
+    const userIds = [coupleData.partner1Id, coupleData.partner2Id].filter(Boolean);
+
+    if (!userIds.includes(authenticatedUserId)) {
+      console.error('Authorization failed', {
+        authenticatedUserId,
+        coupleId,
+        attemptedBy: userId
+      });
+      return {
+        success: false,
+        error: 'Forbidden: Access denied'
+      };
+    }
+  } catch (authError) {
+    console.error('Authorization check failed', {
+      error: authError.message,
+      coupleId
+    });
+    return {
+      success: false,
+      error: 'Authorization check failed'
+    };
+  }
 
   try {
     // Step 1: Check if expense exists

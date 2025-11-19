@@ -16,6 +16,8 @@ jest.mock('expo-file-system');
 describe('imageCompression', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Set up default mock for deleteAsync to prevent undefined errors
+    FileSystem.deleteAsync = jest.fn().mockResolvedValue();
   });
 
   describe('getImageInfo', () => {
@@ -541,7 +543,16 @@ describe('imageCompression', () => {
       it('should handle file system errors', async () => {
         const mockUri = 'file:///test/image.jpg';
 
-        FileSystem.getInfoAsync.mockRejectedValueOnce(
+        // Mock initial file check to succeed
+        FileSystem.getInfoAsync.mockResolvedValueOnce({
+          exists: true,
+          uri: mockUri,
+          size: 2 * 1024 * 1024,
+          isDirectory: false,
+        });
+
+        // Mock manipulateAsync to fail with file system error
+        ImageManipulator.manipulateAsync.mockRejectedValueOnce(
           new Error('File system error')
         );
 
@@ -551,7 +562,16 @@ describe('imageCompression', () => {
       it('should handle permission errors', async () => {
         const mockUri = 'file:///test/protected.jpg';
 
-        FileSystem.getInfoAsync.mockRejectedValueOnce(
+        // Mock initial file check to succeed
+        FileSystem.getInfoAsync.mockResolvedValueOnce({
+          exists: true,
+          uri: mockUri,
+          size: 2 * 1024 * 1024,
+          isDirectory: false,
+        });
+
+        // Mock manipulateAsync to fail with permission error
+        ImageManipulator.manipulateAsync.mockRejectedValueOnce(
           new Error('Permission denied')
         );
 
@@ -650,6 +670,224 @@ describe('imageCompression', () => {
           expect.any(Array),
           expect.objectContaining({ compress: 0.6 })
         );
+      });
+    });
+
+    describe('temp file cleanup', () => {
+      it('should delete first pass file after second pass compression', async () => {
+        const mockUri = 'file:///test/large-image.jpg';
+        const firstPassUri = 'file:///test/compressed-first.jpg';
+        const secondPassUri = 'file:///test/compressed-second.jpg';
+
+        // Original file
+        FileSystem.getInfoAsync.mockResolvedValueOnce({
+          exists: true,
+          uri: mockUri,
+          size: 5 * 1024 * 1024, // 5MB
+          isDirectory: false,
+        });
+
+        // First pass
+        ImageManipulator.manipulateAsync.mockResolvedValueOnce({
+          uri: firstPassUri,
+          width: 1920,
+          height: 1080,
+        });
+
+        // First pass size check - still > 1MB
+        FileSystem.getInfoAsync.mockResolvedValueOnce({
+          exists: true,
+          uri: firstPassUri,
+          size: 1.5 * 1024 * 1024, // 1.5MB - triggers second pass
+          isDirectory: false,
+        });
+
+        // Second pass
+        ImageManipulator.manipulateAsync.mockResolvedValueOnce({
+          uri: secondPassUri,
+          width: 1280,
+          height: 720,
+        });
+
+        // Mock deleteAsync for cleanup
+        FileSystem.deleteAsync.mockResolvedValueOnce();
+
+        const result = await compressReceipt(mockUri);
+
+        // Should cleanup first pass temp file
+        expect(FileSystem.deleteAsync).toHaveBeenCalledWith(firstPassUri, { idempotent: true });
+        expect(FileSystem.deleteAsync).toHaveBeenCalledTimes(1);
+        expect(result.uri).toBe(secondPassUri);
+      });
+
+      it('should not delete first pass file if it is the final result', async () => {
+        const mockUri = 'file:///test/small-image.jpg';
+        const compressedUri = 'file:///test/compressed.jpg';
+
+        // Original file
+        FileSystem.getInfoAsync.mockResolvedValueOnce({
+          exists: true,
+          uri: mockUri,
+          size: 1.5 * 1024 * 1024, // 1.5MB
+          isDirectory: false,
+        });
+
+        // First pass compression
+        ImageManipulator.manipulateAsync.mockResolvedValueOnce({
+          uri: compressedUri,
+          width: 1920,
+          height: 1080,
+        });
+
+        // First pass size check - under 1MB, no second pass needed
+        FileSystem.getInfoAsync.mockResolvedValueOnce({
+          exists: true,
+          uri: compressedUri,
+          size: 900 * 1024, // 900KB - under 1MB
+          isDirectory: false,
+        });
+
+        const result = await compressReceipt(mockUri);
+
+        // Should only compress once (no second pass)
+        expect(ImageManipulator.manipulateAsync).toHaveBeenCalledTimes(1);
+        // Should NOT cleanup first pass file since it's the final result
+        expect(FileSystem.deleteAsync).not.toHaveBeenCalled();
+        expect(result.uri).toBe(compressedUri);
+      });
+
+      it('should cleanup temp files if compression fails', async () => {
+        const mockUri = 'file:///test/large-image.jpg';
+        const firstPassUri = 'file:///test/compressed-first.jpg';
+
+        FileSystem.getInfoAsync.mockResolvedValueOnce({
+          exists: true,
+          uri: mockUri,
+          size: 5 * 1024 * 1024, // 5MB
+          isDirectory: false,
+        });
+
+        // First pass succeeds
+        ImageManipulator.manipulateAsync.mockResolvedValueOnce({
+          uri: firstPassUri,
+          width: 1920,
+          height: 1080,
+        });
+
+        // First pass size check
+        FileSystem.getInfoAsync.mockResolvedValueOnce({
+          exists: true,
+          uri: firstPassUri,
+          size: 1.5 * 1024 * 1024, // 1.5MB - triggers second pass
+          isDirectory: false,
+        });
+
+        // Second pass fails
+        ImageManipulator.manipulateAsync.mockRejectedValueOnce(
+          new Error('Second pass compression failed')
+        );
+
+        // Mock deleteAsync for cleanup
+        FileSystem.deleteAsync.mockResolvedValueOnce();
+
+        await expect(compressReceipt(mockUri)).rejects.toThrow('Second pass compression failed');
+
+        // Should cleanup first pass temp file on error
+        expect(FileSystem.deleteAsync).toHaveBeenCalledWith(firstPassUri, { idempotent: true });
+      });
+
+      it('should handle cleanup errors gracefully', async () => {
+        const mockUri = 'file:///test/large-image.jpg';
+        const firstPassUri = 'file:///test/compressed-first.jpg';
+        const secondPassUri = 'file:///test/compressed-second.jpg';
+        const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+        FileSystem.getInfoAsync.mockResolvedValueOnce({
+          exists: true,
+          uri: mockUri,
+          size: 5 * 1024 * 1024, // 5MB
+          isDirectory: false,
+        });
+
+        // First pass
+        ImageManipulator.manipulateAsync.mockResolvedValueOnce({
+          uri: firstPassUri,
+          width: 1920,
+          height: 1080,
+        });
+
+        // First pass size check
+        FileSystem.getInfoAsync.mockResolvedValueOnce({
+          exists: true,
+          uri: firstPassUri,
+          size: 1.5 * 1024 * 1024, // 1.5MB
+          isDirectory: false,
+        });
+
+        // Second pass
+        ImageManipulator.manipulateAsync.mockResolvedValueOnce({
+          uri: secondPassUri,
+          width: 1280,
+          height: 720,
+        });
+
+        // deleteAsync fails but should not crash
+        FileSystem.deleteAsync.mockRejectedValueOnce(new Error('Delete failed'));
+
+        const result = await compressReceipt(mockUri);
+
+        // Should still return result despite cleanup error
+        expect(result.uri).toBe(secondPassUri);
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+          'Failed to cleanup temp file:',
+          expect.any(Error)
+        );
+
+        consoleWarnSpy.mockRestore();
+      });
+
+      it('should not crash if temp file already deleted', async () => {
+        const mockUri = 'file:///test/large-image.jpg';
+        const firstPassUri = 'file:///test/compressed-first.jpg';
+        const secondPassUri = 'file:///test/compressed-second.jpg';
+
+        FileSystem.getInfoAsync.mockResolvedValueOnce({
+          exists: true,
+          uri: mockUri,
+          size: 5 * 1024 * 1024, // 5MB
+          isDirectory: false,
+        });
+
+        // First pass
+        ImageManipulator.manipulateAsync.mockResolvedValueOnce({
+          uri: firstPassUri,
+          width: 1920,
+          height: 1080,
+        });
+
+        // First pass size check
+        FileSystem.getInfoAsync.mockResolvedValueOnce({
+          exists: true,
+          uri: firstPassUri,
+          size: 1.5 * 1024 * 1024, // 1.5MB
+          isDirectory: false,
+        });
+
+        // Second pass
+        ImageManipulator.manipulateAsync.mockResolvedValueOnce({
+          uri: secondPassUri,
+          width: 1280,
+          height: 720,
+        });
+
+        // deleteAsync succeeds (idempotent handles already deleted files)
+        FileSystem.deleteAsync.mockResolvedValueOnce();
+
+        const result = await compressReceipt(mockUri);
+
+        // Should succeed with idempotent cleanup
+        expect(FileSystem.deleteAsync).toHaveBeenCalledWith(firstPassUri, { idempotent: true });
+        expect(result.uri).toBe(secondPassUri);
       });
     });
   });

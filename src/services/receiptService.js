@@ -5,15 +5,79 @@ import { ref, uploadBytesResumable, deleteObject, getDownloadURL } from 'firebas
 import { doc, getDoc } from 'firebase/firestore';
 import { storage, db } from '../config/firebase';
 
+// Upload timeout in milliseconds (60 seconds)
+const UPLOAD_TIMEOUT_MS = 60000;
+
+/**
+ * Wraps an upload task with timeout functionality
+ * @param {UploadTask} uploadTask - Firebase upload task
+ * @param {number} timeoutMs - Timeout in milliseconds
+ * @param {Function} onProgress - Optional progress callback
+ * @returns {Promise<string>} Download URL of the uploaded file
+ */
+async function uploadWithTimeout(uploadTask, timeoutMs = UPLOAD_TIMEOUT_MS, onProgress = null) {
+  return new Promise((resolve, reject) => {
+    let isComplete = false;
+    let timeoutId = null;
+    let unsubscribe = null;
+
+    // Timeout handler
+    timeoutId = setTimeout(() => {
+      if (!isComplete) {
+        isComplete = true;
+        if (unsubscribe) unsubscribe();
+        uploadTask.cancel();
+        reject(new Error('Upload timeout exceeded'));
+      }
+    }, timeoutMs);
+
+    // Upload progress listener
+    unsubscribe = uploadTask.on('state_changed',
+      (snapshot) => {
+        // Report progress
+        if (onProgress && typeof onProgress === 'function') {
+          const progress = Math.round(
+            (snapshot.bytesTransferred / snapshot.totalBytes) * 100
+          );
+          onProgress(progress);
+        }
+      },
+      (error) => {
+        if (!isComplete) {
+          isComplete = true;
+          clearTimeout(timeoutId);
+          if (unsubscribe) unsubscribe();
+          reject(error);
+        }
+      },
+      async () => {
+        if (!isComplete) {
+          isComplete = true;
+          clearTimeout(timeoutId);
+          try {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            resolve(downloadURL);
+          } catch (error) {
+            reject(error);
+          }
+        }
+      }
+    );
+  });
+}
+
 /**
  * Upload a receipt image to Firebase Storage
  * @param {string} imageUri - Local URI of the image to upload
  * @param {string} coupleId - ID of the couple
  * @param {string} userId - ID of the user uploading the receipt
  * @param {Function} onProgress - Optional callback for upload progress (0-100)
+ * @param {number} timeoutMs - Optional timeout in milliseconds (default: 60000)
  * @returns {Promise<string>} Download URL of the uploaded image
  */
-export const uploadReceipt = async (imageUri, coupleId, userId, onProgress) => {
+export const uploadReceipt = async (imageUri, coupleId, userId, onProgress, timeoutMs) => {
+  let blob = null;
+
   try {
     // Validate inputs
     if (!imageUri || imageUri.trim() === '') {
@@ -36,47 +100,40 @@ export const uploadReceipt = async (imageUri, coupleId, userId, onProgress) => {
 
     // Fetch the image as blob
     const response = await fetch(imageUri);
-    const blob = await response.blob();
+    blob = await response.blob();
 
     // Create upload task
     const uploadTask = uploadBytesResumable(storageRef, blob);
 
-    // Return a promise that resolves when upload completes
-    return new Promise((resolve, reject) => {
-      uploadTask.on(
-        'state_changed',
-        (snapshot) => {
-          // Calculate and report progress
-          const progress = Math.round(
-            (snapshot.bytesTransferred / snapshot.totalBytes) * 100
-          );
-
-          if (onProgress && typeof onProgress === 'function') {
-            onProgress(progress);
-          }
-        },
-        (error) => {
-          // Handle upload errors
-          console.error('Upload error:', error);
-          reject(error);
-        },
-        async () => {
-          // Upload completed successfully, get download URL
-          try {
-            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-            console.log('✅ Receipt uploaded:', downloadURL);
-            resolve(downloadURL);
-          } catch (error) {
-            console.error('Error getting download URL:', error);
-            reject(error);
-          }
-        }
-      );
-    });
+    // Upload with timeout and progress tracking
+    const downloadURL = await uploadWithTimeout(uploadTask, timeoutMs, onProgress);
+    console.log('✅ Receipt uploaded:', downloadURL);
+    return downloadURL;
   } catch (error) {
     console.error('Error uploading receipt:', error);
     throw error;
+  } finally {
+    // Release blob to free memory
+    if (blob) {
+      try {
+        blob = null; // Allow GC
+      } catch (e) {
+        console.warn('Failed to release blob:', e);
+      }
+    }
   }
+};
+
+/**
+ * Cancel an ongoing upload task
+ * @param {UploadTask} uploadTask - Firebase upload task to cancel
+ * @returns {boolean} True if cancellation was initiated, false otherwise
+ */
+export const cancelUpload = (uploadTask) => {
+  if (uploadTask && uploadTask.cancel) {
+    return uploadTask.cancel();
+  }
+  return false;
 };
 
 /**
@@ -96,15 +153,12 @@ export const deleteReceipt = async (receiptUrl) => {
       throw new Error('Invalid receipt URL');
     }
 
-    // Extract storage path from URL
-    // Firebase Storage URLs have format: https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{path}
-    // We need to create a reference using the path
+    // Get reference from URL
     const storageRef = ref(storage, receiptUrl);
-
-    // Delete the file
     await deleteObject(storageRef);
 
     console.log('✅ Receipt deleted');
+    return true;
   } catch (error) {
     console.error('Error deleting receipt:', error);
     throw error;

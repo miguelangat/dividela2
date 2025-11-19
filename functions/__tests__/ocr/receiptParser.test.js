@@ -287,4 +287,92 @@ describe('Receipt Parser', () => {
       expect(category).toBe('other');
     });
   });
+
+  describe('ReDoS Protection', () => {
+    test('should handle very long input (10KB+) without hanging', () => {
+      // Create a 15KB string that could cause ReDoS with unbounded quantifiers
+      const maliciousInput = 'total:' + ' '.repeat(15000) + '100.00';
+
+      const startTime = Date.now();
+      const amount = receiptParser.extractAmount(maliciousInput);
+      const endTime = Date.now();
+
+      // Should complete in under 1 second
+      expect(endTime - startTime).toBeLessThan(1000);
+      // Should still extract amount or return null
+      expect(amount === null || typeof amount === 'number').toBe(true);
+    });
+
+    test('should reject amounts over $999,999', () => {
+      const text = 'TOTAL: $1500000.00';
+      const amount = receiptParser.extractAmount(text);
+
+      // Should reject amounts over the limit
+      expect(amount).toBeNull();
+    });
+
+    test('should reject negative amounts', () => {
+      const text = 'TOTAL: -$50.00';
+      const amount = receiptParser.extractAmount(text);
+
+      // Should not extract negative amounts
+      expect(amount).toBeNull();
+    });
+
+    test('should handle malicious regex input (repeated characters)', () => {
+      // String designed to cause catastrophic backtracking
+      const maliciousInput = 'total:::::::::::::::::::::::::::::::::::::::::::' +
+                             '$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$' +
+                             '                                               ' +
+                             '123.45';
+
+      const startTime = Date.now();
+      const amount = receiptParser.extractAmount(maliciousInput);
+      const endTime = Date.now();
+
+      // Should complete quickly
+      expect(endTime - startTime).toBeLessThan(100);
+      expect(amount === null || amount === 123.45).toBe(true);
+    });
+
+    test('should truncate text longer than 10KB', () => {
+      // Create a 20KB string
+      const largeText = 'MERCHANT NAME\n' + 'x'.repeat(20000) + '\nTOTAL: $50.00';
+
+      const result = receiptParser.parseReceipt(largeText);
+
+      // Should still process without hanging
+      expect(result).toBeDefined();
+      expect(result.rawText).toBeDefined();
+    });
+
+    test('should limit merchant name length', () => {
+      // Create a very long merchant name (300 chars)
+      const longMerchantText = 'A'.repeat(300) + '\nTOTAL: $50.00';
+
+      const merchant = receiptParser.extractMerchantName(longMerchantText);
+
+      // Should limit to 200 characters
+      if (merchant !== null) {
+        expect(merchant.length).toBeLessThanOrEqual(200);
+      }
+    });
+
+    test('should validate date ranges', () => {
+      // Test dates outside reasonable range
+      const futureDateText = 'Date: 01/01/2150\nTOTAL: $50.00';
+      const pastDateText = 'Date: 01/01/1850\nTOTAL: $50.00';
+
+      const futureDate = receiptParser.extractDate(futureDateText);
+      const pastDate = receiptParser.extractDate(pastDateText);
+
+      // Should reject dates outside 1900-2100 range
+      if (futureDate && futureDate instanceof Date) {
+        expect(futureDate.getFullYear()).toBeLessThanOrEqual(2100);
+      }
+      if (pastDate && pastDate instanceof Date) {
+        expect(pastDate.getFullYear()).toBeGreaterThanOrEqual(1900);
+      }
+    });
+  });
 });

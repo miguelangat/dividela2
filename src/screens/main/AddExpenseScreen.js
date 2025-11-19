@@ -152,6 +152,7 @@ export default function AddExpenseScreen({ navigation, route }) {
       );
 
       // Update state to processing
+      // The useEffect hook will handle subscription and cleanup
       setOcrState({
         status: 'processing',
         expenseId,
@@ -159,30 +160,6 @@ export default function AddExpenseScreen({ navigation, route }) {
         suggestions: null,
         error: null,
       });
-
-      // Subscribe to OCR results
-      const unsubscribe = subscribeToOCRResults(expenseId, (result) => {
-        if (result.status === 'completed') {
-          setOcrState({
-            status: 'ready',
-            expenseId,
-            receiptUrl,
-            suggestions: result.data,
-            error: null,
-          });
-        } else if (result.status === 'failed') {
-          setOcrState({
-            status: 'failed',
-            expenseId,
-            receiptUrl,
-            suggestions: null,
-            error: result.error || 'OCR processing failed',
-          });
-        }
-      });
-
-      // Store unsubscribe function for cleanup
-      return unsubscribe;
     } catch (err) {
       console.error('Error scanning receipt:', err);
       setOcrState({
@@ -237,33 +214,36 @@ export default function AddExpenseScreen({ navigation, route }) {
     }
   };
 
-  // Cleanup OCR subscription on unmount
+  // Subscribe to OCR results with proper cleanup
   useEffect(() => {
-    let unsubscribe = null;
-
-    if (ocrState.status === 'processing' && ocrState.expenseId) {
-      unsubscribe = subscribeToOCRResults(ocrState.expenseId, (result) => {
-        if (result.status === 'completed') {
-          setOcrState((prev) => ({
-            ...prev,
-            status: 'ready',
-            suggestions: result.data,
-            error: null,
-          }));
-        } else if (result.status === 'failed') {
-          setOcrState((prev) => ({
-            ...prev,
-            status: 'failed',
-            error: result.error || 'OCR processing failed',
-          }));
-        }
-      });
+    if (!ocrState.expenseId || ocrState.status !== 'processing') {
+      return;
     }
 
-    return () => {
-      if (unsubscribe) {
-        unsubscribe();
+    let isActive = true;
+
+    const unsubscribe = subscribeToOCRResults(ocrState.expenseId, (result) => {
+      if (!isActive) return; // Don't update if unmounted
+
+      if (result.status === 'completed') {
+        setOcrState((prev) => ({
+          ...prev,
+          status: 'ready',
+          suggestions: result.data,
+          error: null,
+        }));
+      } else if (result.status === 'failed') {
+        setOcrState((prev) => ({
+          ...prev,
+          status: 'failed',
+          error: result.error || 'OCR processing failed',
+        }));
       }
+    });
+
+    return () => {
+      isActive = false;
+      unsubscribe();
     };
   }, [ocrState.expenseId, ocrState.status]);
 

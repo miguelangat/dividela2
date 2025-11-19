@@ -46,6 +46,7 @@ export async function getImageInfo(imageUri) {
  * 1. First pass: Resize to 1920px width, 80% quality
  * 2. Check file size
  * 3. If > 1MB: Second pass with 1280px width, 60% quality
+ * 4. Cleanup temp files to prevent storage leaks
  *
  * @param {string} imageUri - URI of the image to compress
  * @returns {Promise<Object>} Compressed image with uri, width, height
@@ -56,6 +57,9 @@ export async function compressReceipt(imageUri) {
   if (!imageUri || typeof imageUri !== 'string' || imageUri.trim() === '') {
     throw new Error('Invalid image URI');
   }
+
+  let firstPassUri = null;
+  let secondPassUri = null;
 
   try {
     // Get original file info
@@ -71,17 +75,20 @@ export async function compressReceipt(imageUri) {
         format: ImageManipulator.SaveFormat.JPEG,
       }
     );
+    firstPassUri = firstPass.uri;
 
     // Check file size after first pass
     const firstPassInfo = await getImageInfo(firstPass.uri);
 
     // If file is under 1MB, return first pass result
     if (firstPassInfo.size <= MAX_FILE_SIZE) {
-      return {
+      const result = {
         uri: firstPass.uri,
         width: firstPass.width,
         height: firstPass.height,
       };
+      firstPassUri = null; // Don't delete, we're returning this
+      return result;
     }
 
     // Second compression pass - more aggressive
@@ -94,14 +101,33 @@ export async function compressReceipt(imageUri) {
         format: ImageManipulator.SaveFormat.JPEG,
       }
     );
+    secondPassUri = secondPass.uri;
 
+    // Clean up first pass temp file
+    if (firstPassUri && firstPassUri !== secondPassUri) {
+      try {
+        await FileSystem.deleteAsync(firstPassUri, { idempotent: true });
+      } catch (cleanupError) {
+        console.warn('Failed to cleanup temp file:', cleanupError);
+      }
+    }
+
+    secondPassUri = null; // Don't delete, we're returning this
     return {
       uri: secondPass.uri,
       width: secondPass.width,
       height: secondPass.height,
     };
   } catch (error) {
-    // Re-throw with original error message for proper error handling
+    // Clean up temp files on error
+    const filesToClean = [firstPassUri, secondPassUri].filter(Boolean);
+    for (const fileUri of filesToClean) {
+      try {
+        await FileSystem.deleteAsync(fileUri, { idempotent: true });
+      } catch (cleanupError) {
+        console.warn('Failed to cleanup temp file:', cleanupError);
+      }
+    }
     throw error;
   }
 }

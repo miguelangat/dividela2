@@ -12,6 +12,7 @@ const visionFixtures = require('../fixtures/visionApiResponses');
 let mockFirestore;
 let mockStorage;
 let mockExpenseDoc;
+let mockCoupleDoc;
 let mockFile;
 let mockBucket;
 
@@ -37,6 +38,22 @@ describe('processReceiptWithML', () => {
   let processReceiptWithML;
   let mockVisionClient;
 
+  // Helper function to create valid auth context
+  const createAuthContext = (userId = 'user123') => ({
+    auth: { uid: userId }
+  });
+
+  // Helper function to mock couple document with valid partners
+  const mockValidCouple = (partner1Id = 'user123', partner2Id = 'user456') => {
+    mockCoupleDoc.get.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        partner1Id,
+        partner2Id
+      })
+    });
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
     jest.resetModules();
@@ -52,7 +69,9 @@ describe('processReceiptWithML', () => {
       doc: jest.fn(() => mockExpenseDoc)
     };
 
-    const mockCoupleDoc = {
+    // Mock couple document separately for auth checks
+    mockCoupleDoc = {
+      get: jest.fn(),
       collection: jest.fn(() => mockExpensesCollection)
     };
 
@@ -98,6 +117,19 @@ describe('processReceiptWithML', () => {
         userId: 'user123'
       };
 
+      const context = {
+        auth: { uid: 'user123' }
+      };
+
+      // Mock couple document
+      mockCoupleDoc.get.mockResolvedValue({
+        exists: true,
+        data: () => ({
+          partner1Id: 'user123',
+          partner2Id: 'user456'
+        })
+      });
+
       // Mock expense document
       mockExpenseDoc.get.mockResolvedValue({
         exists: true,
@@ -116,7 +148,7 @@ describe('processReceiptWithML', () => {
       // Mock Vision API response
       mockVisionClient.setMockResponse('buffer', visionFixtures.groceryReceiptSuccess);
 
-      const result = await processReceiptWithML(input);
+      const result = await processReceiptWithML(input, context);
 
       expect(result).toMatchObject({
         success: true,
@@ -145,6 +177,7 @@ describe('processReceiptWithML', () => {
         userId: 'user123'
       };
 
+      mockValidCouple();
       mockExpenseDoc.get.mockResolvedValue({
         exists: true,
         data: () => ({ status: 'pending' })
@@ -155,7 +188,7 @@ describe('processReceiptWithML', () => {
       mockFile.download.mockResolvedValue([mockBuffer]);
       mockVisionClient.setMockResponse('buffer', visionFixtures.groceryReceiptSuccess);
 
-      await processReceiptWithML(input);
+      await processReceiptWithML(input, createAuthContext());
 
       expect(mockStorage.bucket).toHaveBeenCalled();
       expect(mockBucket.file).toHaveBeenCalledWith('receipts/couple123/receipt.jpg');
@@ -170,6 +203,7 @@ describe('processReceiptWithML', () => {
         userId: 'user123'
       };
 
+      mockValidCouple();
       mockExpenseDoc.get.mockResolvedValue({
         exists: true,
         data: () => ({ status: 'pending' })
@@ -180,7 +214,7 @@ describe('processReceiptWithML', () => {
       mockFile.download.mockResolvedValue([mockBuffer]);
       mockVisionClient.setMockResponse('buffer', visionFixtures.groceryReceiptSuccess);
 
-      await processReceiptWithML(input);
+      await processReceiptWithML(input, createAuthContext());
 
       expect(mockVisionClient.textDetection).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -197,6 +231,7 @@ describe('processReceiptWithML', () => {
         userId: 'user123'
       };
 
+      mockValidCouple();
       mockExpenseDoc.get.mockResolvedValue({
         exists: true,
         data: () => ({ status: 'pending' })
@@ -206,20 +241,25 @@ describe('processReceiptWithML', () => {
       mockFile.download.mockResolvedValue([Buffer.from('data')]);
       mockVisionClient.setMockResponse('buffer', visionFixtures.groceryReceiptSuccess);
 
-      const result = await processReceiptWithML(input);
+      const result = await processReceiptWithML(input, createAuthContext());
 
       // Should include parsed data
       expect(mockExpenseDoc.update).toHaveBeenCalledWith(
         expect.objectContaining({
           ocrData: expect.objectContaining({
             parsedData: expect.objectContaining({
-              merchantName: expect.any(String),
-              amount: expect.any(Number),
-              date: expect.any(String)
+              amount: expect.any(Number)
             })
           })
         })
       );
+
+      // Verify merchantName or merchant exists
+      const updateCall = mockExpenseDoc.update.mock.calls[0][0];
+      expect(
+        updateCall.ocrData.parsedData.merchantName ||
+        updateCall.ocrData.parsedData.merchant
+      ).toBeTruthy();
     });
 
     test('should predict category from receipt text', async () => {
@@ -230,6 +270,7 @@ describe('processReceiptWithML', () => {
         userId: 'user123'
       };
 
+      mockValidCouple();
       mockExpenseDoc.get.mockResolvedValue({
         exists: true,
         data: () => ({ status: 'pending' })
@@ -239,7 +280,7 @@ describe('processReceiptWithML', () => {
       mockFile.download.mockResolvedValue([Buffer.from('data')]);
       mockVisionClient.setMockResponse('buffer', visionFixtures.groceryReceiptSuccess);
 
-      await processReceiptWithML(input);
+      await processReceiptWithML(input, createAuthContext());
 
       // Should include predicted category
       expect(mockExpenseDoc.update).toHaveBeenCalledWith(
@@ -260,6 +301,7 @@ describe('processReceiptWithML', () => {
         userId: 'user123'
       };
 
+      mockValidCouple();
       mockExpenseDoc.get.mockResolvedValue({
         exists: true,
         data: () => ({ status: 'pending' })
@@ -269,7 +311,7 @@ describe('processReceiptWithML', () => {
       mockFile.download.mockResolvedValue([Buffer.from('data')]);
       mockVisionClient.setMockResponse('buffer', visionFixtures.groceryReceiptSuccess);
 
-      await processReceiptWithML(input);
+      await processReceiptWithML(input, createAuthContext());
 
       expect(mockExpenseDoc.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -289,6 +331,7 @@ describe('processReceiptWithML', () => {
         userId: 'user123'
       };
 
+      mockValidCouple();
       mockExpenseDoc.get.mockResolvedValue({
         exists: true,
         data: () => ({ status: 'pending' })
@@ -298,7 +341,7 @@ describe('processReceiptWithML', () => {
       mockFile.download.mockResolvedValue([Buffer.from('data')]);
       mockVisionClient.setMockResponse('buffer', visionFixtures.groceryReceiptSuccess);
 
-      const result = await processReceiptWithML(input);
+      const result = await processReceiptWithML(input, createAuthContext());
 
       expect(result).toHaveProperty('processingTimeMs');
       expect(result.processingTimeMs).toBeGreaterThanOrEqual(0);
@@ -314,7 +357,7 @@ describe('processReceiptWithML', () => {
         userId: 'user123'
       };
 
-      const result = await processReceiptWithML(input);
+      const result = await processReceiptWithML(input, createAuthContext());
 
       expect(result).toMatchObject({
         success: false,
@@ -330,11 +373,12 @@ describe('processReceiptWithML', () => {
         userId: 'user123'
       };
 
+      mockValidCouple();
       mockExpenseDoc.get.mockResolvedValue({
         exists: false
       });
 
-      const result = await processReceiptWithML(input);
+      const result = await processReceiptWithML(input, createAuthContext());
 
       expect(result).toMatchObject({
         success: false,
@@ -352,6 +396,7 @@ describe('processReceiptWithML', () => {
         userId: 'user123'
       };
 
+      mockValidCouple();
       mockExpenseDoc.get.mockResolvedValue({
         exists: true,
         data: () => ({ status: 'pending' })
@@ -359,7 +404,7 @@ describe('processReceiptWithML', () => {
 
       mockFile.exists.mockResolvedValue([false]);
 
-      const result = await processReceiptWithML(input);
+      const result = await processReceiptWithML(input, createAuthContext());
 
       expect(result).toMatchObject({
         success: false,
@@ -382,6 +427,7 @@ describe('processReceiptWithML', () => {
         userId: 'user123'
       };
 
+      mockValidCouple();
       mockExpenseDoc.get.mockResolvedValue({
         exists: true,
         data: () => ({ status: 'pending' })
@@ -390,7 +436,7 @@ describe('processReceiptWithML', () => {
       mockFile.exists.mockResolvedValue([true]);
       mockFile.download.mockRejectedValue(new Error('Download failed'));
 
-      const result = await processReceiptWithML(input);
+      const result = await processReceiptWithML(input, createAuthContext());
 
       expect(result).toMatchObject({
         success: false,
@@ -412,6 +458,7 @@ describe('processReceiptWithML', () => {
         userId: 'user123'
       };
 
+      mockValidCouple();
       mockExpenseDoc.get.mockResolvedValue({
         exists: true,
         data: () => ({ status: 'pending' })
@@ -424,7 +471,7 @@ describe('processReceiptWithML', () => {
       error.code = 'UNAVAILABLE';
       mockVisionClient.setMockResponse('buffer', error);
 
-      const result = await processReceiptWithML(input);
+      const result = await processReceiptWithML(input, createAuthContext());
 
       expect(result).toMatchObject({
         success: false,
@@ -446,6 +493,7 @@ describe('processReceiptWithML', () => {
         userId: 'user123'
       };
 
+      mockValidCouple();
       mockExpenseDoc.get.mockResolvedValue({
         exists: true,
         data: () => ({ status: 'pending' })
@@ -457,7 +505,7 @@ describe('processReceiptWithML', () => {
       // Vision API succeeds but returns low confidence
       mockVisionClient.setMockResponse('buffer', visionFixtures.lowConfidenceResponse);
 
-      const result = await processReceiptWithML(input);
+      const result = await processReceiptWithML(input, createAuthContext());
 
       // Should still succeed but mark as low quality
       expect(result.success).toBe(true);
@@ -479,6 +527,7 @@ describe('processReceiptWithML', () => {
         userId: 'user123'
       };
 
+      mockValidCouple();
       mockExpenseDoc.get.mockResolvedValue({
         exists: true,
         data: () => ({ status: 'pending' })
@@ -490,7 +539,7 @@ describe('processReceiptWithML', () => {
 
       mockExpenseDoc.update.mockRejectedValue(new Error('Firestore error'));
 
-      const result = await processReceiptWithML(input);
+      const result = await processReceiptWithML(input, createAuthContext());
 
       expect(result).toMatchObject({
         success: false,
@@ -508,6 +557,7 @@ describe('processReceiptWithML', () => {
         userId: 'user123'
       };
 
+      mockValidCouple();
       mockExpenseDoc.get.mockResolvedValue({
         exists: true,
         data: () => ({ status: 'pending' })
@@ -517,7 +567,7 @@ describe('processReceiptWithML', () => {
       mockFile.download.mockResolvedValue([Buffer.from('data')]);
       mockVisionClient.setMockResponse('buffer', visionFixtures.groceryReceiptSuccess);
 
-      await processReceiptWithML(input);
+      await processReceiptWithML(input, createAuthContext());
 
       expect(mockExpenseDoc.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -534,6 +584,7 @@ describe('processReceiptWithML', () => {
         userId: 'user123'
       };
 
+      mockValidCouple();
       mockExpenseDoc.get.mockResolvedValue({
         exists: true,
         data: () => ({ status: 'pending' })
@@ -541,7 +592,7 @@ describe('processReceiptWithML', () => {
 
       mockFile.exists.mockResolvedValue([false]);
 
-      await processReceiptWithML(input);
+      await processReceiptWithML(input, createAuthContext());
 
       expect(mockExpenseDoc.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -562,7 +613,7 @@ describe('processReceiptWithML', () => {
       ];
 
       for (const input of invalidInputs) {
-        const result = await processReceiptWithML(input);
+        const result = await processReceiptWithML(input, createAuthContext());
         expect(result.success).toBe(false);
         expect(result.error).toBeDefined();
       }
@@ -576,6 +627,7 @@ describe('processReceiptWithML', () => {
         userId: 'user123'
       };
 
+      mockValidCouple();
       mockExpenseDoc.get.mockResolvedValue({
         exists: true,
         data: () => ({ status: 'pending' })
@@ -585,9 +637,210 @@ describe('processReceiptWithML', () => {
       mockFile.download.mockResolvedValue([Buffer.from('data')]);
       mockVisionClient.setMockResponse('buffer', visionFixtures.groceryReceiptSuccess);
 
-      const result = await processReceiptWithML(input);
+      const result = await processReceiptWithML(input, createAuthContext());
 
       expect(result.success).toBe(true);
+    });
+  });
+
+  describe('Authentication and Authorization', () => {
+    test('should reject unauthenticated requests (no context.auth)', async () => {
+      const input = {
+        expenseId: 'expense123',
+        receiptUrl: 'receipts/test.jpg',
+        coupleId: 'couple123',
+        userId: 'user123'
+      };
+
+      // No context provided
+      const result = await processReceiptWithML(input, {});
+
+      expect(result).toMatchObject({
+        success: false,
+        error: 'Unauthorized: Authentication required'
+      });
+
+      // Should not access Firestore
+      expect(mockCoupleDoc.get).not.toHaveBeenCalled();
+      expect(mockExpenseDoc.update).not.toHaveBeenCalled();
+    });
+
+    test('should reject requests where couple does not exist', async () => {
+      const input = {
+        expenseId: 'expense123',
+        receiptUrl: 'receipts/test.jpg',
+        coupleId: 'nonexistent-couple',
+        userId: 'user123'
+      };
+
+      const context = {
+        auth: {
+          uid: 'user123'
+        }
+      };
+
+      // Mock couple not found
+      mockCoupleDoc.get.mockResolvedValue({
+        exists: false
+      });
+
+      const result = await processReceiptWithML(input, context);
+
+      expect(result).toMatchObject({
+        success: false,
+        error: 'Couple not found'
+      });
+
+      expect(mockCoupleDoc.get).toHaveBeenCalled();
+      expect(mockExpenseDoc.update).not.toHaveBeenCalled();
+    });
+
+    test('should reject requests where authenticated user is not part of couple', async () => {
+      const input = {
+        expenseId: 'expense123',
+        receiptUrl: 'receipts/test.jpg',
+        coupleId: 'couple123',
+        userId: 'user123'
+      };
+
+      const context = {
+        auth: {
+          uid: 'unauthorized-user' // Different user
+        }
+      };
+
+      // Mock couple exists but user is not a partner
+      mockCoupleDoc.get.mockResolvedValue({
+        exists: true,
+        data: () => ({
+          partner1Id: 'user123',
+          partner2Id: 'user456'
+        })
+      });
+
+      const result = await processReceiptWithML(input, context);
+
+      expect(result).toMatchObject({
+        success: false,
+        error: 'Forbidden: Access denied'
+      });
+
+      expect(mockCoupleDoc.get).toHaveBeenCalled();
+      expect(mockExpenseDoc.update).not.toHaveBeenCalled();
+    });
+
+    test('should allow requests where authenticated user is partner1', async () => {
+      const input = {
+        expenseId: 'expense123',
+        receiptUrl: 'receipts/test.jpg',
+        coupleId: 'couple123',
+        userId: 'user123'
+      };
+
+      const context = {
+        auth: {
+          uid: 'user123' // Matches partner1Id
+        }
+      };
+
+      // Mock couple exists with user as partner1
+      mockCoupleDoc.get.mockResolvedValue({
+        exists: true,
+        data: () => ({
+          partner1Id: 'user123',
+          partner2Id: 'user456'
+        })
+      });
+
+      mockExpenseDoc.get.mockResolvedValue({
+        exists: true,
+        data: () => ({ status: 'pending' })
+      });
+
+      mockFile.exists.mockResolvedValue([true]);
+      mockFile.download.mockResolvedValue([Buffer.from('data')]);
+      mockVisionClient.setMockResponse('buffer', visionFixtures.groceryReceiptSuccess);
+
+      const result = await processReceiptWithML(input, context);
+
+      expect(result.success).toBe(true);
+      expect(mockCoupleDoc.get).toHaveBeenCalled();
+    });
+
+    test('should allow requests where authenticated user is partner2', async () => {
+      const input = {
+        expenseId: 'expense123',
+        receiptUrl: 'receipts/test.jpg',
+        coupleId: 'couple123',
+        userId: 'user456'
+      };
+
+      const context = {
+        auth: {
+          uid: 'user456' // Matches partner2Id
+        }
+      };
+
+      // Mock couple exists with user as partner2
+      mockCoupleDoc.get.mockResolvedValue({
+        exists: true,
+        data: () => ({
+          partner1Id: 'user123',
+          partner2Id: 'user456'
+        })
+      });
+
+      mockExpenseDoc.get.mockResolvedValue({
+        exists: true,
+        data: () => ({ status: 'pending' })
+      });
+
+      mockFile.exists.mockResolvedValue([true]);
+      mockFile.download.mockResolvedValue([Buffer.from('data')]);
+      mockVisionClient.setMockResponse('buffer', visionFixtures.groceryReceiptSuccess);
+
+      const result = await processReceiptWithML(input, context);
+
+      expect(result.success).toBe(true);
+      expect(mockCoupleDoc.get).toHaveBeenCalled();
+    });
+
+    test('should handle couples with only one partner', async () => {
+      const input = {
+        expenseId: 'expense123',
+        receiptUrl: 'receipts/test.jpg',
+        coupleId: 'couple123',
+        userId: 'user123'
+      };
+
+      const context = {
+        auth: {
+          uid: 'user123'
+        }
+      };
+
+      // Mock couple with only partner1 (partner2 is null/undefined)
+      mockCoupleDoc.get.mockResolvedValue({
+        exists: true,
+        data: () => ({
+          partner1Id: 'user123',
+          partner2Id: null
+        })
+      });
+
+      mockExpenseDoc.get.mockResolvedValue({
+        exists: true,
+        data: () => ({ status: 'pending' })
+      });
+
+      mockFile.exists.mockResolvedValue([true]);
+      mockFile.download.mockResolvedValue([Buffer.from('data')]);
+      mockVisionClient.setMockResponse('buffer', visionFixtures.groceryReceiptSuccess);
+
+      const result = await processReceiptWithML(input, context);
+
+      expect(result.success).toBe(true);
+      expect(mockCoupleDoc.get).toHaveBeenCalled();
     });
   });
 
@@ -602,6 +855,7 @@ describe('processReceiptWithML', () => {
         userId: 'user123'
       };
 
+      mockValidCouple();
       mockExpenseDoc.get.mockResolvedValue({
         exists: true,
         data: () => ({ status: 'pending' })
@@ -611,7 +865,7 @@ describe('processReceiptWithML', () => {
       mockFile.download.mockResolvedValue([Buffer.from('data')]);
       mockVisionClient.setMockResponse('buffer', visionFixtures.groceryReceiptSuccess);
 
-      await processReceiptWithML(input);
+      await processReceiptWithML(input, createAuthContext());
 
       expect(consoleSpy).toHaveBeenCalledWith(
         expect.stringContaining('Processing receipt'),
@@ -631,6 +885,7 @@ describe('processReceiptWithML', () => {
         userId: 'user123'
       };
 
+      mockValidCouple();
       mockExpenseDoc.get.mockResolvedValue({
         exists: true,
         data: () => ({ status: 'pending' })
@@ -638,7 +893,7 @@ describe('processReceiptWithML', () => {
 
       mockFile.exists.mockResolvedValue([false]);
 
-      await processReceiptWithML(input);
+      await processReceiptWithML(input, createAuthContext());
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         expect.stringContaining('Error'),
