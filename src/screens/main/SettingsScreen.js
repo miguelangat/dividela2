@@ -27,6 +27,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSubscription } from '../../contexts/SubscriptionContext';
 import { onboardingStorage } from '../../utils/storage';
 import { COLORS, FONTS, SPACING } from '../../constants/theme';
 import { formatCurrency, calculateBalance } from '../../utils/calculations';
@@ -38,6 +39,7 @@ const isLargeScreen = screenWidth >= 768;
 
 export default function SettingsScreen({ navigation }) {
   const { user, userDetails, signOut, getPartnerDetails } = useAuth();
+  const { isPremium, subscriptionInfo } = useSubscription();
   const [editingName, setEditingName] = useState(false);
   const [displayName, setDisplayName] = useState(userDetails?.displayName || '');
   const [partnerName, setPartnerName] = useState('Partner');
@@ -223,6 +225,76 @@ export default function SettingsScreen({ navigation }) {
     </View>
   );
 
+  const renderSubscriptionSection = () => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Subscription</Text>
+
+      <View style={styles.card}>
+        {/* Subscription Status */}
+        <View style={styles.settingRow}>
+          <View style={styles.settingIcon}>
+            <Ionicons
+              name={isPremium ? 'sparkles' : 'lock-closed'}
+              size={20}
+              color={isPremium ? '#FFD700' : COLORS.textSecondary}
+            />
+          </View>
+          <View style={styles.settingContent}>
+            <Text style={styles.settingLabel}>Plan</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={[styles.settingValue, isPremium && { color: COLORS.primary, fontWeight: '600' }]}>
+                {isPremium ? 'Premium' : 'Free'}
+              </Text>
+              {isPremium && (
+                <View style={styles.premiumBadge}>
+                  <Text style={styles.premiumBadgeText}>ACTIVE</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        </View>
+
+        {/* Manage/Upgrade Button */}
+        <TouchableOpacity
+          style={[styles.settingRow, styles.settingRowLast]}
+          onPress={() => navigation.navigate(isPremium ? 'SubscriptionManagement' : 'Paywall')}
+          activeOpacity={0.7}
+        >
+          <View style={styles.settingIcon}>
+            <Ionicons
+              name={isPremium ? 'settings' : 'arrow-up-circle'}
+              size={20}
+              color={COLORS.primary}
+            />
+          </View>
+          <View style={styles.settingContent}>
+            <Text style={styles.settingLabel}>
+              {isPremium ? 'Manage Subscription' : 'Upgrade to Premium'}
+            </Text>
+            {!isPremium && (
+              <Text style={styles.settingDescription}>
+                Unlock unlimited budgets, analytics, and more
+              </Text>
+            )}
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Couples Subscription Info */}
+      {userDetails?.partnerId && (
+        <View style={styles.infoCard}>
+          <Ionicons name="heart" size={16} color={COLORS.primary} />
+          <Text style={styles.infoCardText}>
+            {isPremium
+              ? 'Your partner also has premium access!'
+              : 'When you upgrade, both you and your partner get premium features.'}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+
   const handleRestartOnboarding = () => {
     console.log('🚨 RESTART BUTTON CLICKED - HANDLER CALLED');
     setRestartOnboardingModalVisible(true);
@@ -363,6 +435,9 @@ export default function SettingsScreen({ navigation }) {
 
         {/* Partner Section */}
         {renderPartnerSection()}
+
+        {/* Subscription Section */}
+        {renderSubscriptionSection()}
 
         {/* Preferences Section */}
         {renderPreferencesSection()}
@@ -653,5 +728,43 @@ const styles = StyleSheet.create({
     ...FONTS.body,
     color: COLORS.background,
     fontWeight: '600',
+  },
+  // Subscription styles
+  premiumBadge: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: SPACING.small,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginLeft: SPACING.small,
+  },
+  premiumBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  settingDescription: {
+    ...FONTS.body,
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    marginTop: 4,
+  },
+  infoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary + '10',
+    padding: SPACING.base,
+    borderRadius: 12,
+    marginTop: SPACING.small,
+    maxWidth: isLargeScreen ? 600 : '100%',
+    alignSelf: isLargeScreen ? 'center' : 'stretch',
+  },
+  infoCardText: {
+    ...FONTS.body,
+    fontSize: 13,
+    color: COLORS.primary,
+    marginLeft: SPACING.small,
+    flex: 1,
+    lineHeight: 18,
   },
 });

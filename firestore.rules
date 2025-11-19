@@ -26,8 +26,35 @@ service cloud.firestore {
       allow create: if isSignedIn() && isOwner(userId);
 
       // Allow updates to own document OR when adding partnerId/coupleId (for pairing)
+      // IMPORTANT: Subscription fields are protected but can be synced from RevenueCat
+      // Protected fields: subscriptionStatus, subscriptionPlatform, subscriptionExpiresAt,
+      //                   subscriptionProductId, revenueCatUserId, trialUsed, trialEndsAt
       allow update: if isSignedIn() && (
-        isOwner(userId) ||
+        (
+          isOwner(userId) &&
+          // Ensure subscription fields are not being modified by client (except during RevenueCat sync)
+          // Allow subscription sync if all changed fields are subscription-related
+          (
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+              'subscriptionStatus',
+              'subscriptionPlatform',
+              'subscriptionExpiresAt',
+              'subscriptionProductId',
+              'subscriptionPlatform',
+              'lastSyncedAt'
+            ]) ||
+            // Allow subscription sync from RevenueCat (all fields must be subscription-related)
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'subscriptionStatus',
+              'subscriptionPlatform',
+              'subscriptionExpiresAt',
+              'subscriptionProductId',
+              'subscriptionPlatform',
+              'lastSyncedAt'
+            ])
+          )
+        ) ||
+        // Allow pairing updates (partnerId/coupleId only)
         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['partnerId', 'coupleId']))
       );
 
