@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, FlatList, StyleSheet } from 'react-native';
 import { Text, Card, Button, Chip, Divider } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import { theme } from '../../constants/theme';
 import TransactionPreviewItem from './TransactionPreviewItem';
 
@@ -18,6 +19,8 @@ export default function TransactionPreviewList({
   onSelectAll,
   onDeselectAll,
 }) {
+  const { t } = useTranslation();
+
   // Calculate summary stats
   const totalTransactions = transactions.length;
   const selectedCount = Object.values(selectedTransactions).filter(Boolean).length;
@@ -51,27 +54,27 @@ export default function TransactionPreviewList({
     <View style={styles.header}>
       <Card style={styles.summaryCard}>
         <Card.Content>
-          <Text style={styles.summaryTitle}>Import Preview</Text>
+          <Text style={styles.summaryTitle}>{t('import.preview.title')}</Text>
 
           <View style={styles.statsRow}>
-            <StatChip label="Total" value={totalTransactions} color={theme.colors.primary} />
-            <StatChip label="Selected" value={selectedCount} color={theme.colors.success} />
+            <StatChip label={t('import.preview.total')} value={totalTransactions} color={theme.colors.primary} />
+            <StatChip label={t('import.preview.selectedLabel')} value={selectedCount} color={theme.colors.success} />
             {duplicateCount > 0 && (
-              <StatChip label="Duplicates" value={duplicateCount} color={theme.colors.warning} />
+              <StatChip label={t('import.preview.duplicates')} value={duplicateCount} color={theme.colors.warning} />
             )}
           </View>
 
           <Divider style={styles.divider} />
 
           <View style={styles.amountRow}>
-            <Text style={styles.amountLabel}>Total to Import:</Text>
+            <Text style={styles.amountLabel}>{t('import.preview.totalToImport')}</Text>
             <Text style={styles.amountValue}>${totalAmount.toFixed(2)}</Text>
           </View>
 
           {autoSkippedCount > 0 && (
             <View style={styles.warningBox}>
               <Text style={styles.warningText}>
-                ⚠️ {autoSkippedCount} duplicate(s) will be automatically skipped
+                {t('import.preview.autoSkipWarning', { count: autoSkippedCount })}
               </Text>
             </View>
           )}
@@ -83,7 +86,7 @@ export default function TransactionPreviewList({
               compact
               style={styles.actionButton}
             >
-              Select All
+              {t('import.preview.selectAll')}
             </Button>
             <Button
               mode="outlined"
@@ -91,13 +94,13 @@ export default function TransactionPreviewList({
               compact
               style={styles.actionButton}
             >
-              Deselect All
+              {t('import.preview.deselectAll')}
             </Button>
           </View>
         </Card.Content>
       </Card>
 
-      <Text style={styles.listTitle}>Transactions ({selectedCount} selected)</Text>
+      <Text style={styles.listTitle}>{t('import.preview.transactionsList', { count: selectedCount })}</Text>
     </View>
   );
 

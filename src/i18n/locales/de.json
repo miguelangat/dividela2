@@ -176,7 +176,13 @@
       "detectDuplicatesHelp": "Prüfe vorhandene Ausgaben, um das Importieren von Duplikaten zu vermeiden"
     },
     "preview": {
-      "title": "Transaktionen Überprüfen",
+      "title": "Import-Vorschau",
+      "total": "Gesamt",
+      "selectedLabel": "Ausgewählt",
+      "duplicates": "Duplikate",
+      "totalToImport": "Gesamtbetrag zu Importieren:",
+      "autoSkipWarning": "⚠️ {{count}} Duplikat(e) werden automatisch übersprungen",
+      "transactionsList": "Transaktionen ({{count}} ausgewählt)",
       "selectAll": "Alle Auswählen",
       "deselectAll": "Alle Abwählen",
       "selected": "{{count}} ausgewählt",

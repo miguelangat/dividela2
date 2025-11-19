@@ -176,7 +176,13 @@
       "detectDuplicatesHelp": "Vérifier les dépenses existantes pour éviter d'importer des doublons"
     },
     "preview": {
-      "title": "Vérifier les Transactions",
+      "title": "Aperçu de l'Importation",
+      "total": "Total",
+      "selectedLabel": "Sélectionné",
+      "duplicates": "Doublons",
+      "totalToImport": "Total à Importer:",
+      "autoSkipWarning": "⚠️ {{count}} doublon(s) seront automatiquement ignorés",
+      "transactionsList": "Transactions ({{count}} sélectionné)",
       "selectAll": "Tout Sélectionner",
       "deselectAll": "Tout Désélectionner",
       "selected": "{{count}} sélectionné",

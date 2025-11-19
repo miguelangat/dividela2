@@ -176,7 +176,13 @@
       "detectDuplicatesHelp": "Verificar despesas existentes para evitar importar duplicados"
     },
     "preview": {
-      "title": "Revisar Transações",
+      "title": "Pré-visualização de Importação",
+      "total": "Total",
+      "selectedLabel": "Selecionado",
+      "duplicates": "Duplicados",
+      "totalToImport": "Total a Importar:",
+      "autoSkipWarning": "⚠️ {{count}} duplicado(s) serão automaticamente ignorados",
+      "transactionsList": "Transações ({{count}} selecionado)",
       "selectAll": "Selecionar Tudo",
       "deselectAll": "Desselecionar Tudo",
       "selected": "{{count}} selecionado",
