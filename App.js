@@ -6,6 +6,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { BudgetProvider } from './src/contexts/BudgetContext';
+import { ChatProvider } from './src/contexts/ChatContext';
 import AppNavigator from './src/navigation/AppNavigator';
 
 export default function App() {
@@ -14,7 +15,9 @@ export default function App() {
       <SafeAreaProvider>
         <AuthProvider>
           <BudgetProvider>
-            <AppNavigator />
+            <ChatProvider>
+              <AppNavigator />
+            </ChatProvider>
           </BudgetProvider>
         </AuthProvider>
       </SafeAreaProvider>

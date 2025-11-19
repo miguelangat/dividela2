@@ -10,6 +10,7 @@ import { COLORS, FONTS } from '../constants/theme';
 
 // Main app screens
 import HomeScreen from '../screens/main/HomeScreen';
+import ChatScreen from '../screens/main/ChatScreen';
 import StatsScreen from '../screens/main/StatsScreen';
 import SettingsScreen from '../screens/main/SettingsScreen';
 
@@ -117,6 +118,8 @@ export default function TabNavigator() {
 
           if (route.name === 'HomeTab') {
             iconName = focused ? 'home' : 'home-outline';
+          } else if (route.name === 'ChatTab') {
+            iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
           } else if (route.name === 'SettlementsTab') {
             iconName = focused ? 'receipt' : 'receipt-outline';
           } else if (route.name === 'BudgetTab') {
@@ -151,6 +154,13 @@ export default function TabNavigator() {
         component={HomeScreen}
         options={{
           tabBarLabel: 'Home',
+        }}
+      />
+      <Tab.Screen
+        name="ChatTab"
+        component={ChatScreen}
+        options={{
+          tabBarLabel: 'Chat',
         }}
       />
       <Tab.Screen
