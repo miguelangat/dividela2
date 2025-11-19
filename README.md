@@ -24,6 +24,16 @@ A simple, privacy-focused expense tracking app designed specifically for couples
 - **Expense History** - See all shared expenses with filtering
 - **Basic Statistics** - Monthly spending breakdown by category
 
+### 📊 Analytics & Monitoring (NEW!)
+- **User Analytics** - Amplitude integration for feature usage tracking
+- **Error Tracking** - Sentry for real-time error monitoring
+- **Rage Click Detection** - Identify UX frustration points
+- **Onboarding Funnel** - Track time-to-value metrics
+- **Privacy-First** - All PII hashed, amounts anonymized
+- **Free Tier** - 10M events/month (Amplitude) + 5K errors/month (Sentry)
+
+See [ANALYTICS_SETUP.md](./ANALYTICS_SETUP.md) for quick setup guide.
+
 ### 🔮 Planned Features (Phase 2+)
 - Receipt photo capture with OCR
 - Voice input for hands-free expense entry

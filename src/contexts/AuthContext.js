@@ -13,6 +13,7 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
+import { identifyUser, clearUser, trackEvent, setUserProperty } from '../services/analyticsService';
 
 // Create the context
 const AuthContext = createContext({});
@@ -48,6 +49,14 @@ export const AuthProvider = ({ children }) => {
             const userData = userDoc.data();
             console.log('AuthContext: User document fetched:', userData);
             setUserDetails(userData);
+
+            // Identify user in analytics
+            await identifyUser(firebaseUser.uid, {
+              email: firebaseUser.email,
+              displayName: userData.displayName,
+              hasPartner: !!userData.partnerId,
+              createdAt: userData.createdAt,
+            });
           } else {
             // User document doesn't exist - create a minimal one
             console.warn('User document not found, creating minimal user details');
@@ -59,11 +68,20 @@ export const AuthProvider = ({ children }) => {
               coupleId: null,
             };
             setUserDetails(minimalUserDetails);
+
+            // Identify user in analytics (minimal)
+            await identifyUser(firebaseUser.uid, {
+              email: firebaseUser.email,
+              displayName: minimalUserDetails.displayName,
+              hasPartner: false,
+            });
           }
         } else {
           console.log('AuthContext: Auth state changed, user logged out');
           setUser(null);
           setUserDetails(null);
+          // Clear user from analytics
+          clearUser();
         }
       } catch (err) {
         console.error('Error in auth state change:', err);
@@ -109,6 +127,12 @@ export const AuthProvider = ({ children }) => {
       console.log('✓ Firestore user document created');
       setUserDetails(userData);
 
+      // Track signup event
+      await trackEvent('user_signed_up', {
+        method: 'email',
+        timestamp: userData.createdAt,
+      });
+
       return firebaseUser;
     } catch (err) {
       console.error('Sign up error:', err);
@@ -134,6 +158,11 @@ export const AuthProvider = ({ children }) => {
         setUserDetails(userDoc.data());
       }
 
+      // Track signin event
+      await trackEvent('user_signed_in', {
+        method: 'email',
+      });
+
       return firebaseUser;
     } catch (err) {
       console.error('Sign in error:', err);
@@ -148,9 +177,16 @@ export const AuthProvider = ({ children }) => {
   const signOut = async () => {
     try {
       setError(null);
+
+      // Track signout event before clearing user
+      await trackEvent('user_signed_out', {});
+
       await firebaseSignOut(auth);
       setUser(null);
       setUserDetails(null);
+
+      // Clear user from analytics
+      clearUser();
     } catch (err) {
       console.error('Sign out error:', err);
       setError(err.message);
@@ -191,6 +227,15 @@ export const AuthProvider = ({ children }) => {
         console.log('AuthContext: New userDetails state:', newState);
         return newState;
       });
+
+      // Track partner connection event
+      await trackEvent('partner_connected', {
+        coupleId: coupleId,
+      });
+
+      // Update user property
+      await setUserProperty('hasPartner', true);
+
       console.log('AuthContext: updatePartnerInfo complete');
     } catch (err) {
       console.error('Update partner info error:', err);

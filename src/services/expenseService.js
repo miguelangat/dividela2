@@ -16,6 +16,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { trackEvent, trackFeatureUsage, trackTimeToValue } from './analyticsService';
 
 /**
  * Get all expenses for a couple
@@ -108,6 +109,20 @@ export const addExpense = async (expenseData) => {
     const docRef = await addDoc(expensesRef, newExpense);
 
     console.log('✅ Expense added:', docRef.id);
+
+    // Track expense creation event (amount will be anonymized by analytics service)
+    await trackEvent('expense_created', {
+      category: expenseData.category,
+      amount: expenseData.amount,
+      hasNote: !!expenseData.note,
+      split: expenseData.split || 50,
+    });
+
+    // Track feature usage
+    await trackFeatureUsage('add_expense', {
+      category: expenseData.category,
+    });
+
     return {
       id: docRef.id,
       ...newExpense,
@@ -134,6 +149,14 @@ export const updateExpense = async (expenseId, updates) => {
     });
 
     console.log('✅ Expense updated:', expenseId);
+
+    // Track expense update event
+    await trackEvent('expense_updated', {
+      category: updates.category,
+      hasAmountChange: 'amount' in updates,
+      hasCategoryChange: 'category' in updates,
+    });
+
     return { success: true };
   } catch (error) {
     console.error('Error updating expense:', error);
@@ -150,6 +173,10 @@ export const deleteExpense = async (expenseId) => {
     await deleteDoc(expenseRef);
 
     console.log('✅ Expense deleted:', expenseId);
+
+    // Track expense deletion event
+    await trackEvent('expense_deleted', {});
+
     return { success: true };
   } catch (error) {
     console.error('Error deleting expense:', error);
