@@ -44,6 +44,7 @@ export default function SettingsScreen({ navigation }) {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
   const [signOutModalVisible, setSignOutModalVisible] = useState(false);
+  const [restartOnboardingModalVisible, setRestartOnboardingModalVisible] = useState(false);
 
   // Fetch partner details
   useEffect(() => {
@@ -222,62 +223,53 @@ export default function SettingsScreen({ navigation }) {
     </View>
   );
 
-  const handleRestartOnboarding = async () => {
+  const handleRestartOnboarding = () => {
     console.log('🚨 RESTART BUTTON CLICKED - HANDLER CALLED');
-    Alert.alert(
-      'Restart Budget Onboarding',
-      'This will take you through the budget setup process again. Your current budget will be replaced.',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Restart',
-          style: 'default',
-          onPress: async () => {
-            try {
-              console.log('🔄 Restarting onboarding...');
+    setRestartOnboardingModalVisible(true);
+  };
 
-              // Clear the onboarding completion flag using storage utility
-              if (userDetails?.coupleId) {
-                await onboardingStorage.clearCompleted(userDetails.coupleId);
-                await onboardingStorage.clearState();
-                console.log('✅ Cleared onboarding storage');
-              }
+  const confirmRestartOnboarding = async () => {
+    console.log('✅ User confirmed restart - executing...');
+    setRestartOnboardingModalVisible(false);
 
-              // Log navigation state for debugging
-              console.log('📍 Navigation state before restart:', {
-                hasNavigation: !!navigation,
-                hasParent: !!navigation.getParent,
-                hasGetParent: typeof navigation.getParent === 'function',
-              });
+    try {
+      console.log('🔄 Restarting onboarding...');
 
-              // Navigate to onboarding modal
-              // CRITICAL: SettingsScreen is in TabNavigator, 'Onboarding' is in parent Stack
-              // Must explicitly access parent navigator
-              try {
-                const parentNav = navigation.getParent();
-                if (parentNav) {
-                  console.log('🎯 Navigating via parent navigator');
-                  parentNav.navigate('Onboarding', { restartMode: true });
-                } else {
-                  console.log('🎯 Navigating directly (no parent found)');
-                  navigation.navigate('Onboarding', { restartMode: true });
-                }
-                console.log('✅ Navigation command executed');
-              } catch (navError) {
-                console.error('❌ Navigation error:', navError);
-                throw navError;
-              }
-            } catch (error) {
-              console.error('❌ Error restarting onboarding:', error);
-              Alert.alert('Error', 'Failed to restart onboarding. Please try again.');
-            }
-          },
-        },
-      ]
-    );
+      // Clear the onboarding completion flag using storage utility
+      if (userDetails?.coupleId) {
+        await onboardingStorage.clearCompleted(userDetails.coupleId);
+        await onboardingStorage.clearState();
+        console.log('✅ Cleared onboarding storage');
+      }
+
+      // Log navigation state for debugging
+      console.log('📍 Navigation state before restart:', {
+        hasNavigation: !!navigation,
+        hasParent: !!navigation.getParent,
+        hasGetParent: typeof navigation.getParent === 'function',
+      });
+
+      // Navigate to onboarding modal
+      // CRITICAL: SettingsScreen is in TabNavigator, 'Onboarding' is in parent Stack
+      // Must explicitly access parent navigator
+      try {
+        const parentNav = navigation.getParent();
+        if (parentNav) {
+          console.log('🎯 Navigating via parent navigator');
+          parentNav.navigate('Onboarding', { restartMode: true });
+        } else {
+          console.log('🎯 Navigating directly (no parent found)');
+          navigation.navigate('Onboarding', { restartMode: true });
+        }
+        console.log('✅ Navigation command executed');
+      } catch (navError) {
+        console.error('❌ Navigation error:', navError);
+        throw navError;
+      }
+    } catch (error) {
+      console.error('❌ Error restarting onboarding:', error);
+      Alert.alert('Error', 'Failed to restart onboarding. Please try again.');
+    }
   };
 
   const renderPreferencesSection = () => (
@@ -307,10 +299,7 @@ export default function SettingsScreen({ navigation }) {
 
         <TouchableOpacity
           style={[styles.settingRow, styles.settingRowLast]}
-          onPress={() => {
-            console.log('🔴 BUTTON ONPRESS FIRED');
-            handleRestartOnboarding();
-          }}
+          onPress={handleRestartOnboarding}
           activeOpacity={0.6}
         >
           <View style={styles.settingIcon}>
@@ -434,6 +423,46 @@ export default function SettingsScreen({ navigation }) {
                 onPress={confirmSignOut}
               >
                 <Text style={styles.modalButtonTextPrimary}>Sign Out</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Restart Onboarding Confirmation Modal */}
+      <Modal
+        visible={restartOnboardingModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setRestartOnboardingModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="refresh" size={32} color={COLORS.primary} />
+            </View>
+
+            <Text style={styles.modalTitle}>Restart Budget Onboarding</Text>
+            <Text style={styles.modalMessage}>
+              This will take you through the budget setup process again. Your current budget will be replaced.
+            </Text>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonSecondary]}
+                onPress={() => {
+                  console.log('Restart onboarding cancelled');
+                  setRestartOnboardingModalVisible(false);
+                }}
+              >
+                <Text style={styles.modalButtonTextSecondary}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonPrimary]}
+                onPress={confirmRestartOnboarding}
+              >
+                <Text style={styles.modalButtonTextPrimary}>Restart</Text>
               </TouchableOpacity>
             </View>
           </View>

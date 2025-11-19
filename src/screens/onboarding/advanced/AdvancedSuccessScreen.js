@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { CommonActions } from '@react-navigation/native';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES, SHADOWS } from '../../../constants/theme';
 import { useOnboarding } from '../../../contexts/OnboardingContext';
 import { useBudget } from '../../../contexts/BudgetContext';
@@ -21,7 +22,14 @@ import { useBudget } from '../../../contexts/BudgetContext';
 export default function AdvancedSuccessScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const { finalData } = route.params || {};
-  const { completeOnboarding, loading: onboardingLoading } = useOnboarding();
+  const {
+    completeOnboarding,
+    loading: onboardingLoading,
+    budgetData: contextBudgetData,
+    setCategoryBudgets,
+    setMonthlyIncome,
+    setMode,
+  } = useOnboarding();
   const { categories: budgetCategories } = useBudget();
   const [completing, setCompleting] = useState(false);
   const [completionAttempted, setCompletionAttempted] = useState(false);
@@ -70,10 +78,27 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
     }))
   ).current;
 
+  // Log component mount and received data
+  useEffect(() => {
+    console.log('');
+    console.log('========================================');
+    console.log('🎬 [AdvancedSuccess] Component Mounted');
+    console.log('========================================');
+    console.log('📦 Route params:', route.params);
+    console.log('📦 finalData:', finalData);
+    console.log('✅ isDataValid:', isDataValid);
+    console.log('========================================');
+    console.log('');
+  }, []);
+
   useEffect(() => {
     // Check if data is valid before proceeding
     if (!isDataValid) {
-      console.error('Invalid data detected - navigation back to previous screen');
+      console.error('❌ [AdvancedSuccess] Invalid data detected');
+      console.error('mode:', mode);
+      console.error('totalBudget:', totalBudget);
+      console.error('selectedCategories:', selectedCategories);
+      console.error('finalData:', finalData);
       // Could navigate back or show error
       // For now, just log - animations won't run
       return;
@@ -149,40 +174,208 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
     };
   }, [isDataValid]);
 
+  // CRITICAL: Initialize context with budget data from params
+  // This is required for completeOnboarding() to work properly
+  useEffect(() => {
+    console.log('');
+    console.log('========================================');
+    console.log('🔄 [AdvancedSuccess] Context Initialization useEffect Running');
+    console.log('========================================');
+    console.log('isDataValid:', isDataValid);
+    console.log('finalData:', finalData);
+    console.log('contextBudgetData:', contextBudgetData);
+
+    if (!isDataValid || !finalData) {
+      console.error('❌ [AdvancedSuccess] Cannot initialize context - invalid data');
+      console.error('isDataValid:', isDataValid);
+      console.error('finalData:', finalData);
+      return;
+    }
+
+    // Check if context already has budget data
+    if (contextBudgetData?.monthlyIncome > 0 && Object.keys(contextBudgetData?.categoryBudgets || {}).length > 0) {
+      console.log('✅ [AdvancedSuccess] Context already has budget data');
+      console.log('contextBudgetData.monthlyIncome:', contextBudgetData.monthlyIncome);
+      console.log('contextBudgetData.categoryBudgets keys:', Object.keys(contextBudgetData.categoryBudgets));
+      return;
+    }
+
+    console.log('⚠️ [AdvancedSuccess] Context data empty, setting from params...');
+    console.log('📦 Final Data received:', JSON.stringify(finalData, null, 2));
+
+    try {
+      // CRITICAL: Convert annual amounts to monthly if needed
+      // The allocations might be ANNUAL amounts, but saveBudget expects MONTHLY budgets
+      const isAnnual = finalData.mode === 'annual';
+      const divisor = isAnnual ? 12 : 1;
+
+      console.log('🔍 Mode:', finalData.mode);
+      console.log('🔍 Is Annual?:', isAnnual);
+      console.log('🔍 Divisor:', divisor);
+
+      // Transform allocations into categoryBudgets format
+      // If annual mode, divide by 12 to convert to monthly
+      const categoryBudgets = {};
+      if (finalData.allocations) {
+        console.log('📊 Allocations from finalData (RAW):', finalData.allocations);
+        Object.entries(finalData.allocations).forEach(([key, value]) => {
+          const monthlyValue = value / divisor;
+          categoryBudgets[key] = monthlyValue;
+          console.log(`  ${key}: ${value} -> ${monthlyValue} (divided by ${divisor})`);
+        });
+      } else {
+        console.error('❌ No allocations in finalData!');
+      }
+
+      const monthlyIncome = (finalData.totalBudget || 0) / divisor;
+
+      console.log('💾 Setting category budgets (MONTHLY):', categoryBudgets);
+      console.log('💾 Setting monthly income:', monthlyIncome, `(${finalData.totalBudget} / ${divisor})`);
+      console.log('💾 Setting mode:', finalData.mode || 'advanced');
+
+      // Set budget data in context (now in MONTHLY amounts)
+      setCategoryBudgets(categoryBudgets);
+      setMonthlyIncome(monthlyIncome);
+      setMode(finalData.mode || 'advanced');
+
+      console.log('✅ [AdvancedSuccess] Context data initialized successfully');
+      console.log('========================================');
+      console.log('');
+    } catch (error) {
+      console.error('❌ [AdvancedSuccess] Error setting context data:', error);
+      console.error('Error stack:', error.stack);
+    }
+  }, [finalData, isDataValid, setCategoryBudgets, setMonthlyIncome, setMode]); // Removed contextBudgetData to prevent infinite loop
+
   const handleGoToDashboard = async () => {
+    console.log('');
+    console.log('========================================');
+    console.log('🔵 [AdvancedSuccess] GO TO DASHBOARD CLICKED');
+    console.log('========================================');
+
     // Double-tap prevention: Check if already completing or recently completed
     if (completing || completionAttempted) {
-      console.log('Preventing duplicate completion attempt');
+      console.log('⚠️ Preventing duplicate completion attempt');
       return;
     }
 
     // Validate data before attempting completion
     if (!isDataValid) {
-      console.error('Cannot complete onboarding with invalid data');
+      console.error('❌ Cannot complete onboarding with invalid data');
+      console.error('finalData:', finalData);
       return;
     }
+
+    console.log('✅ Data validation passed');
+    console.log('📊 Final Data:', JSON.stringify(finalData, null, 2));
+    console.log('📊 Context Budget Data:', JSON.stringify(contextBudgetData, null, 2));
+    console.log('📊 Budget Categories from Context:', budgetCategories);
+
+    // Convert annual to monthly if needed
+    const isAnnual = finalData.mode === 'annual';
+    const divisor = isAnnual ? 12 : 1;
+
+    const categoryBudgets = {};
+    if (finalData.allocations) {
+      Object.entries(finalData.allocations).forEach(([key, value]) => {
+        categoryBudgets[key] = value / divisor;
+      });
+    }
+
+    const monthlyIncome = (finalData.totalBudget || 0) / divisor;
+
+    console.log('📝 Prepared budget data for completion:');
+    console.log('  - categoryBudgets:', categoryBudgets);
+    console.log('  - monthlyIncome:', monthlyIncome);
+    console.log('  - mode:', finalData.mode);
+
+    // Also set context for consistency (but don't wait for it)
+    setCategoryBudgets(categoryBudgets);
+    setMonthlyIncome(monthlyIncome);
+    setMode(finalData.mode || 'advanced');
 
     setCompleting(true);
     setCompletionAttempted(true);
 
     try {
+      console.log('🚀 Calling completeOnboarding with explicit budget data...');
+
       // Complete onboarding and save budget
-      const success = await completeOnboarding(budgetCategories);
+      // Pass budget data explicitly to avoid React state timing issues
+      const explicitBudgetData = {
+        categoryBudgets,
+        monthlyIncome,
+        annualBudgets: [],
+      };
+
+      const success = await completeOnboarding(budgetCategories, explicitBudgetData);
+
+      console.log('📝 completeOnboarding returned:', success);
 
       if (success) {
-        // AppNavigator will automatically navigate to MainTabs
-        // after onboarding is marked as complete
-        console.log('Advanced onboarding completed successfully');
+        console.log('✅ Advanced onboarding completed successfully');
+        console.log('🚀 Resetting navigation to MainTabs > HomeTab...');
+
+        // Use setTimeout to ensure AsyncStorage write completes
+        setTimeout(() => {
+          try {
+            // Get root navigator (go up 2 levels)
+            const onboardingStack = navigation.getParent();
+            const rootNav = onboardingStack?.getParent();
+
+            if (rootNav) {
+              console.log('📍 [AdvancedSuccess] Resetting navigation state...');
+
+              // Use reset action to completely replace navigation state
+              // This forces a clean navigation to MainTabs with HomeTab selected
+              rootNav.dispatch(
+                CommonActions.reset({
+                  index: 0,
+                  routes: [
+                    {
+                      name: 'MainTabs',
+                      state: {
+                        routes: [{ name: 'HomeTab' }],
+                        index: 0,
+                      },
+                    },
+                  ],
+                })
+              );
+
+              console.log('✅ [AdvancedSuccess] Navigation reset complete');
+            } else {
+              console.log('⚠️ [AdvancedSuccess] Could not get root navigator');
+            }
+          } catch (error) {
+            console.error('❌ [AdvancedSuccess] Navigation reset error:', error);
+          }
+        }, 500);
 
         // Keep completion flag set to prevent further attempts
         // Don't reset completing state to keep UI disabled
       } else {
+        console.error('');
+        console.error('❌❌❌ COMPLETION FAILED ❌❌❌');
+        console.error('completeOnboarding returned false');
+        console.error('This means validation or save failed');
+        console.error('Check OnboardingContext logs above for details');
+        console.error('');
+
         // Reset if not successful to allow retry
         setCompleting(false);
         setCompletionAttempted(false);
+        alert('Failed to complete onboarding. Check browser console for details.');
       }
     } catch (error) {
+      console.error('');
+      console.error('❌❌❌ EXCEPTION IN COMPLETION ❌❌❌');
       console.error('Error completing advanced onboarding:', error);
+      console.error('Error stack:', error.stack);
+      console.error('');
+
+      alert(`Error: ${error.message}`);
+
       // Reset on error to allow retry
       setCompleting(false);
 
