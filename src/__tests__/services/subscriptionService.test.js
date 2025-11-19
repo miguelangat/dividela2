@@ -252,15 +252,12 @@ describe('subscriptionService - Critical Tests', () => {
       const mockUserId = 'user123';
 
       // Simulate offline by rejecting RevenueCat call
-      Purchases.getCustomerInfo.mockRejectedValue({
-        code: REVENUECAT_ERRORS.NETWORK_ERROR.code,
-        message: REVENUECAT_ERRORS.NETWORK_ERROR.message,
-      });
+      Purchases.getCustomerInfo.mockRejectedValueOnce(new Error('Network connection failed'));
 
       // Act & Assert
-      await expect(checkSubscriptionStatus(mockUserId)).rejects.toThrow();
+      await expect(checkSubscriptionStatus(mockUserId)).rejects.toThrow('Network connection failed');
       // Note: In actual implementation, this should fallback to cache
-      // This test documents expected behavior
+      // This test documents expected behavior that it currently throws
     });
   });
 
@@ -477,13 +474,10 @@ describe('subscriptionService - Critical Tests', () => {
 
     test('getOfferings handles network timeout', async () => {
       // Arrange
-      Purchases.getOfferings.mockRejectedValue({
-        code: REVENUECAT_ERRORS.NETWORK_ERROR.code,
-        message: REVENUECAT_ERRORS.NETWORK_ERROR.message,
-      });
+      Purchases.getOfferings.mockRejectedValueOnce(new Error('Network request failed'));
 
       // Act & Assert
-      await expect(getOfferings()).rejects.toThrow();
+      await expect(getOfferings()).rejects.toThrow('Network request failed');
     });
 
     test('getOfferings caches for 5 minutes', async () => {
@@ -706,13 +700,10 @@ describe('subscriptionService - Critical Tests', () => {
     test('handles network errors gracefully', async () => {
       // Arrange
       const mockUserId = 'user123';
-      Purchases.getCustomerInfo.mockRejectedValue({
-        code: REVENUECAT_ERRORS.NETWORK_ERROR.code,
-        message: REVENUECAT_ERRORS.NETWORK_ERROR.message,
-      });
+      Purchases.getCustomerInfo.mockRejectedValueOnce(new Error('Network error'));
 
       // Act & Assert
-      await expect(checkSubscriptionStatus(mockUserId)).rejects.toThrow();
+      await expect(checkSubscriptionStatus(mockUserId)).rejects.toThrow('Network error');
       // Should log error but not crash
     });
 
