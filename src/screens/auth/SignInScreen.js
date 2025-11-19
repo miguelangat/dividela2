@@ -300,6 +300,9 @@ export default function SignInScreen({ navigation }) {
               <Text style={styles.signUpLinkBold}>{t('auth.signIn.signUp')}</Text>
             </Text>
           </TouchableOpacity>
+
+          {/* Bottom Spacer for reliable scrolling */}
+          <View style={styles.bottomSpacer} />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -514,5 +517,8 @@ const styles = StyleSheet.create({
   signUpLinkBold: {
     color: COLORS.primary,
     fontWeight: FONTS.weights.bold,
+  },
+  bottomSpacer: {
+    height: SPACING.xxlarge,
   },
 });

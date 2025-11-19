@@ -314,6 +314,9 @@ export default function SignUpScreen({ navigation }) {
               </>
             )}
           </TouchableOpacity>
+
+          {/* Bottom Spacer for reliable scrolling */}
+          <View style={styles.bottomSpacer} />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -536,5 +539,8 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontSize: FONTS.sizes.body,
     fontWeight: FONTS.weights.semibold,
+  },
+  bottomSpacer: {
+    height: SPACING.xxlarge,
   },
 });
