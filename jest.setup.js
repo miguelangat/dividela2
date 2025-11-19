@@ -138,8 +138,13 @@ jest.mock('react-native-purchases', () => ({
   },
 }));
 
-// Mock AppState
-jest.mock('react-native/Libraries/AppState/AppState', () => ({
+// Mock AppState - must be done before react-native is imported
+jest.doMock('react-native/Libraries/AppState/AppState', () => ({
+  default: {
+    addEventListener: jest.fn(() => ({ remove: jest.fn() })),
+    removeEventListener: jest.fn(),
+    currentState: 'active',
+  },
   addEventListener: jest.fn(() => ({ remove: jest.fn() })),
   removeEventListener: jest.fn(),
   currentState: 'active',

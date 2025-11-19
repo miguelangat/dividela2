@@ -171,7 +171,10 @@ export const MOCK_USER_PREMIUM = {
   coupleId: null,
   subscriptionStatus: 'premium',
   subscriptionPlatform: 'ios',
-  subscriptionExpiresAt: new Date('2025-12-31'),
+  subscriptionExpiresAt: {
+    toDate: () => new Date('2025-12-31'),
+    seconds: Math.floor(new Date('2025-12-31').getTime() / 1000),
+  },
   subscriptionProductId: 'com.dividela.premium.monthly',
   revenueCatUserId: 'user123',
   trialUsed: false,
@@ -206,7 +209,10 @@ export const MOCK_USER_B_PREMIUM = {
   coupleId: 'couple123',
   subscriptionStatus: 'premium',
   subscriptionPlatform: 'android',
-  subscriptionExpiresAt: new Date('2025-12-31'),
+  subscriptionExpiresAt: {
+    toDate: () => new Date('2025-12-31'),
+    seconds: Math.floor(new Date('2025-12-31').getTime() / 1000),
+  },
   subscriptionProductId: 'com.dividela.premium.monthly',
   revenueCatUserId: 'userB',
   trialUsed: false,
@@ -241,7 +247,10 @@ export const MOCK_USER_B_BROKEN = {
   coupleId: 'couple456', // Different couple!
   subscriptionStatus: 'premium',
   subscriptionPlatform: 'android',
-  subscriptionExpiresAt: new Date('2025-12-31'),
+  subscriptionExpiresAt: {
+    toDate: () => new Date('2025-12-31'),
+    seconds: Math.floor(new Date('2025-12-31').getTime() / 1000),
+  },
   subscriptionProductId: 'com.dividela.premium.monthly',
   revenueCatUserId: 'userB',
   trialUsed: false,

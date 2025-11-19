@@ -401,7 +401,7 @@ export const SubscriptionProvider = ({ children }) => {
         return await restorePurchases(user.uid);
       }, 2); // Only 2 retries for restore
 
-      if (result.success) {
+      if (result.restored !== false) { // Check 'restored' not 'success'
         setIsPremium(result.isPremium);
         setLastSyncTime(Date.now());
         debugLog('✅ Purchases restored!', { isPremium: result.isPremium });
