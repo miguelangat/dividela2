@@ -273,9 +273,10 @@ export const OnboardingProvider = ({ children }) => {
   /**
    * Complete onboarding and save budget
    * @param {object} categoriesObj - Categories object from BudgetContext
+   * @param {object} explicitBudgetData - Optional explicit budget data to override context state
    * @returns {Promise<boolean>} Success status
    */
-  const completeOnboarding = useCallback(async (categoriesObj) => {
+  const completeOnboarding = useCallback(async (categoriesObj, explicitBudgetData = null) => {
     if (!coupleId) {
       setError('No couple ID found');
       return false;
@@ -283,6 +284,15 @@ export const OnboardingProvider = ({ children }) => {
 
     setLoading(true);
     setError(null);
+
+    // Use explicit budget data if provided, otherwise fall back to context state
+    const effectiveBudgetData = explicitBudgetData || budgetData;
+
+    console.log('');
+    console.log('🔍 [completeOnboarding] Starting...');
+    console.log('explicitBudgetData provided:', !!explicitBudgetData);
+    console.log('effectiveBudgetData:', effectiveBudgetData);
+    console.log('');
 
     try {
       // For 'none' mode, just mark as complete
@@ -319,10 +329,14 @@ export const OnboardingProvider = ({ children }) => {
       console.log('========================================');
       console.log('🔍 [OnboardingContext] VALIDATING BUDGET');
       console.log('========================================');
-      console.log('budgetData:', JSON.stringify(budgetData, null, 2));
+      console.log('effectiveBudgetData:', JSON.stringify(effectiveBudgetData, null, 2));
       console.log('selectedMode:', selectedMode);
 
-      const validation = validateBudget();
+      // Validate using effective budget data (explicit or context state)
+      const validation = validateBudgetAllocation(
+        effectiveBudgetData.categoryBudgets,
+        effectiveBudgetData.monthlyIncome
+      );
 
       console.log('Validation result:', JSON.stringify(validation, null, 2));
       console.log('isValid:', validation.isValid);
@@ -348,11 +362,11 @@ export const OnboardingProvider = ({ children }) => {
           coupleId,
           month,
           year,
-          budgetData.categoryBudgets,
+          effectiveBudgetData.categoryBudgets,
           {
             enabled: true,
             complexity: selectedMode,
-            autoCalculated: budgetData.autoCalculated || false,
+            autoCalculated: effectiveBudgetData.autoCalculated || false,
             onboardingMode: selectedMode,
             canAutoAdjust: false,
           }

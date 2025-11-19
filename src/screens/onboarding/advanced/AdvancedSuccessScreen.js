@@ -271,51 +271,44 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
     console.log('📊 Context Budget Data:', JSON.stringify(contextBudgetData, null, 2));
     console.log('📊 Budget Categories from Context:', budgetCategories);
 
-    // CRITICAL: Ensure context has been populated
-    // If not, set it now synchronously from finalData
-    if (!contextBudgetData || !contextBudgetData.monthlyIncome || !contextBudgetData.categoryBudgets || Object.keys(contextBudgetData.categoryBudgets).length === 0) {
-      console.warn('⚠️ Context not populated yet - setting now from finalData');
+    // Convert annual to monthly if needed
+    const isAnnual = finalData.mode === 'annual';
+    const divisor = isAnnual ? 12 : 1;
 
-      // Convert annual to monthly if needed
-      const isAnnual = finalData.mode === 'annual';
-      const divisor = isAnnual ? 12 : 1;
-
-      const categoryBudgets = {};
-      if (finalData.allocations) {
-        Object.entries(finalData.allocations).forEach(([key, value]) => {
-          categoryBudgets[key] = value / divisor;
-        });
-      }
-
-      const monthlyIncome = (finalData.totalBudget || 0) / divisor;
-
-      console.log('📝 Setting context now:');
-      console.log('  - categoryBudgets:', categoryBudgets);
-      console.log('  - monthlyIncome:', monthlyIncome);
-
-      setCategoryBudgets(categoryBudgets);
-      setMonthlyIncome(monthlyIncome);
-      setMode(finalData.mode || 'advanced');
-
-      // Wait for React state update (200ms should be enough)
-      console.log('⏳ Waiting 200ms for React state to update...');
-      await new Promise(resolve => setTimeout(resolve, 200));
-      console.log('✅ Proceeding after state update delay');
-    } else {
-      console.log('✅ Context data already populated');
-      console.log('  - monthlyIncome:', contextBudgetData.monthlyIncome);
-      console.log('  - categoryBudgets keys:', Object.keys(contextBudgetData.categoryBudgets));
-      console.log('  - categoryBudgets:', contextBudgetData.categoryBudgets);
+    const categoryBudgets = {};
+    if (finalData.allocations) {
+      Object.entries(finalData.allocations).forEach(([key, value]) => {
+        categoryBudgets[key] = value / divisor;
+      });
     }
+
+    const monthlyIncome = (finalData.totalBudget || 0) / divisor;
+
+    console.log('📝 Prepared budget data for completion:');
+    console.log('  - categoryBudgets:', categoryBudgets);
+    console.log('  - monthlyIncome:', monthlyIncome);
+    console.log('  - mode:', finalData.mode);
+
+    // Also set context for consistency (but don't wait for it)
+    setCategoryBudgets(categoryBudgets);
+    setMonthlyIncome(monthlyIncome);
+    setMode(finalData.mode || 'advanced');
 
     setCompleting(true);
     setCompletionAttempted(true);
 
     try {
-      console.log('🚀 Calling completeOnboarding...');
+      console.log('🚀 Calling completeOnboarding with explicit budget data...');
 
       // Complete onboarding and save budget
-      const success = await completeOnboarding(budgetCategories);
+      // Pass budget data explicitly to avoid React state timing issues
+      const explicitBudgetData = {
+        categoryBudgets,
+        monthlyIncome,
+        annualBudgets: [],
+      };
+
+      const success = await completeOnboarding(budgetCategories, explicitBudgetData);
 
       console.log('📝 completeOnboarding returned:', success);
 
