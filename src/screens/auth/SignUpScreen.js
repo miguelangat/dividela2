@@ -121,7 +121,8 @@ export default function SignUpScreen({ navigation }) {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+        showsVerticalScrollIndicator={true}
+        bounces={true}
       >
         {/* Gradient Header */}
         <LinearGradient

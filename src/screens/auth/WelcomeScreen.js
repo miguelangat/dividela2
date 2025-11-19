@@ -40,7 +40,8 @@ export default function WelcomeScreen({ navigation }) {
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
+          showsVerticalScrollIndicator={true}
+          bounces={true}
         >
           {/* Top Section - Logo and Title */}
           <View style={styles.topSection}>
