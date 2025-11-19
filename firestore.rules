@@ -13,21 +13,34 @@ service cloud.firestore {
       return request.auth.uid == userId;
     }
 
-    // Helper function to check if user is member of a couple
+    // Helper function to check if user is member of a couple (including solo accounts)
     function isCoupleMember(coupleId) {
       let coupleData = get(/databases/$(database)/documents/couples/$(coupleId)).data;
+      // Support both couple accounts and solo accounts (where user2Id is null)
       return coupleData.user1Id == request.auth.uid ||
-             coupleData.user2Id == request.auth.uid;
+             (coupleData.user2Id != null && coupleData.user2Id == request.auth.uid);
     }
 
-    // Users collection - users can read all, but update rules are relaxed for pairing
+    // Helper function to check if user has account in their accounts array
+    function hasAccountAccess(accountId) {
+      let userData = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      // Check if accountId exists in user's accounts array
+      // This is a simplified check - in practice, you may need to iterate
+      return exists(/databases/$(database)/documents/couples/$(accountId)) &&
+             isCoupleMember(accountId);
+    }
+
+    // Users collection - users can read all, update their own with account management
     match /users/{userId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && isOwner(userId);
 
-      // Allow updates to own document OR when adding partnerId/coupleId (for pairing)
+      // Allow updates to own document OR when adding accounts/activeAccountId (for multi-account support)
       allow update: if isSignedIn() && (
         isOwner(userId) ||
+        // Allow updates to accounts array and activeAccountId for pairing and account management
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['accounts', 'activeAccountId'])) ||
+        // Legacy support for old partnerId/coupleId fields during transition
         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['partnerId', 'coupleId']))
       );
 
@@ -50,21 +63,21 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Couples collection
+    // Couples collection (includes both couple and solo accounts)
     match /couples/{coupleId} {
-      // Anyone authenticated can create a couple
+      // Anyone authenticated can create a couple or solo account
       allow create: if isSignedIn();
 
-      // Only members of the couple can read
+      // Only members of the couple can read (supports solo where user2Id is null)
       allow read: if isSignedIn() && (
         resource.data.user1Id == request.auth.uid ||
-        resource.data.user2Id == request.auth.uid
+        (resource.data.user2Id != null && resource.data.user2Id == request.auth.uid)
       );
 
       // Only members of the couple can update
       allow update: if isSignedIn() && (
         resource.data.user1Id == request.auth.uid ||
-        resource.data.user2Id == request.auth.uid
+        (resource.data.user2Id != null && resource.data.user2Id == request.auth.uid)
       );
 
       // Don't allow deleting couples
@@ -88,11 +101,11 @@ service cloud.firestore {
         )
       );
 
-      // For listing (queries): allow if user has a couple
+      // For listing (queries): allow if user has an active account
       // This is a workaround since we can't access resource.data in queries
       allow list: if isSignedIn() &&
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId != null;
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.activeAccountId != null;
 
       // Anyone in the couple can update expenses
       // Allow updating settlement fields (settledAt, settledBySettlementId)
@@ -119,12 +132,12 @@ service cloud.firestore {
 
     // Settlements collection
     match /settlements/{settlementId} {
-      // Users can create settlements ONLY for their own couple
-      // Validates: user has couple, settlement is for their couple, user is member of couple
+      // Users can create settlements ONLY for their active account
+      // Validates: user has active account, settlement is for their account, user is member
       allow create: if isSignedIn() &&
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId != null &&
-        request.resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.activeAccountId != null &&
+        request.resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.activeAccountId &&
         (request.resource.data.user1Id == request.auth.uid || request.resource.data.user2Id == request.auth.uid) &&
         request.resource.data.amount > 0;
 
@@ -134,10 +147,10 @@ service cloud.firestore {
         resource.data.user2Id == request.auth.uid
       );
 
-      // For listing settlements (queries): allow if user has a couple
+      // For listing settlements (queries): allow if user has an active account
       allow list: if isSignedIn() &&
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId != null;
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.activeAccountId != null;
 
       // Don't allow updating or deleting settlements (immutable audit trail)
       allow update, delete: if false;
@@ -145,11 +158,11 @@ service cloud.firestore {
 
     // Categories collection - for budget management
     match /categories/{categoryId} {
-      // Users can create categories for their own couple
+      // Users can create categories for their active account
       allow create: if isSignedIn() &&
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId != null &&
-        request.resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId;
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.activeAccountId != null &&
+        request.resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.activeAccountId;
 
       // Users can read categories for their couple
       // Allow reading non-existent documents (for subscriptions) OR documents belonging to user's couple
@@ -161,7 +174,7 @@ service cloud.firestore {
       // For listing categories (queries)
       allow list: if isSignedIn() &&
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId != null;
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.activeAccountId != null;
 
       // Users can update categories for their couple
       allow update: if isSignedIn() &&
@@ -176,11 +189,11 @@ service cloud.firestore {
 
     // Budgets collection - for budget management
     match /budgets/{budgetId} {
-      // Users can create budgets for their own couple
+      // Users can create budgets for their active account
       allow create: if isSignedIn() &&
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId != null &&
-        request.resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId;
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.activeAccountId != null &&
+        request.resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.activeAccountId;
 
       // Users can read budgets for their couple
       // Allow reading non-existent documents (for subscriptions) OR documents belonging to user's couple
@@ -192,7 +205,7 @@ service cloud.firestore {
       // For listing budgets (queries)
       allow list: if isSignedIn() &&
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId != null;
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.activeAccountId != null;
 
       // Users can update budgets for their couple
       allow update: if isSignedIn() &&
@@ -207,11 +220,11 @@ service cloud.firestore {
 
     // Couple Settings collection - for fiscal year and budget preferences
     match /coupleSettings/{coupleId} {
-      // Users can create settings for their own couple
+      // Users can create settings for their active account
       allow create: if isSignedIn() &&
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId != null &&
-        coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId;
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.activeAccountId != null &&
+        coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.activeAccountId;
 
       // Users can read settings for their couple
       allow read: if isSignedIn() &&
@@ -232,11 +245,11 @@ service cloud.firestore {
 
     // Annual Budgets collection - for annual budget management
     match /annualBudgets/{budgetId} {
-      // Users can create annual budgets for their own couple
+      // Users can create annual budgets for their active account
       allow create: if isSignedIn() &&
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId != null &&
-        request.resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId;
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.activeAccountId != null &&
+        request.resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.activeAccountId;
 
       // Users can read annual budgets for their couple
       allow read: if isSignedIn() &&
@@ -247,7 +260,7 @@ service cloud.firestore {
       // For listing annual budgets (queries)
       allow list: if isSignedIn() &&
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId != null;
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.activeAccountId != null;
 
       // Users can update annual budgets for their couple
       allow update: if isSignedIn() &&
@@ -262,11 +275,11 @@ service cloud.firestore {
 
     // Savings Targets collection - for savings goal tracking
     match /savingsTargets/{targetId} {
-      // Users can create savings targets for their own couple
+      // Users can create savings targets for their active account
       allow create: if isSignedIn() &&
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId != null &&
-        request.resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId;
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.activeAccountId != null &&
+        request.resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.activeAccountId;
 
       // Users can read savings targets for their couple
       allow read: if isSignedIn() &&
@@ -277,7 +290,7 @@ service cloud.firestore {
       // For listing savings targets (queries)
       allow list: if isSignedIn() &&
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId != null;
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.activeAccountId != null;
 
       // Users can update savings targets for their couple
       allow update: if isSignedIn() &&

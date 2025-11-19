@@ -49,14 +49,14 @@ export const AuthProvider = ({ children }) => {
             console.log('AuthContext: User document fetched:', userData);
             setUserDetails(userData);
           } else {
-            // User document doesn't exist - create a minimal one
+            // User document doesn't exist - create a minimal one with multi-account structure
             console.warn('User document not found, creating minimal user details');
             const minimalUserDetails = {
               uid: firebaseUser.uid,
               email: firebaseUser.email,
               displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
-              partnerId: null,
-              coupleId: null,
+              accounts: [], // Array of accounts
+              activeAccountId: null, // No active account yet
             };
             setUserDetails(minimalUserDetails);
           }
@@ -89,13 +89,13 @@ export const AuthProvider = ({ children }) => {
       const { user: firebaseUser } = userCredential;
       console.log('✓ Firebase Auth user created:', firebaseUser.uid);
 
-      // Create user document in Firestore
+      // Create user document in Firestore with new multi-account structure
       const userData = {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
         displayName: displayName,
-        partnerId: null,
-        coupleId: null,
+        accounts: [], // Array of accounts (solo and couple budgets)
+        activeAccountId: null, // Currently selected account
         createdAt: new Date().toISOString(),
         settings: {
           notifications: true,
@@ -175,23 +175,52 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Update partner and couple information
-  const updatePartnerInfo = async (partnerId, coupleId) => {
+  // Set active account for the user
+  const setActiveAccount = async (accountId) => {
     try {
       if (!user) throw new Error('No user logged in');
 
-      console.log('AuthContext: updatePartnerInfo called with partnerId:', partnerId, 'coupleId:', coupleId);
+      console.log('AuthContext: setActiveAccount called with accountId:', accountId);
       setError(null);
-      const updates = { partnerId, coupleId };
 
-      await updateDoc(doc(db, 'users', user.uid), updates);
+      // Verify account exists in user's accounts
+      const accounts = userDetails?.accounts || [];
+      const accountExists = accounts.some(acc => acc.accountId === accountId);
+
+      if (!accountExists) {
+        throw new Error('Account not found in user accounts');
+      }
+
+      await updateDoc(doc(db, 'users', user.uid), {
+        activeAccountId: accountId
+      });
+
       console.log('AuthContext: Firestore updated, now updating local state');
       setUserDetails(prev => {
-        const newState = { ...prev, ...updates };
+        const newState = { ...prev, activeAccountId: accountId };
         console.log('AuthContext: New userDetails state:', newState);
         return newState;
       });
-      console.log('AuthContext: updatePartnerInfo complete');
+      console.log('AuthContext: setActiveAccount complete');
+    } catch (err) {
+      console.error('Set active account error:', err);
+      setError(err.message);
+      throw err;
+    }
+  };
+
+  // Legacy function for backward compatibility during transition
+  // This will be replaced by account management functions
+  const updatePartnerInfo = async (partnerId, coupleId) => {
+    console.warn('updatePartnerInfo is deprecated. Use account management functions instead.');
+    // This function is kept for backward compatibility but should not be used
+    // It will be removed once all screens are updated to use the new account system
+    try {
+      if (!user) throw new Error('No user logged in');
+      setError(null);
+      const updates = { partnerId, coupleId };
+      await updateDoc(doc(db, 'users', user.uid), updates);
+      setUserDetails(prev => ({ ...prev, ...updates }));
     } catch (err) {
       console.error('Update partner info error:', err);
       setError(err.message);
@@ -215,9 +244,15 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Check if user has a partner
+  // Check if user has any accounts (solo or couple)
   const hasPartner = () => {
-    return userDetails?.partnerId != null && userDetails?.coupleId != null;
+    // Return true if user has at least one account
+    return userDetails?.accounts && userDetails.accounts.length > 0;
+  };
+
+  // Check if user has an active account selected
+  const hasActiveAccount = () => {
+    return userDetails?.activeAccountId != null;
   };
 
   // Sign in with Google (OAuth)
@@ -233,14 +268,19 @@ export const AuthProvider = ({ children }) => {
       const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
 
       if (!userDoc.exists()) {
-        // Create user document for new OAuth user
+        // Create user document for new OAuth user with multi-account structure
         const userData = {
           uid: firebaseUser.uid,
           email: firebaseUser.email,
           displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
-          partnerId: null,
-          coupleId: null,
-          createdAt: new Date(),
+          accounts: [], // Array of accounts (solo and couple budgets)
+          activeAccountId: null, // Currently selected account
+          createdAt: new Date().toISOString(),
+          settings: {
+            notifications: true,
+            defaultSplit: 50,
+            currency: 'USD',
+          },
         };
 
         await setDoc(doc(db, 'users', firebaseUser.uid), userData);
@@ -282,14 +322,19 @@ export const AuthProvider = ({ children }) => {
       const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
 
       if (!userDoc.exists()) {
-        // Create user document for new OAuth user
+        // Create user document for new OAuth user with multi-account structure
         const userData = {
           uid: firebaseUser.uid,
           email: firebaseUser.email,
           displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
-          partnerId: null,
-          coupleId: null,
-          createdAt: new Date(),
+          accounts: [], // Array of accounts (solo and couple budgets)
+          activeAccountId: null, // Currently selected account
+          createdAt: new Date().toISOString(),
+          settings: {
+            notifications: true,
+            defaultSplit: 50,
+            currency: 'USD',
+          },
         };
 
         await setDoc(doc(db, 'users', firebaseUser.uid), userData);
@@ -330,9 +375,11 @@ export const AuthProvider = ({ children }) => {
     signInWithGoogle,
     signInWithApple,
     updateUserDetails,
-    updatePartnerInfo,
+    updatePartnerInfo, // Deprecated - kept for backward compatibility
     getPartnerDetails,
-    hasPartner,
+    hasPartner, // Now checks if user has any accounts
+    hasActiveAccount, // New: Check if user has selected an active account
+    setActiveAccount, // New: Set the active account
   };
 
   return (

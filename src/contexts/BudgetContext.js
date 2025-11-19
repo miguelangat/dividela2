@@ -26,7 +26,8 @@ export const BudgetProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const coupleId = userDetails?.coupleId;
+  // Use activeAccountId instead of coupleId for multi-account support
+  const coupleId = userDetails?.activeAccountId;
 
   // Load categories
   const loadCategories = useCallback(async () => {
