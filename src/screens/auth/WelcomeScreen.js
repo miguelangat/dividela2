@@ -58,6 +58,12 @@ export default function WelcomeScreen({ navigation }) {
 
           {/* Bottom Section - Buttons */}
           <View style={styles.bottomSection}>
+            <ScrollView
+              style={styles.bottomSectionScroll}
+              contentContainerStyle={styles.bottomSectionContent}
+              showsVerticalScrollIndicator={false}
+              bounces={false}
+            >
             {/* Feature Highlights Card */}
             <View style={styles.featuresCard}>
               <View style={styles.featureItem}>
@@ -98,6 +104,7 @@ export default function WelcomeScreen({ navigation }) {
                 </Text>
               </TouchableOpacity>
             </View>
+            </ScrollView>
           </View>
         </View>
 
@@ -173,7 +180,14 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   bottomSection: {
+    flex: 1,
     width: '100%',
+  },
+  bottomSectionScroll: {
+    flex: 1,
+  },
+  bottomSectionContent: {
+    flexGrow: 1,
   },
   featuresCard: {
     backgroundColor: COLORS.background,

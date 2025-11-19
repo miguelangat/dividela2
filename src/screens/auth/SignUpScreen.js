@@ -151,6 +151,12 @@ export default function SignUpScreen({ navigation }) {
 
         {/* Form Card */}
         <View style={styles.formCard}>
+          <ScrollView
+            style={styles.formCardScroll}
+            contentContainerStyle={styles.formCardContent}
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+          >
           {/* General Error */}
           {errors.general && (
             <View style={styles.generalErrorContainer}>
@@ -312,7 +318,7 @@ export default function SignUpScreen({ navigation }) {
               </>
             )}
           </TouchableOpacity>
-
+          </ScrollView>
         </View>
         </View>
 
@@ -384,10 +390,15 @@ const styles = StyleSheet.create({
     marginHorizontal: SPACING.screenPadding,
     marginTop: -SPACING.large,
     marginBottom: SPACING.base,
+    ...SHADOWS.large,
+    overflow: 'hidden',
+  },
+  formCardScroll: {
+    flex: 1,
+  },
+  formCardContent: {
     padding: SPACING.base,
     paddingTop: SPACING.large,
-    ...SHADOWS.large,
-    maxHeight: '70%',
   },
   formGroup: {
     marginBottom: SPACING.small,
