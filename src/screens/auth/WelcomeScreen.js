@@ -2,7 +2,7 @@
 // Welcome screen - First screen users see when opening the app
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -40,6 +40,9 @@ export default function WelcomeScreen({ navigation }) {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          {...(Platform.OS === 'web' && {
+            nestedScrollEnabled: true,
+          })}
         >
           {/* Top Section - Logo and Title */}
           <View style={styles.topSection}>
