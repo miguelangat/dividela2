@@ -315,12 +315,31 @@ export const OnboardingProvider = ({ children }) => {
       }
 
       // Validate budget before saving
+      console.log('');
+      console.log('========================================');
+      console.log('🔍 [OnboardingContext] VALIDATING BUDGET');
+      console.log('========================================');
+      console.log('budgetData:', JSON.stringify(budgetData, null, 2));
+      console.log('selectedMode:', selectedMode);
+
       const validation = validateBudget();
+
+      console.log('Validation result:', JSON.stringify(validation, null, 2));
+      console.log('isValid:', validation.isValid);
+      console.log('errors:', validation.errors);
+      console.log('warnings:', validation.warnings);
+      console.log('========================================');
+      console.log('');
+
       if (!validation.isValid) {
+        console.error('❌ VALIDATION FAILED!');
+        console.error('Error:', validation.errors[0]?.message);
         setError(validation.errors[0]?.message || 'Budget validation failed');
         setLoading(false);
         return false;
       }
+
+      console.log('✅ Validation passed!');
 
       // Save budget with complexity mode (network operation)
       const { month, year } = getCurrentMonthYear();

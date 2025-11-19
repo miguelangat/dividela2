@@ -271,6 +271,23 @@ export default function AdvancedSuccessScreen({ navigation, route }) {
     console.log('📊 Context Budget Data:', JSON.stringify(contextBudgetData, null, 2));
     console.log('📊 Budget Categories from Context:', budgetCategories);
 
+    // CRITICAL: Verify context has been populated
+    if (!contextBudgetData || !contextBudgetData.monthlyIncome || !contextBudgetData.categoryBudgets || Object.keys(contextBudgetData.categoryBudgets).length === 0) {
+      console.error('');
+      console.error('❌❌❌ CONTEXT DATA NOT POPULATED ❌❌❌');
+      console.error('This is a timing issue - the useEffect that sets context data');
+      console.error('has not run yet or did not complete successfully.');
+      console.error('contextBudgetData:', contextBudgetData);
+      console.error('');
+      alert('Context data not ready. Please wait a moment and try again.');
+      return;
+    }
+
+    console.log('✅ Context data verified populated');
+    console.log('  - monthlyIncome:', contextBudgetData.monthlyIncome);
+    console.log('  - categoryBudgets keys:', Object.keys(contextBudgetData.categoryBudgets));
+    console.log('  - categoryBudgets:', contextBudgetData.categoryBudgets);
+
     setCompleting(true);
     setCompletionAttempted(true);
 
