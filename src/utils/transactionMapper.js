@@ -1,0 +1,244 @@
+import { calculateSplitAmounts } from './calculations';
+
+/**
+ * Maps bank transactions to expense format
+ * Converts parsed bank statement data to app's expense structure
+ */
+
+/**
+ * Map a single transaction to expense format
+ *
+ * @param {Object} transaction - Parsed transaction from bank statement
+ * @param {Object} config - Mapping configuration
+ * @param {string} config.coupleId - Couple ID
+ * @param {string} config.paidBy - User ID who paid
+ * @param {string} config.partnerId - Partner's user ID
+ * @param {Object} config.splitConfig - Split configuration
+ * @param {string} config.splitConfig.type - '50/50' or 'custom'
+ * @param {number} config.splitConfig.percentage - Percentage for custom split (0-100)
+ * @param {string} config.categoryKey - Default category key
+ * @param {string} config.suggestedCategory - Auto-mapped category (optional)
+ * @returns {Object} Expense object ready for Firestore
+ */
+export function mapTransactionToExpense(transaction, config) {
+  const {
+    coupleId,
+    paidBy,
+    partnerId,
+    splitConfig = { type: '50/50' },
+    categoryKey = 'other',
+    suggestedCategory,
+  } = config;
+
+  // Use suggested category if available, otherwise use default
+  const finalCategory = suggestedCategory || categoryKey;
+
+  // Calculate split amounts
+  let splitDetails;
+
+  if (splitConfig.type === '50/50') {
+    splitDetails = calculateSplitAmounts(transaction.amount, 50, paidBy);
+  } else if (splitConfig.type === 'custom' && splitConfig.percentage) {
+    splitDetails = calculateSplitAmounts(transaction.amount, splitConfig.percentage, paidBy);
+  } else {
+    // Default to 50/50
+    splitDetails = calculateSplitAmounts(transaction.amount, 50, paidBy);
+  }
+
+  return {
+    coupleId,
+    paidBy,
+    amount: transaction.amount,
+    description: transaction.description,
+    categoryKey: finalCategory,
+    category: finalCategory, // Legacy field
+    date: transaction.date.toISOString(),
+    splitDetails,
+    settledAt: null,
+    settledBySettlementId: null,
+    // Store original transaction data for reference
+    importMetadata: {
+      importedAt: new Date().toISOString(),
+      originalDate: transaction.date.toISOString(),
+      transactionType: transaction.type,
+      source: 'bank_import',
+      rawData: transaction.rawData,
+    },
+  };
+}
+
+/**
+ * Map multiple transactions to expenses
+ *
+ * @param {Array} transactions - Array of parsed transactions
+ * @param {Object} config - Mapping configuration
+ * @param {Function} getCategoryForTransaction - Function to get category for each transaction
+ * @returns {Array} Array of expense objects
+ */
+export function mapTransactionsToExpenses(transactions, config, getCategoryForTransaction = null) {
+  return transactions.map((transaction, index) => {
+    // Get suggested category for this transaction
+    const suggestedCategory = getCategoryForTransaction
+      ? getCategoryForTransaction(transaction, index)
+      : null;
+
+    return mapTransactionToExpense(transaction, {
+      ...config,
+      suggestedCategory,
+    });
+  });
+}
+
+/**
+ * Filter transactions based on criteria
+ *
+ * @param {Array} transactions - Array of transactions
+ * @param {Object} filters - Filter criteria
+ * @param {Date} filters.startDate - Start date
+ * @param {Date} filters.endDate - End date
+ * @param {number} filters.minAmount - Minimum amount
+ * @param {number} filters.maxAmount - Maximum amount
+ * @param {boolean} filters.excludeCredits - Exclude credit transactions
+ * @param {Array<string>} filters.excludeDescriptions - Descriptions to exclude (partial match)
+ * @returns {Array} Filtered transactions
+ */
+export function filterTransactions(transactions, filters = {}) {
+  let filtered = [...transactions];
+
+  // Date range filter
+  if (filters.startDate) {
+    filtered = filtered.filter(t => t.date >= filters.startDate);
+  }
+
+  if (filters.endDate) {
+    filtered = filtered.filter(t => t.date <= filters.endDate);
+  }
+
+  // Amount filters
+  if (filters.minAmount !== undefined && filters.minAmount > 0) {
+    filtered = filtered.filter(t => t.amount >= filters.minAmount);
+  }
+
+  if (filters.maxAmount !== undefined && filters.maxAmount > 0) {
+    filtered = filtered.filter(t => t.amount <= filters.maxAmount);
+  }
+
+  // Exclude credits
+  if (filters.excludeCredits) {
+    filtered = filtered.filter(t => t.type !== 'credit');
+  }
+
+  // Exclude by description
+  if (filters.excludeDescriptions && filters.excludeDescriptions.length > 0) {
+    filtered = filtered.filter(t => {
+      const desc = t.description.toLowerCase();
+      return !filters.excludeDescriptions.some(exclude =>
+        desc.includes(exclude.toLowerCase())
+      );
+    });
+  }
+
+  return filtered;
+}
+
+/**
+ * Validate expense data before import
+ *
+ * @param {Object} expense - Expense object
+ * @returns {Object} Validation result
+ */
+export function validateExpense(expense) {
+  const errors = [];
+
+  if (!expense.coupleId) {
+    errors.push('Missing coupleId');
+  }
+
+  if (!expense.paidBy) {
+    errors.push('Missing paidBy');
+  }
+
+  if (!expense.amount || expense.amount <= 0) {
+    errors.push('Amount must be greater than 0');
+  }
+
+  if (!expense.description || expense.description.trim().length === 0) {
+    errors.push('Description is required');
+  }
+
+  if (!expense.categoryKey) {
+    errors.push('Category is required');
+  }
+
+  if (!expense.date) {
+    errors.push('Date is required');
+  }
+
+  if (!expense.splitDetails) {
+    errors.push('Split details are required');
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+  };
+}
+
+/**
+ * Batch validate expenses
+ *
+ * @param {Array} expenses - Array of expense objects
+ * @returns {Object} Validation summary
+ */
+export function validateExpenses(expenses) {
+  const results = expenses.map((expense, index) => ({
+    index,
+    expense,
+    validation: validateExpense(expense),
+  }));
+
+  const valid = results.filter(r => r.validation.isValid);
+  const invalid = results.filter(r => !r.validation.isValid);
+
+  return {
+    total: expenses.length,
+    valid: valid.length,
+    invalid: invalid.length,
+    validExpenses: valid.map(r => r.expense),
+    invalidExpenses: invalid.map(r => ({
+      index: r.index,
+      expense: r.expense,
+      errors: r.validation.errors,
+    })),
+    allValid: invalid.length === 0,
+  };
+}
+
+/**
+ * Prepare expenses for batch import
+ * Adds timestamps and ensures data consistency
+ *
+ * @param {Array} expenses - Array of expense objects
+ * @returns {Array} Expenses ready for Firestore
+ */
+export function prepareExpensesForImport(expenses) {
+  const now = new Date();
+
+  return expenses.map(expense => ({
+    ...expense,
+    createdAt: now,
+    updatedAt: now,
+    // Ensure all required fields are present
+    settledAt: expense.settledAt || null,
+    settledBySettlementId: expense.settledBySettlementId || null,
+  }));
+}
+
+export default {
+  mapTransactionToExpense,
+  mapTransactionsToExpenses,
+  filterTransactions,
+  validateExpense,
+  validateExpenses,
+  prepareExpensesForImport,
+};

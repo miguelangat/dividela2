@@ -616,6 +616,13 @@ export default function HomeScreen({ navigation }) {
         <View style={styles.expensesSection}>
           <View style={styles.expensesSectionHeader}>
             <Text style={styles.sectionTitle}>{t('home.expenses')}</Text>
+            <TouchableOpacity
+              style={styles.importButton}
+              onPress={() => navigation.navigate('ImportExpenses')}
+            >
+              <Ionicons name="cloud-upload-outline" size={18} color={COLORS.primary} />
+              <Text style={styles.importButtonText}>Import</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Filter Toggle */}
@@ -809,7 +816,27 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   expensesSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: SPACING.small,
+  },
+  importButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: COLORS.primary + '15',
+    borderWidth: 1,
+    borderColor: COLORS.primary + '30',
+  },
+  importButtonText: {
+    ...FONTS.small,
+    fontSize: 13,
+    color: COLORS.primary,
+    fontWeight: '600',
+    marginLeft: 4,
   },
   listContent: {
     paddingBottom: 80, // Space for FAB
