@@ -31,13 +31,19 @@
     "@react-navigation/bottom-tabs": "^7.7.3",
     "@react-navigation/native": "^7.1.19",
     "@react-navigation/stack": "^7.6.2",
+    "buffer": "^6.0.3",
     "expo": "^54.0.21",
     "expo-clipboard": "^8.0.7",
+    "expo-document-picker": "^14.0.7",
+    "expo-file-system": "^19.0.19",
     "expo-linear-gradient": "^15.0.7",
     "expo-localization": "^17.0.7",
     "expo-status-bar": "^3.0.8",
     "firebase": "^12.5.0",
     "i18next": "^25.6.2",
+    "papaparse": "^5.5.3",
+    "pdf-parse": "^2.4.5",
+    "pdfjs-dist": "^5.4.394",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-i18next": "^16.3.3",
@@ -60,19 +66,5 @@
     "jest-expo": "^52.0.3",
     "prettier": "^3.6.2",
     "react-test-renderer": "19.1.0"
-  },
-  "jest": {
-    "preset": "jest-expo",
-    "transformIgnorePatterns": [
-      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg)"
-    ],
-    "setupFilesAfterEnv": [
-      "<rootDir>/jest.setup.js"
-    ],
-    "collectCoverageFrom": [
-      "src/**/*.{js,jsx}",
-      "!src/**/*.test.{js,jsx}",
-      "!src/**/__tests__/**"
-    ]
   }
 }

@@ -4,6 +4,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Provider as PaperProvider } from 'react-native-paper';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { BudgetProvider } from './src/contexts/BudgetContext';
 import { LanguageProvider } from './src/contexts/LanguageContext';
@@ -14,13 +15,15 @@ export default function App() {
   try {
     return (
       <SafeAreaProvider>
-        <LanguageProvider>
-          <AuthProvider>
-            <BudgetProvider>
-              <AppNavigator />
-            </BudgetProvider>
-          </AuthProvider>
-        </LanguageProvider>
+        <PaperProvider>
+          <LanguageProvider>
+            <AuthProvider>
+              <BudgetProvider>
+                <AppNavigator />
+              </BudgetProvider>
+            </AuthProvider>
+          </LanguageProvider>
+        </PaperProvider>
       </SafeAreaProvider>
     );
   } catch (error) {

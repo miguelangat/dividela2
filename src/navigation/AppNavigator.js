@@ -25,6 +25,7 @@ import OnboardingNavigator from './OnboardingNavigator';
 // Main app screens
 import TabNavigator from './TabNavigator';
 import AddExpenseScreen from '../screens/main/AddExpenseScreen';
+import ImportExpensesScreen from '../screens/main/ImportExpensesScreen';
 
 const Stack = createStackNavigator();
 
@@ -297,6 +298,19 @@ export default function AppNavigator() {
               component={AddExpenseScreen}
               options={{
                 presentation: 'modal',
+              }}
+            />
+            <Stack.Screen
+              name="ImportExpenses"
+              component={ImportExpensesScreen}
+              options={{
+                presentation: 'modal',
+                headerShown: true,
+                title: 'Import Expenses',
+                headerStyle: {
+                  backgroundColor: COLORS.background,
+                },
+                headerTintColor: COLORS.primary,
               }}
             />
           </>
