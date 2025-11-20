@@ -76,13 +76,14 @@ export function mapTransactionToExpense(transaction, config) {
     splitDetails,
     settledAt: null,
     settledBySettlementId: null,
-    // Store original transaction data for reference
+    // Store minimal import metadata (avoid large rawData to prevent Firestore size errors)
     importMetadata: {
       importedAt: new Date().toISOString(),
       originalDate: transaction.date.toISOString(),
       transactionType: transaction.type,
       source: 'bank_import',
-      rawData: transaction.rawData,
+      // Store only the row index instead of full rawData to avoid size limits
+      rowIndex: transaction.rawData?.rowIndex,
       splitWarning, // Include warning if split had issues
     },
   };
