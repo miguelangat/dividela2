@@ -21,6 +21,9 @@ export default function ImportExpensesScreen({ navigation }) {
   const { t } = useTranslation();
   const { user, partnerId, coupleId, partnerName } = useContext(AuthContext);
 
+  // Add console log to verify screen loads
+  console.log('ImportExpensesScreen loaded', { user: user?.uid, partnerId, coupleId });
+
   // File state
   const [selectedFile, setSelectedFile] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -147,8 +150,13 @@ export default function ImportExpensesScreen({ navigation }) {
 
   // Perform import
   const handleImport = async () => {
+    console.log('handleImport called', { hasFile: !!selectedFile, hasPreview: !!previewData });
+
     try {
-      if (!selectedFile || !previewData) return;
+      if (!selectedFile || !previewData) {
+        console.warn('Missing required data:', { selectedFile: !!selectedFile, previewData: !!previewData });
+        return;
+      }
 
       // Get selected transactions with category overrides applied
       const selectedIndices = Object.keys(selectedTransactions)
@@ -359,9 +367,13 @@ export default function ImportExpensesScreen({ navigation }) {
             </Button>
             <Button
               mode="contained"
-              onPress={handleImport}
+              onPress={() => {
+                console.log('Import button pressed', { selectedCount });
+                handleImport();
+              }}
               disabled={selectedCount === 0}
               style={styles.importButton}
+              loading={importing}
             >
               {t('import.importButton', { count: selectedCount })}
             </Button>

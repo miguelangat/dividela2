@@ -618,10 +618,19 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.sectionTitle}>{t('home.expenses')}</Text>
             <TouchableOpacity
               style={styles.importButton}
-              onPress={() => navigation.navigate('ImportExpenses')}
+              onPress={() => {
+                try {
+                  console.log('Navigating to ImportExpenses screen');
+                  navigation.navigate('ImportExpenses');
+                } catch (error) {
+                  console.error('Error navigating to ImportExpenses:', error);
+                  Alert.alert('Navigation Error', 'Could not open import screen. Please try again.');
+                }
+              }}
+              activeOpacity={0.7}
             >
               <Ionicons name="cloud-upload-outline" size={18} color={COLORS.primary} />
-              <Text style={styles.importButtonText}>{t('home.import')}</Text>
+              <Text style={styles.importButtonText}>{t('home.import') || 'Import'}</Text>
             </TouchableOpacity>
           </View>
 
