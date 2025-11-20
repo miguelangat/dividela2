@@ -581,7 +581,11 @@ export async function importFromFile(fileUri, config, onProgress = null, fileInf
     const parseResult = await parseFile(fileUri, fileInfo);
 
     if (!parseResult.success) {
-      throw new Error(parseResult.error);
+      // If error is already structured, throw it directly; otherwise wrap it
+      if (parseResult.error && typeof parseResult.error === 'object' && parseResult.error.userMessage) {
+        throw parseResult.error;
+      }
+      throw new Error(parseResult.error || 'Failed to parse file');
     }
 
     if (onProgress) onProgress({ step: 'parsing', progress: 100 });
@@ -610,7 +614,11 @@ export async function importFromFile(fileUri, config, onProgress = null, fileInf
     });
 
     if (!processResult.success) {
-      throw new Error(processResult.error);
+      // If error is already structured, throw it directly; otherwise wrap it
+      if (processResult.error && typeof processResult.error === 'object' && processResult.error.userMessage) {
+        throw processResult.error;
+      }
+      throw new Error(processResult.error || 'Failed to process transactions');
     }
 
     if (onProgress) onProgress({ step: 'processing', progress: 100 });
@@ -649,11 +657,18 @@ export async function importFromFile(fileUri, config, onProgress = null, fileInf
       },
     };
   } catch (error) {
+    // Handle structured error objects
+    const errorMessage = error.userMessage || error.message || 'Import failed';
+    const structuredError = error.type && error.userMessage
+      ? error
+      : formatErrorForUser(error, { operation: 'Import from file' });
+
     return {
       success: false,
-      error: error.message,
+      error: structuredError,
       summary: {
         fileName: 'Unknown',
+        fileType: 'unknown',
         totalTransactions: 0,
         imported: 0,
         duplicates: 0,
@@ -707,9 +722,14 @@ export async function previewImport(fileUri, config, fileInfo = null) {
       summary: processResult.summary,
     };
   } catch (error) {
+    // Handle structured error objects
+    const structuredError = error.type && error.userMessage
+      ? error
+      : formatErrorForUser(error, { operation: 'Preview import' });
+
     return {
       success: false,
-      error: error.message,
+      error: structuredError,
       transactions: [],
       processedExpenses: [],
     };
