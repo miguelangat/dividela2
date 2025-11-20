@@ -707,7 +707,7 @@ export async function previewImport(fileUri, config, fileInfo = null) {
 
         // Add timeout to prevent infinite waiting
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Timeout fetching expenses')), 10000) // 10 second timeout
+          setTimeout(() => reject(new Error('Timeout fetching expenses')), 60000) // 60 second timeout
         );
 
         existingExpenses = await Promise.race([
