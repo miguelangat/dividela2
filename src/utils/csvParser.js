@@ -353,17 +353,34 @@ function processCSVData(rows, dateFormat = 'auto') {
 
   // Handle case where no header was detected
   if (headerIndex === -1) {
-    throw new Error('Could not detect header row in CSV file. Please ensure your CSV has header columns like "Date" and "Amount".');
+    console.error('❌ CSV Header Detection Failed');
+    console.error('First 3 rows:', rows.slice(0, 3));
+    throw new Error(
+      'Could not detect header row in CSV file. Please ensure your CSV has header columns like "Date", "Description", and "Amount".\n\n' +
+      'Common solutions:\n' +
+      '• Ensure the first row contains column names\n' +
+      '• Check that Date and Amount columns are present\n' +
+      '• Verify the file is a valid CSV (not Excel or PDF)'
+    );
   }
 
   // Log warning if header detection is uncertain
   if (headerResult.warning) {
     console.warn(`⚠️ Header detection: ${headerResult.warning} (confidence: ${headerResult.confidence})`);
+    console.warn('Detected headers:', rows[headerIndex]);
   } else if (headerResult.confidence) {
     console.log(`✅ Header detected at row ${headerIndex + 1} (confidence: ${headerResult.confidence})`);
+    console.log('Headers:', rows[headerIndex]);
   }
 
   const headers = rows[headerIndex];
+
+  // Additional validation: check for empty headers
+  if (!headers || headers.length === 0 || headers.every(h => !h || h.trim() === '')) {
+    console.error('❌ All headers are empty');
+    console.error('Header row:', headers);
+    throw new Error('CSV file has empty header row. Please ensure the first row contains column names.');
+  }
 
   // Get data rows (excluding header and footers)
   const dataRows = removeFooterRows(rows, headerIndex);
@@ -380,7 +397,17 @@ function processCSVData(rows, dateFormat = 'auto') {
   const creditIndex = findColumnIndex(headers, 'credit');
   const balanceIndex = findColumnIndex(headers, 'balance');
 
+  // Log column mapping results
+  console.log('📊 Column Mapping:');
+  console.log('  Date:', dateIndex !== -1 ? `Column ${dateIndex} (${headers[dateIndex]})` : 'NOT FOUND');
+  console.log('  Description:', descriptionIndex !== -1 ? `Column ${descriptionIndex} (${headers[descriptionIndex]})` : 'NOT FOUND');
+  console.log('  Amount:', amountIndex !== -1 ? `Column ${amountIndex} (${headers[amountIndex]})` : 'NOT FOUND');
+  console.log('  Debit:', debitIndex !== -1 ? `Column ${debitIndex} (${headers[debitIndex]})` : 'NOT FOUND');
+  console.log('  Credit:', creditIndex !== -1 ? `Column ${creditIndex} (${headers[creditIndex]})` : 'NOT FOUND');
+  console.log('  Balance:', balanceIndex !== -1 ? `Column ${balanceIndex} (${headers[balanceIndex]})` : 'optional');
+
   if (dateIndex === -1) {
+    console.error('❌ Date column not found. Available headers:', headers);
     const msg = headerResult.confidence === 'uncertain'
       ? 'Could not find date column. Header detection was uncertain - please verify your CSV has a header row with "Date" column.'
       : 'Could not find date column in CSV file. Please ensure your CSV has a "Date" column.';
@@ -485,6 +512,26 @@ function processCSVData(rows, dateFormat = 'auto') {
 
   // Sort by date (oldest first)
   transactions.sort((a, b) => a.date - b.date);
+
+  // Log parsing summary
+  console.log('✅ CSV Parsing Complete:');
+  console.log(`  Total rows: ${dataRows.length}`);
+  console.log(`  Successful transactions: ${transactions.length}`);
+  console.log(`  Errors: ${errors.length}`);
+  if (errors.length > 0) {
+    console.warn('⚠️ Parsing errors:', errors.slice(0, 5)); // Show first 5 errors
+  }
+
+  // Validate we have some transactions
+  if (transactions.length === 0) {
+    console.error('❌ No valid transactions parsed');
+    throw new Error(
+      'No valid transactions found in CSV file. ' +
+      (errors.length > 0
+        ? `All ${errors.length} rows had errors. Check console for details.`
+        : 'Please verify your CSV file format.')
+    );
+  }
 
   return {
     transactions,

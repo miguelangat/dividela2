@@ -52,7 +52,19 @@ export default function ImportSummary({ result, onClose, onViewExpenses }) {
 
         {!success && result.error && (
           <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{result.error}</Text>
+            <Text style={styles.errorText}>
+              {typeof result.error === 'string'
+                ? result.error
+                : result.error.userMessage || result.error.message || 'An error occurred during import'}
+            </Text>
+            {result.error.suggestions && result.error.suggestions.length > 0 && (
+              <View style={styles.suggestionsContainer}>
+                <Text style={styles.suggestionsTitle}>Suggestions:</Text>
+                {result.error.suggestions.map((suggestion, index) => (
+                  <Text key={index} style={styles.suggestionText}>• {suggestion}</Text>
+                ))}
+              </View>
+            )}
           </View>
         )}
 
@@ -132,6 +144,25 @@ const styles = StyleSheet.create({
   errorText: {
     color: theme.colors.error,
     fontSize: 13,
+    marginBottom: 8,
+  },
+  suggestionsContainer: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.error + '30',
+  },
+  suggestionsTitle: {
+    color: theme.colors.error,
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  suggestionText: {
+    color: theme.colors.error,
+    fontSize: 12,
+    marginLeft: 8,
+    marginTop: 2,
   },
   buttonContainer: {
     flexDirection: 'row',
