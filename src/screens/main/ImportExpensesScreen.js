@@ -1,5 +1,5 @@
 import React, { useState, useLayoutEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, TouchableOpacity, Platform } from 'react-native';
 import { Text, Button, Card } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -168,6 +168,8 @@ export default function ImportExpensesScreen({ navigation }) {
         .filter(index => selectedTransactions[index])
         .map(index => parseInt(index));
 
+      console.log('Selected indices:', selectedIndices.length);
+
       if (selectedIndices.length === 0) {
         Alert.alert(
           t('import.errors.noTransactions'),
@@ -177,76 +179,96 @@ export default function ImportExpensesScreen({ navigation }) {
       }
 
       // Confirm import
-      Alert.alert(
-        t('import.confirmImport'),
-        t('import.confirmImportMessage', { count: selectedIndices.length }),
-        [
-          { text: t('import.cancel'), style: 'cancel' },
-          {
-            text: t('common.confirm'),
-            onPress: async () => {
-              setImporting(true);
-              setImportProgress({ step: 'parsing', progress: 0 });
+      console.log('Showing confirmation dialog for', selectedIndices.length, 'transactions');
 
-              // Filter transactions to only selected ones
-              const transactionsToImport = previewData.transactions.filter(
-                (_, index) => selectedTransactions[index]
-              );
+      // Use window.confirm on web for better compatibility
+      const confirmMessage = `${t('import.confirmImport')}\n\n${t('import.confirmImportMessage', { count: selectedIndices.length })}`;
 
-              // Apply category overrides
-              const processedTransactions = transactionsToImport.map((transaction, originalIndex) => {
-                const actualIndex = previewData.transactions.indexOf(transaction);
-                const overrideCategory = categoryOverrides[actualIndex];
+      const confirmed = Platform.OS === 'web'
+        ? window.confirm(confirmMessage)
+        : await new Promise(resolve => {
+            Alert.alert(
+              t('import.confirmImport'),
+              t('import.confirmImportMessage', { count: selectedIndices.length }),
+              [
+                { text: t('import.cancel'), style: 'cancel', onPress: () => resolve(false) },
+                { text: t('common.confirm'), onPress: () => resolve(true) },
+              ]
+            );
+          });
 
-                if (overrideCategory) {
-                  // Need to update the suggestion to use the override
-                  const suggestion = previewData.categorySuggestions?.find(
-                    s => s.transaction === transaction
-                  );
-                  if (suggestion) {
-                    suggestion.suggestion.categoryKey = overrideCategory;
-                  }
-                }
+      if (!confirmed) {
+        console.log('Import cancelled by user');
+        return;
+      }
 
-                return transaction;
-              });
+      console.log('Import confirmed, starting import process...');
+      setImporting(true);
+      setImportProgress({ step: 'parsing', progress: 0 });
 
-              // Update config with processed data
-              const importConfig = {
-                ...config,
-                // Override the preview data with our filtered set
-                transactions: transactionsToImport,
-              };
-
-              try {
-                const result = await importFromFile(
-                  selectedFile.uri,
-                  importConfig,
-                  (progress) => setImportProgress(progress)
-                );
-
-                setImportResult(result);
-                setShowSummary(true);
-                setImporting(false);
-
-                if (result.success) {
-                  // Reset state
-                  setTimeout(() => {
-                    setSelectedFile(null);
-                    setPreviewData(null);
-                    setSelectedTransactions({});
-                    setCategoryOverrides({});
-                  }, 500);
-                }
-              } catch (error) {
-                console.error('Import error:', error);
-                Alert.alert(t('import.errors.importFailed'), error.message);
-                setImporting(false);
-              }
-            },
-          },
-        ]
+      // Filter transactions to only selected ones
+      const transactionsToImport = previewData.transactions.filter(
+        (_, index) => selectedTransactions[index]
       );
+
+      console.log('Transactions to import:', transactionsToImport.length);
+
+      // Apply category overrides
+      const processedTransactions = transactionsToImport.map((transaction, originalIndex) => {
+        const actualIndex = previewData.transactions.indexOf(transaction);
+        const overrideCategory = categoryOverrides[actualIndex];
+
+        if (overrideCategory) {
+          // Need to update the suggestion to use the override
+          const suggestion = previewData.categorySuggestions?.find(
+            s => s.transaction === transaction
+          );
+          if (suggestion) {
+            suggestion.suggestion.categoryKey = overrideCategory;
+          }
+        }
+
+        return transaction;
+      });
+
+      // Update config with processed data
+      const importConfig = {
+        ...config,
+        // Override the preview data with our filtered set
+        transactions: transactionsToImport,
+      };
+
+      console.log('Calling importFromFile with config:', { ...importConfig, transactions: `${transactionsToImport.length} transactions` });
+
+      try {
+        const result = await importFromFile(
+          selectedFile.uri,
+          importConfig,
+          (progress) => {
+            console.log('Import progress:', progress);
+            setImportProgress(progress);
+          }
+        );
+
+        console.log('Import completed:', result);
+        setImportResult(result);
+        setShowSummary(true);
+        setImporting(false);
+
+        if (result.success) {
+          // Reset state
+          setTimeout(() => {
+            setSelectedFile(null);
+            setPreviewData(null);
+            setSelectedTransactions({});
+            setCategoryOverrides({});
+          }, 500);
+        }
+      } catch (error) {
+        console.error('Import error:', error);
+        Alert.alert(t('import.errors.importFailed'), error.message);
+        setImporting(false);
+      }
     } catch (error) {
       console.error('Error during import:', error);
       Alert.alert(
