@@ -132,6 +132,9 @@ export async function compressReceipt(imageUri) {
   }
 }
 
+// Alias for backward compatibility
+export const compressImage = compressReceipt;
+
 /**
  * Export constants for testing and reference
  */
