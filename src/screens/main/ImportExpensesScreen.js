@@ -1,9 +1,9 @@
-import React, { useState, useContext, useLayoutEffect } from 'react';
+import React, { useState, useLayoutEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { Text, Button, Card } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { AuthContext } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { theme } from '../../constants/theme';
 import FilePickerButton from '../../components/import/FilePickerButton';
 import ImportConfigPanel from '../../components/import/ImportConfigPanel';
@@ -19,7 +19,12 @@ import { markDuplicatesForReview } from '../../utils/duplicateDetector';
  */
 export default function ImportExpensesScreen({ navigation }) {
   const { t } = useTranslation();
-  const { user, partnerId, coupleId, partnerName } = useContext(AuthContext);
+  const { user, userDetails } = useAuth();
+
+  // Extract partner info from userDetails
+  const partnerId = userDetails?.partnerId;
+  const coupleId = userDetails?.coupleId;
+  const partnerName = userDetails?.partnerName;
 
   // Add console log to verify screen loads
   console.log('ImportExpensesScreen loaded', { user: user?.uid, partnerId, coupleId });
