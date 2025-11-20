@@ -573,12 +573,12 @@ export async function batchImportExpenses(expenses, onProgress = null, options =
  * @param {Function} onProgress - Progress callback
  * @returns {Promise<Object>} Complete import result
  */
-export async function importFromFile(fileUri, config, onProgress = null) {
+export async function importFromFile(fileUri, config, onProgress = null, fileInfo = null) {
   try {
     // Step 1: Parse file
     if (onProgress) onProgress({ step: 'parsing', progress: 0 });
 
-    const parseResult = await parseFile(fileUri);
+    const parseResult = await parseFile(fileUri, fileInfo);
 
     if (!parseResult.success) {
       throw new Error(parseResult.error);

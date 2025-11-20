@@ -247,7 +247,8 @@ export default function ImportExpensesScreen({ navigation }) {
           (progress) => {
             console.log('Import progress:', progress);
             setImportProgress(progress);
-          }
+          },
+          selectedFile  // Pass file info for type detection on blob URLs
         );
 
         console.log('Import completed:', result);
