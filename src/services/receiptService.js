@@ -67,21 +67,47 @@ async function uploadWithTimeout(uploadTask, timeoutMs = UPLOAD_TIMEOUT_MS, onPr
 }
 
 /**
- * Upload a receipt image to Firebase Storage
- * @param {string} imageUri - Local URI of the image to upload
+ * Detect file type from URI or blob
+ * @param {string} uri - File URI
+ * @param {Blob} blob - File blob
+ * @returns {string} File extension (jpg, png, pdf, etc.)
+ */
+function detectFileExtension(uri, blob) {
+  // Try URI first
+  const lowerUri = uri.toLowerCase();
+  if (lowerUri.endsWith('.pdf')) return 'pdf';
+  if (lowerUri.endsWith('.png')) return 'png';
+  if (lowerUri.endsWith('.jpg') || lowerUri.endsWith('.jpeg')) return 'jpg';
+  if (lowerUri.endsWith('.webp')) return 'webp';
+
+  // Try blob type
+  if (blob && blob.type) {
+    if (blob.type === 'application/pdf') return 'pdf';
+    if (blob.type === 'image/png') return 'png';
+    if (blob.type === 'image/jpeg') return 'jpg';
+    if (blob.type === 'image/webp') return 'webp';
+  }
+
+  // Default to jpg for images
+  return 'jpg';
+}
+
+/**
+ * Upload a receipt file (image or PDF) to Firebase Storage
+ * @param {string} fileUri - Local URI of the file to upload
  * @param {string} coupleId - ID of the couple
  * @param {string} userId - ID of the user uploading the receipt
  * @param {Function} onProgress - Optional callback for upload progress (0-100)
  * @param {number} timeoutMs - Optional timeout in milliseconds (default: 60000)
- * @returns {Promise<string>} Download URL of the uploaded image
+ * @returns {Promise<string>} Download URL of the uploaded file
  */
-export const uploadReceipt = async (imageUri, coupleId, userId, onProgress, timeoutMs) => {
+export const uploadReceipt = async (fileUri, coupleId, userId, onProgress, timeoutMs) => {
   let blob = null;
 
   try {
     // Validate inputs
-    if (!imageUri || imageUri.trim() === '') {
-      throw new Error('Image URI is required');
+    if (!fileUri || fileUri.trim() === '') {
+      throw new Error('File URI is required');
     }
     if (!coupleId || coupleId.trim() === '') {
       throw new Error('Couple ID is required');
@@ -90,17 +116,22 @@ export const uploadReceipt = async (imageUri, coupleId, userId, onProgress, time
       throw new Error('User ID is required');
     }
 
-    // Generate unique filename with timestamp
+    // Fetch the file as blob
+    const response = await fetch(fileUri);
+    blob = await response.blob();
+
+    // Detect file extension
+    const extension = detectFileExtension(fileUri, blob);
+
+    // Generate unique filename with timestamp and correct extension
     const timestamp = Date.now();
-    const filename = `${userId}_${timestamp}.jpg`;
+    const filename = `${userId}_${timestamp}.${extension}`;
     const storagePath = `receipts/${coupleId}/${filename}`;
+
+    console.log('Uploading receipt:', { extension, storagePath, size: blob.size });
 
     // Create storage reference
     const storageRef = ref(storage, storagePath);
-
-    // Fetch the image as blob
-    const response = await fetch(imageUri);
-    blob = await response.blob();
 
     // Create upload task
     const uploadTask = uploadBytesResumable(storageRef, blob);

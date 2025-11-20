@@ -14,6 +14,7 @@ const admin = require('firebase-admin');
 const visionClient = require('./visionClient');
 const receiptParser = require('./receiptParser');
 const categoryPredictor = require('../ml/categoryPredictor');
+const pdfReceiptParser = require('./pdfReceiptParser');
 
 // Initialize Firebase Admin if not already initialized
 try {
@@ -43,7 +44,30 @@ function validateInput(input) {
 }
 
 /**
- * Download image from Firebase Storage
+ * Detect if file is a PDF based on magic number
+ */
+function isPDFBuffer(buffer) {
+  if (!buffer || buffer.length < 4) return false;
+  // Check PDF magic number (%PDF)
+  const header = buffer.slice(0, 4).toString('utf-8');
+  return header === '%PDF';
+}
+
+/**
+ * Detect file type from receipt URL
+ */
+function getFileType(receiptUrl) {
+  const lowerUrl = receiptUrl.toLowerCase();
+  if (lowerUrl.endsWith('.pdf')) {
+    return 'pdf';
+  } else if (lowerUrl.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
+    return 'image';
+  }
+  return 'unknown';
+}
+
+/**
+ * Download receipt file from Firebase Storage
  */
 async function downloadImage(receiptUrl) {
   try {
@@ -58,12 +82,21 @@ async function downloadImage(receiptUrl) {
 
     // Download file
     const [buffer] = await file.download();
-    return { success: true, buffer };
+
+    // Detect file type
+    const fileType = getFileType(receiptUrl);
+    const actualType = isPDFBuffer(buffer) ? 'pdf' : fileType === 'unknown' ? 'image' : fileType;
+
+    return {
+      success: true,
+      buffer,
+      fileType: actualType
+    };
 
   } catch (error) {
     return {
       success: false,
-      error: error.message || 'Failed to download image'
+      error: error.message || 'Failed to download file'
     };
   }
 }
@@ -98,6 +131,48 @@ async function performOCR(imageBuffer) {
     return {
       success: false,
       error: `Vision API error: ${error.message}`
+    };
+  }
+}
+
+/**
+ * Process PDF receipt by extracting text
+ */
+async function processPDFReceipt(pdfBuffer) {
+  try {
+    const result = await pdfReceiptParser.parseReceiptPDF(pdfBuffer);
+
+    if (result.requiresOCR) {
+      // PDF is scanned or low confidence - needs OCR
+      return {
+        success: false,
+        requiresOCR: true,
+        reason: result.reason,
+        pages: result.pages
+      };
+    }
+
+    // Successfully extracted text from PDF
+    const { receipt } = result;
+
+    return {
+      success: true,
+      data: {
+        rawText: receipt.rawText || '',
+        merchantName: receipt.merchant,
+        amount: receipt.amount,
+        date: receipt.date,
+        tax: receipt.tax,
+        subtotal: receipt.subtotal,
+        vendorType: receipt.vendorType,
+        confidence: receipt.confidence || 0.8,
+        source: 'pdf-text-extraction'
+      }
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: `PDF processing error: ${error.message}`
     };
   }
 }
@@ -273,7 +348,7 @@ async function processReceiptWithML(params, context) {
       };
     }
 
-    // Step 2: Download image from Storage
+    // Step 2: Download file from Storage
     const downloadResult = await downloadImage(receiptUrl);
     if (!downloadResult.success) {
       console.error('Error processing receipt', {
@@ -294,31 +369,118 @@ async function processReceiptWithML(params, context) {
       };
     }
 
-    // Step 3: Perform OCR
-    const ocrResult = await performOCR(downloadResult.buffer);
-    if (!ocrResult.success) {
-      console.error('Error processing receipt', {
-        expenseId,
-        step: 'ocr',
-        error: ocrResult.error
-      });
+    const { buffer, fileType } = downloadResult;
 
-      await expenseRef.update({
-        status: 'ocr_failed',
-        error: ocrResult.error,
-        processedAt: admin.firestore.FieldValue.serverTimestamp()
-      });
+    console.log('Processing receipt', {
+      expenseId,
+      fileType,
+      bufferSize: buffer.length
+    });
 
-      return {
-        success: false,
-        error: ocrResult.error
-      };
+    let ocrData;
+    let parseResult;
+
+    // Step 3: Process based on file type
+    if (fileType === 'pdf') {
+      // Try PDF text extraction first
+      const pdfResult = await processPDFReceipt(buffer);
+
+      if (pdfResult.success) {
+        // Successfully extracted text from PDF
+        console.log('PDF text extraction successful', {
+          expenseId,
+          confidence: pdfResult.data.confidence
+        });
+
+        ocrData = {
+          rawText: pdfResult.data.rawText,
+          confidence: pdfResult.data.confidence,
+          timestamp: new Date().toISOString(),
+          source: 'pdf-text-extraction'
+        };
+
+        parseResult = {
+          success: true,
+          data: {
+            merchantName: pdfResult.data.merchantName,
+            amount: pdfResult.data.amount,
+            date: pdfResult.data.date,
+            tax: pdfResult.data.tax,
+            subtotal: pdfResult.data.subtotal,
+            rawText: pdfResult.data.rawText
+          }
+        };
+      } else if (pdfResult.requiresOCR) {
+        // PDF is scanned - needs OCR
+        console.log('PDF requires OCR', {
+          expenseId,
+          reason: pdfResult.reason
+        });
+
+        // Perform OCR on PDF buffer (Vision API can handle PDFs)
+        const ocrResult = await performOCR(buffer);
+        if (!ocrResult.success) {
+          console.error('Error processing PDF with OCR', {
+            expenseId,
+            error: ocrResult.error
+          });
+
+          await expenseRef.update({
+            status: 'ocr_failed',
+            error: `PDF OCR failed: ${ocrResult.error}`,
+            processedAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+
+          return {
+            success: false,
+            error: ocrResult.error
+          };
+        }
+
+        ocrData = ocrResult.data;
+        parseResult = parseReceiptData(ocrData.rawText);
+      } else {
+        // PDF processing failed
+        console.error('Error processing PDF', {
+          expenseId,
+          error: pdfResult.error
+        });
+
+        await expenseRef.update({
+          status: 'ocr_failed',
+          error: pdfResult.error,
+          processedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        return {
+          success: false,
+          error: pdfResult.error
+        };
+      }
+    } else {
+      // Standard image processing
+      const ocrResult = await performOCR(buffer);
+      if (!ocrResult.success) {
+        console.error('Error processing image', {
+          expenseId,
+          error: ocrResult.error
+        });
+
+        await expenseRef.update({
+          status: 'ocr_failed',
+          error: ocrResult.error,
+          processedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        return {
+          success: false,
+          error: ocrResult.error
+        };
+      }
+
+      ocrData = ocrResult.data;
+      parseResult = parseReceiptData(ocrData.rawText);
     }
-
-    const ocrData = ocrResult.data;
-
-    // Step 4: Parse receipt data
-    const parseResult = parseReceiptData(ocrData.rawText);
 
     // Step 5: Predict category
     const categoryResult = await predictCategory(
