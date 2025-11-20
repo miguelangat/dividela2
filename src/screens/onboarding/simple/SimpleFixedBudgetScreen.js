@@ -18,8 +18,10 @@ import BudgetAmountInput from '../../../components/onboarding/BudgetAmountInput'
 import { useOnboarding } from '../../../contexts/OnboardingContext';
 import { useAuth } from '../../../contexts/AuthContext';
 import { DEFAULT_CATEGORIES } from '../../../constants/defaultCategories';
+import { useTranslation } from 'react-i18next';
 
 export default function SimpleFixedBudgetScreen({ navigation }) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { userDetails } = useAuth();
   const { setCategoryBudgets, setMonthlyIncome, setBudgetStyle } = useOnboarding();
@@ -57,7 +59,7 @@ export default function SimpleFixedBudgetScreen({ navigation }) {
 
   const handleStartTracking = async () => {
     if (amount <= 0) {
-      alert('Please enter a budget amount greater than zero.');
+      alert(t('onboarding.simple.fixed.validationError'));
       return;
     }
 
@@ -85,7 +87,7 @@ export default function SimpleFixedBudgetScreen({ navigation }) {
       });
     } catch (error) {
       console.error('Error navigating to success screen:', error);
-      alert('Failed to proceed. Please try again.');
+      alert(t('onboarding.simple.fixed.navigationError'));
     } finally {
       setLoading(false);
     }
@@ -110,9 +112,9 @@ export default function SimpleFixedBudgetScreen({ navigation }) {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>What's your monthly budget?</Text>
+          <Text style={styles.title}>{t('onboarding.simple.fixed.title')}</Text>
           <Text style={styles.subtitle}>
-            We'll automatically distribute it across categories
+            {t('onboarding.simple.fixed.subtitle')}
           </Text>
         </View>
 
@@ -126,9 +128,9 @@ export default function SimpleFixedBudgetScreen({ navigation }) {
         {/* Distribution Preview */}
         {amount > 0 && Object.keys(distributedBudget).length > 0 && (
           <View style={styles.distributionCard}>
-            <Text style={styles.distributionTitle}>Budget Distribution</Text>
+            <Text style={styles.distributionTitle}>{t('onboarding.simple.fixed.distributionTitle')}</Text>
             <Text style={styles.distributionSubtitle}>
-              Auto-calculated based on typical priorities
+              {t('onboarding.simple.fixed.distributionSubtitle')}
             </Text>
 
             <View style={styles.categoriesList}>
@@ -156,7 +158,7 @@ export default function SimpleFixedBudgetScreen({ navigation }) {
             {/* Note */}
             <View style={styles.noteContainer}>
               <Text style={styles.noteText}>
-                💡 Based on recommended spending percentages
+                {t('onboarding.simple.fixed.noteText')}
               </Text>
             </View>
           </View>
@@ -186,7 +188,7 @@ export default function SimpleFixedBudgetScreen({ navigation }) {
           {loading ? (
             <ActivityIndicator color={COLORS.textWhite} />
           ) : (
-            <Text style={COMMON_STYLES.primaryButtonText}>Start Tracking</Text>
+            <Text style={COMMON_STYLES.primaryButtonText}>{t('onboarding.simple.fixed.startButton')}</Text>
           )}
         </TouchableOpacity>
 
@@ -197,7 +199,7 @@ export default function SimpleFixedBudgetScreen({ navigation }) {
             onPress={handleAdjustDistribution}
             disabled={loading}
           >
-            <Text style={styles.secondaryLinkText}>Adjust Distribution</Text>
+            <Text style={styles.secondaryLinkText}>{t('onboarding.simple.fixed.adjustLink')}</Text>
           </TouchableOpacity>
         )}
       </View>

@@ -15,9 +15,13 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { StatusBar } from 'expo-status-bar';
 import Slider from '@react-native-community/slider';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES, SHADOWS } from '../../../constants/theme';
+import { useTranslation } from 'react-i18next';
+import { useOnboarding } from '../../../contexts/OnboardingContext';
 
 export default function AdvancedAllocationScreen({ navigation, route }) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const { setMonthlyIncome, setCategoryBudgets, setMode } = useOnboarding();
   const { categoriesData } = route.params || {};
   const { mode, annualAmount, monthlyAmount, selectedCategories } = categoriesData || {};
 
@@ -66,9 +70,31 @@ export default function AdvancedAllocationScreen({ navigation, route }) {
 
   const handleContinue = () => {
     if (!isValid) {
-      alert('Please allocate the full budget before continuing');
+      alert(t('onboarding.advanced.allocation.validationError'));
       return;
     }
+
+    // Calculate monthly income (important for validation in completeOnboarding)
+    const calculatedMonthlyIncome = mode === 'annual' ? annualAmount / 12 : monthlyAmount;
+
+    // Convert annual allocations to monthly for context storage
+    // Note: totalBudget is always annual (see line 28), so allocations are always annual
+    // We need to store monthly values in context for validation
+    const monthlyAllocations = {};
+    Object.entries(allocations).forEach(([key, value]) => {
+      monthlyAllocations[key] = Math.round(value / 12);
+    });
+
+    console.log('💾 Saving budget data to OnboardingContext...');
+    console.log('Monthly Income:', calculatedMonthlyIncome);
+    console.log('Monthly Category Budgets:', monthlyAllocations);
+    console.log('Annual Allocations:', allocations);
+
+    // CRITICAL: Save to OnboardingContext so completeOnboarding can validate
+    // Store monthly values since validation checks monthlyIncome vs categoryBudgets
+    setMode('advanced'); // Set the onboarding complexity mode
+    setMonthlyIncome(calculatedMonthlyIncome);
+    setCategoryBudgets(monthlyAllocations);
 
     const allocationData = {
       ...categoriesData,
@@ -96,7 +122,7 @@ export default function AdvancedAllocationScreen({ navigation, route }) {
       <View style={styles.header}>
         {/* Progress Indicator */}
         <View style={styles.progressContainer}>
-          <Text style={styles.progressText}>Step 5 of 7</Text>
+          <Text style={styles.progressText}>{t('onboarding.advanced.allocation.progressText')}</Text>
           <View style={styles.progressBar}>
             <View style={[styles.progressFill, { width: '71.4%' }]} />
           </View>
@@ -115,7 +141,7 @@ export default function AdvancedAllocationScreen({ navigation, route }) {
             remaining < 0 && styles.remainingCardNegative,
           ]}
         >
-          <Text style={styles.remainingLabel}>Remaining</Text>
+          <Text style={styles.remainingLabel}>{t('onboarding.advanced.allocation.remainingLabel')}</Text>
           <Text
             style={[
               styles.remainingAmount,
@@ -133,10 +159,10 @@ export default function AdvancedAllocationScreen({ navigation, route }) {
             style={styles.actionButton}
             onPress={handleAutoDistribute}
           >
-            <Text style={styles.actionButtonText}>Auto-Distribute</Text>
+            <Text style={styles.actionButtonText}>{t('onboarding.advanced.allocation.autoDistribute')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton} onPress={handleReset}>
-            <Text style={styles.actionButtonText}>Reset</Text>
+            <Text style={styles.actionButtonText}>{t('onboarding.advanced.allocation.reset')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -232,7 +258,7 @@ export default function AdvancedAllocationScreen({ navigation, route }) {
           activeOpacity={0.8}
           disabled={!isValid}
         >
-          <Text style={styles.continueButtonText}>Continue</Text>
+          <Text style={styles.continueButtonText}>{t('onboarding.advanced.allocation.continue')}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

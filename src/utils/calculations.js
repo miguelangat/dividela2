@@ -70,6 +70,21 @@ export const calculateEqualSplit = (amount) => {
 };
 
 /**
+ * Calculate split amounts for import transactions
+ * This is a simplified version for transaction mapping that doesn't need paidBy
+ *
+ * @param {number|string} amount - Total amount to split
+ * @param {number|string} percentage - Percentage for user1 (0-100)
+ * @param {string} paidBy - User ID who paid (not currently used, kept for compatibility)
+ * @returns {object} Split details with amounts and percentages
+ * @throws {Error} If validation fails
+ */
+export const calculateSplitAmounts = (amount, percentage, paidBy = null) => {
+  // Use the existing calculateSplit function
+  return calculateSplit(amount, percentage);
+};
+
+/**
  * Calculate balance from expenses
  * Positive balance = user2 owes user1
  * Negative balance = user1 owes user2
@@ -504,6 +519,7 @@ export const isSettlementValid = (settlement, currentUserId, currentUserCoupleId
 export default {
   calculateSplit,
   calculateEqualSplit,
+  calculateSplitAmounts,
   calculateBalance,
   calculateBalanceWithSettlements,
   formatBalance,

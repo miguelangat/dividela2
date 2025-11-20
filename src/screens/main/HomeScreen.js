@@ -28,6 +28,7 @@ import { collection, query, where, onSnapshot, orderBy, addDoc, serverTimestamp,
 import { db } from '../../config/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBudget } from '../../contexts/BudgetContext';
+import { useTranslation } from 'react-i18next';
 import { COLORS, FONTS, SPACING, COMMON_STYLES } from '../../constants/theme';
 import {
   calculateBalance,
@@ -47,6 +48,7 @@ import { getPrimaryCurrency } from '../../services/coupleSettingsService';
 export default function HomeScreen({ navigation }) {
   const { user, userDetails, getPartnerDetails } = useAuth();
   const { categories, currentBudget } = useBudget();
+  const { t } = useTranslation();
   const [expenses, setExpenses] = useState([]);
   const [settlements, setSettlements] = useState([]); // Track settlements for balance calculation
   const [balance, setBalance] = useState(0);
@@ -528,9 +530,9 @@ export default function HomeScreen({ navigation }) {
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <Text style={styles.emptyStateEmoji}>💸</Text>
-      <Text style={styles.emptyStateTitle}>No Expenses Yet</Text>
+      <Text style={styles.emptyStateTitle}>{t('home.noExpensesTitle')}</Text>
       <Text style={styles.emptyStateText}>
-        Start tracking your shared expenses by tapping the + button below
+        {t('home.noExpensesText')}
       </Text>
     </View>
   );
@@ -544,7 +546,7 @@ export default function HomeScreen({ navigation }) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Loading expenses...</Text>
+        <Text style={styles.loadingText}>{t('home.loadingExpenses')}</Text>
       </View>
     );
   }
@@ -556,7 +558,7 @@ export default function HomeScreen({ navigation }) {
         onPress={() => setExpenseFilter('active')}
       >
         <Text style={[styles.filterButtonText, expenseFilter === 'active' && styles.filterButtonTextActive]}>
-          Active ({unsettledCount})
+          {t('home.active')} ({unsettledCount})
         </Text>
       </TouchableOpacity>
 
@@ -565,7 +567,7 @@ export default function HomeScreen({ navigation }) {
         onPress={() => setExpenseFilter('all')}
       >
         <Text style={[styles.filterButtonText, expenseFilter === 'all' && styles.filterButtonTextActive]}>
-          All ({expenses.length})
+          {t('home.all')} ({expenses.length})
         </Text>
       </TouchableOpacity>
 
@@ -574,7 +576,7 @@ export default function HomeScreen({ navigation }) {
         onPress={() => setExpenseFilter('settled')}
       >
         <Text style={[styles.filterButtonText, expenseFilter === 'settled' && styles.filterButtonTextActive]}>
-          Settled ({settledCount})
+          {t('home.settled')} ({settledCount})
         </Text>
       </TouchableOpacity>
     </View>
@@ -586,8 +588,8 @@ export default function HomeScreen({ navigation }) {
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Hello, {userDetails?.displayName || 'there'}!</Text>
-            <Text style={styles.subtitle}>Here's your balance with {partnerName}</Text>
+            <Text style={styles.greeting}>{t('home.greeting', { name: userDetails?.displayName || 'there' })}</Text>
+            <Text style={styles.subtitle}>{t('home.subtitle', { partnerName })}</Text>
           </View>
           <TouchableOpacity
             style={styles.historyButton}
@@ -603,7 +605,7 @@ export default function HomeScreen({ navigation }) {
           balanceInfo.status === 'positive' && styles.balanceCardPositive,
           balanceInfo.status === 'negative' && styles.balanceCardNegative,
         ]}>
-          <Text style={styles.balanceLabel}>Current Balance</Text>
+          <Text style={styles.balanceLabel}>{t('home.currentBalance')}</Text>
           <Text style={styles.balanceAmount}>
             {formatCurrency(balanceInfo.amount)}
           </Text>
@@ -615,7 +617,7 @@ export default function HomeScreen({ navigation }) {
                 style={styles.settleButton}
                 onPress={() => setSettleUpModalVisible(true)}
               >
-                <Text style={styles.settleButtonText}>Settle Up</Text>
+                <Text style={styles.settleButtonText}>{t('home.settleUp')}</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity
@@ -623,7 +625,7 @@ export default function HomeScreen({ navigation }) {
               onPress={() => navigation.navigate('SettlementsTab')}
             >
               <Ionicons name="list-outline" size={18} color={COLORS.primary} />
-              <Text style={styles.historyButtonText}>View History</Text>
+              <Text style={styles.historyButtonText}>{t('home.viewHistory')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -639,7 +641,23 @@ export default function HomeScreen({ navigation }) {
         {/* Expenses List */}
         <View style={styles.expensesSection}>
           <View style={styles.expensesSectionHeader}>
-            <Text style={styles.sectionTitle}>Expenses</Text>
+            <Text style={styles.sectionTitle}>{t('home.expenses')}</Text>
+            <TouchableOpacity
+              style={styles.importButton}
+              onPress={() => {
+                try {
+                  console.log('Navigating to ImportExpenses screen');
+                  navigation.navigate('ImportExpenses');
+                } catch (error) {
+                  console.error('Error navigating to ImportExpenses:', error);
+                  Alert.alert('Navigation Error', 'Could not open import screen. Please try again.');
+                }
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="cloud-upload-outline" size={18} color={COLORS.primary} />
+              <Text style={styles.importButtonText}>{t('home.import') || 'Import'}</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Filter Toggle */}
@@ -833,7 +851,27 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   expensesSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: SPACING.small,
+  },
+  importButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: COLORS.primary + '15',
+    borderWidth: 1,
+    borderColor: COLORS.primary + '30',
+  },
+  importButtonText: {
+    ...FONTS.small,
+    fontSize: 13,
+    color: COLORS.primary,
+    fontWeight: '600',
+    marginLeft: 4,
   },
   listContent: {
     paddingBottom: 80, // Space for FAB

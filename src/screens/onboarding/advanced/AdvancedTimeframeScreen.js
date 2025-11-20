@@ -15,8 +15,10 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES, SHADOWS } from '../../../constants/theme';
+import { useTranslation } from 'react-i18next';
 
 export default function AdvancedTimeframeScreen({ navigation, route }) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [selectedMode, setSelectedMode] = useState('annual'); // 'annual' or 'monthly'
   const [annualAmount, setAnnualAmount] = useState('24000');
@@ -57,16 +59,16 @@ export default function AdvancedTimeframeScreen({ navigation, route }) {
       >
         {/* Progress Indicator */}
         <View style={styles.progressContainer}>
-          <Text style={styles.progressText}>Step 2 of 7</Text>
+          <Text style={styles.progressText}>{t('onboarding.advanced.timeframe.progressText')}</Text>
           <View style={styles.progressBar}>
             <View style={[styles.progressFill, { width: '28.6%' }]} />
           </View>
         </View>
 
         {/* Title */}
-        <Text style={styles.title}>Budget Timeframe</Text>
+        <Text style={styles.title}>{t('onboarding.advanced.timeframe.title')}</Text>
         <Text style={styles.subtitle}>
-          Choose how you want to plan your budget
+          {t('onboarding.advanced.timeframe.subtitle')}
         </Text>
 
         {/* Options */}
@@ -85,9 +87,9 @@ export default function AdvancedTimeframeScreen({ navigation, route }) {
                 <Text style={styles.optionIconText}>📅</Text>
               </View>
               <View style={styles.optionTitleContainer}>
-                <Text style={styles.optionTitle}>Annual Planning</Text>
+                <Text style={styles.optionTitle}>{t('onboarding.advanced.timeframe.annualTitle')}</Text>
                 <Text style={styles.optionDescription}>
-                  Plan for the full year, see monthly breakdown
+                  {t('onboarding.advanced.timeframe.annualDescription')}
                 </Text>
               </View>
               <View
@@ -105,7 +107,7 @@ export default function AdvancedTimeframeScreen({ navigation, route }) {
             {selectedMode === 'annual' && (
               <View style={styles.optionContent}>
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Annual Budget</Text>
+                  <Text style={styles.inputLabel}>{t('onboarding.advanced.timeframe.annualLabel')}</Text>
                   <View style={styles.inputWrapper}>
                     <Text style={styles.currencySymbol}>$</Text>
                     <TextInput
@@ -113,14 +115,14 @@ export default function AdvancedTimeframeScreen({ navigation, route }) {
                       value={annualAmount}
                       onChangeText={setAnnualAmount}
                       keyboardType="numeric"
-                      placeholder="24000"
+                      placeholder={t('onboarding.advanced.timeframe.annualPlaceholder')}
                       placeholderTextColor={COLORS.textTertiary}
                     />
                   </View>
                 </View>
 
                 <View style={styles.calculation}>
-                  <Text style={styles.calculationLabel}>Per Month:</Text>
+                  <Text style={styles.calculationLabel}>{t('onboarding.advanced.timeframe.perMonthLabel')}</Text>
                   <Text style={styles.calculationValue}>
                     ${formatCurrency(calculatedMonthly)}/mo
                   </Text>
@@ -143,9 +145,9 @@ export default function AdvancedTimeframeScreen({ navigation, route }) {
                 <Text style={styles.optionIconText}>📆</Text>
               </View>
               <View style={styles.optionTitleContainer}>
-                <Text style={styles.optionTitle}>Monthly Only</Text>
+                <Text style={styles.optionTitle}>{t('onboarding.advanced.timeframe.monthlyTitle')}</Text>
                 <Text style={styles.optionDescription}>
-                  Simple monthly budgeting, one month at a time
+                  {t('onboarding.advanced.timeframe.monthlyDescription')}
                 </Text>
               </View>
               <View
@@ -163,7 +165,7 @@ export default function AdvancedTimeframeScreen({ navigation, route }) {
             {selectedMode === 'monthly' && (
               <View style={styles.optionContent}>
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Monthly Budget</Text>
+                  <Text style={styles.inputLabel}>{t('onboarding.advanced.timeframe.monthlyLabel')}</Text>
                   <View style={styles.inputWrapper}>
                     <Text style={styles.currencySymbol}>$</Text>
                     <TextInput
@@ -171,7 +173,7 @@ export default function AdvancedTimeframeScreen({ navigation, route }) {
                       value={monthlyAmount}
                       onChangeText={setMonthlyAmount}
                       keyboardType="numeric"
-                      placeholder="2000"
+                      placeholder={t('onboarding.advanced.timeframe.monthlyPlaceholder')}
                       placeholderTextColor={COLORS.textTertiary}
                     />
                   </View>
@@ -198,7 +200,7 @@ export default function AdvancedTimeframeScreen({ navigation, route }) {
           onPress={handleContinue}
           activeOpacity={0.8}
         >
-          <Text style={styles.continueButtonText}>Continue</Text>
+          <Text style={styles.continueButtonText}>{t('onboarding.advanced.timeframe.continue')}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
