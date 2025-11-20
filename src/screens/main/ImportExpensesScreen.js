@@ -1,10 +1,11 @@
 import React, { useState, useLayoutEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, TouchableOpacity, Platform } from 'react-native';
 import { Text, Button, Card } from 'react-native-paper';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
-import { theme } from '../../constants/theme';
+import { COLORS, FONTS, SPACING, SIZES, SHADOWS } from '../../constants/theme';
 import FilePickerButton from '../../components/import/FilePickerButton';
 import ImportConfigPanel from '../../components/import/ImportConfigPanel';
 import TransactionPreviewList from '../../components/import/TransactionPreviewList';
@@ -312,58 +313,88 @@ export default function ImportExpensesScreen({ navigation }) {
     <View style={styles.container}>
       {!previewData ? (
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          {/* Header */}
-          <Card style={styles.headerCard}>
-            <Card.Content>
-              <Text style={styles.title}>{t('import.title')}</Text>
-              <Text style={styles.subtitle}>
-                {t('import.subtitle')}
-              </Text>
-            </Card.Content>
-          </Card>
+          {/* Gradient Header */}
+          <LinearGradient
+            colors={[COLORS.gradientStart, COLORS.gradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.gradientHeader}
+          >
+            <View style={styles.headerIconContainer}>
+              <MaterialCommunityIcons name="file-import" size={60} color={COLORS.textWhite} />
+            </View>
+            <Text style={styles.headerTitle}>{t('import.title')}</Text>
+            <Text style={styles.headerSubtitle}>
+              {t('import.subtitle')}
+            </Text>
+          </LinearGradient>
 
-          {/* File picker */}
-          <View style={styles.section}>
-            <FilePickerButton
-              onFileSelected={handleFileSelected}
-              loading={isLoading}
-            />
+          {/* Main Content Card */}
+          <View style={styles.contentCard}>
+            {/* File picker */}
+            <View style={styles.section}>
+              <FilePickerButton
+                onFileSelected={handleFileSelected}
+                loading={isLoading}
+              />
 
+              {selectedFile && !isLoading && (
+                <Card style={styles.fileInfoCard}>
+                  <Card.Content>
+                    <View style={styles.fileInfoContent}>
+                      <MaterialCommunityIcons
+                        name={selectedFile.type === 'csv' ? 'file-table' : 'file-pdf-box'}
+                        size={24}
+                        color={COLORS.primary}
+                      />
+                      <View style={styles.fileTextContainer}>
+                        <Text style={styles.fileName}>{selectedFile.name}</Text>
+                        <Text style={styles.fileDetails}>
+                          {selectedFile.type.toUpperCase()} • {Math.round(selectedFile.size / 1024)} KB
+                        </Text>
+                      </View>
+                    </View>
+                  </Card.Content>
+                </Card>
+              )}
+            </View>
+
+            {/* Config panel */}
             {selectedFile && !isLoading && (
-              <Card style={styles.fileInfoCard}>
-                <Card.Content>
-                  <Text style={styles.fileName}>{t('import.fileInfo', { fileName: selectedFile.name })}</Text>
-                  <Text style={styles.fileDetails}>
-                    {t('import.fileDetails', {
-                      type: selectedFile.type.toUpperCase(),
-                      size: Math.round(selectedFile.size / 1024)
-                    })}
-                  </Text>
-                </Card.Content>
-              </Card>
+              <ImportConfigPanel
+                config={config}
+                onConfigChange={setConfig}
+                currentUser={user}
+                partner={{ partnerId, partnerName }}
+              />
             )}
+
+            {/* Instructions */}
+            <Card style={styles.instructionsCard}>
+              <Card.Content>
+                <View style={styles.instructionsHeader}>
+                  <MaterialCommunityIcons name="information" size={24} color={COLORS.primary} />
+                  <Text style={styles.instructionsTitle}>{t('import.howItWorks')}</Text>
+                </View>
+                <View style={styles.instructionItem}>
+                  <MaterialCommunityIcons name="numeric-1-circle" size={20} color={COLORS.primary} />
+                  <Text style={styles.instruction}>{t('import.step1')}</Text>
+                </View>
+                <View style={styles.instructionItem}>
+                  <MaterialCommunityIcons name="numeric-2-circle" size={20} color={COLORS.primary} />
+                  <Text style={styles.instruction}>{t('import.step2')}</Text>
+                </View>
+                <View style={styles.instructionItem}>
+                  <MaterialCommunityIcons name="numeric-3-circle" size={20} color={COLORS.primary} />
+                  <Text style={styles.instruction}>{t('import.step3')}</Text>
+                </View>
+                <View style={styles.instructionItem}>
+                  <MaterialCommunityIcons name="numeric-4-circle" size={20} color={COLORS.primary} />
+                  <Text style={styles.instruction}>{t('import.step4')}</Text>
+                </View>
+              </Card.Content>
+            </Card>
           </View>
-
-          {/* Config panel */}
-          {selectedFile && !isLoading && (
-            <ImportConfigPanel
-              config={config}
-              onConfigChange={setConfig}
-              currentUser={user}
-              partner={{ partnerId, partnerName }}
-            />
-          )}
-
-          {/* Instructions */}
-          <Card style={styles.instructionsCard}>
-            <Card.Content>
-              <Text style={styles.instructionsTitle}>{t('import.howItWorks')}</Text>
-              <Text style={styles.instruction}>{t('import.step1')}</Text>
-              <Text style={styles.instruction}>{t('import.step2')}</Text>
-              <Text style={styles.instruction}>{t('import.step3')}</Text>
-              <Text style={styles.instruction}>{t('import.step4')}</Text>
-            </Card.Content>
-          </Card>
         </ScrollView>
       ) : (
         <View style={styles.previewContainer}>
@@ -382,30 +413,47 @@ export default function ImportExpensesScreen({ navigation }) {
 
           {/* Action buttons */}
           <View style={styles.actionBar}>
-            <Button
-              mode="outlined"
+            <TouchableOpacity
+              style={styles.cancelButton}
               onPress={() => {
                 setPreviewData(null);
                 setSelectedFile(null);
                 setSelectedTransactions({});
                 setCategoryOverrides({});
               }}
-              style={styles.cancelButton}
+              activeOpacity={0.7}
             >
-              {t('import.cancel')}
-            </Button>
-            <Button
-              mode="contained"
+              <Text style={styles.cancelButtonText}>{t('import.cancel')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.importButtonContainer, selectedCount === 0 && styles.importButtonDisabled]}
               onPress={() => {
-                console.log('Import button pressed', { selectedCount });
-                handleImport();
+                if (selectedCount > 0 && !importing) {
+                  console.log('Import button pressed', { selectedCount });
+                  handleImport();
+                }
               }}
-              disabled={selectedCount === 0}
-              style={styles.importButton}
-              loading={importing}
+              activeOpacity={0.8}
+              disabled={selectedCount === 0 || importing}
             >
-              {t('import.importButton', { count: selectedCount })}
-            </Button>
+              <LinearGradient
+                colors={selectedCount === 0 ? [COLORS.textTertiary, COLORS.textTertiary] : [COLORS.gradientStart, COLORS.gradientEnd]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.importButtonGradient}
+              >
+                {importing ? (
+                  <Text style={styles.importButtonText}>{t('import.importing')}</Text>
+                ) : (
+                  <View style={styles.importButtonContent}>
+                    <MaterialCommunityIcons name="upload" size={20} color={COLORS.textWhite} />
+                    <Text style={styles.importButtonText}>
+                      {t('import.importButton', { count: selectedCount })}
+                    </Text>
+                  </View>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
         </View>
       )}
@@ -430,73 +478,171 @@ export default function ImportExpensesScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: COLORS.backgroundSecondary,
   },
   scrollContent: {
-    paddingBottom: 32,
+    paddingBottom: SPACING.xxlarge,
+  },
+  // Gradient Header Styles
+  gradientHeader: {
+    paddingTop: SPACING.xlarge,
+    paddingBottom: SPACING.xxlarge * 2,
+    paddingHorizontal: SPACING.screenPadding,
+    alignItems: 'center',
+  },
+  headerIconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    marginBottom: SPACING.base,
+    ...SHADOWS.large,
+  },
+  headerTitle: {
+    fontSize: FONTS.sizes.xlarge,
+    fontWeight: FONTS.weights.bold,
+    color: COLORS.textWhite,
+    marginBottom: SPACING.small,
+    textAlign: 'center',
+  },
+  headerSubtitle: {
+    fontSize: FONTS.sizes.body,
+    color: COLORS.textWhite,
+    textAlign: 'center',
+    maxWidth: 320,
+    lineHeight: 22,
+    opacity: 0.95,
+  },
+  // Content Card
+  contentCard: {
+    backgroundColor: COLORS.background,
+    borderRadius: SIZES.borderRadius.xlarge,
+    marginHorizontal: SPACING.screenPadding,
+    marginTop: -SPACING.xxlarge,
+    padding: SPACING.base,
+    ...SHADOWS.large,
   },
   section: {
-    margin: 16,
+    marginBottom: SPACING.base,
   },
-  headerCard: {
-    margin: 16,
-    marginBottom: 8,
-    elevation: 2,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    lineHeight: 20,
-  },
+  // File Info Card
   fileInfoCard: {
-    marginTop: 12,
-    backgroundColor: theme.colors.primary + '10',
+    marginTop: SPACING.medium,
+    backgroundColor: COLORS.primary + '08',
+    borderWidth: 1,
+    borderColor: COLORS.primary + '20',
+    ...SHADOWS.small,
+  },
+  fileInfoContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  fileTextContainer: {
+    flex: 1,
+    marginLeft: SPACING.medium,
   },
   fileName: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
+    fontSize: FONTS.sizes.body,
+    fontWeight: FONTS.weights.semibold,
+    color: COLORS.text,
+    marginBottom: SPACING.tiny,
   },
   fileDetails: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
+    fontSize: FONTS.sizes.small,
+    color: COLORS.textSecondary,
   },
+  // Instructions Card
   instructionsCard: {
-    margin: 16,
-    backgroundColor: '#F5F5F5',
+    marginTop: SPACING.base,
+    backgroundColor: COLORS.backgroundLight,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...SHADOWS.small,
+  },
+  instructionsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.base,
   },
   instructionsTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 12,
+    fontSize: FONTS.sizes.title,
+    fontWeight: FONTS.weights.bold,
+    color: COLORS.text,
+    marginLeft: SPACING.small,
+  },
+  instructionItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: SPACING.small,
   },
   instruction: {
-    fontSize: 14,
-    marginBottom: 8,
-    color: theme.colors.text,
+    fontSize: FONTS.sizes.body,
+    color: COLORS.text,
+    marginLeft: SPACING.small,
+    flex: 1,
+    lineHeight: 20,
   },
+  // Preview Container
   previewContainer: {
     flex: 1,
   },
+  // Action Bar
   actionBar: {
     flexDirection: 'row',
-    padding: 16,
-    backgroundColor: '#fff',
+    padding: SPACING.base,
+    backgroundColor: COLORS.background,
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
-    elevation: 4,
+    borderTopColor: COLORS.border,
+    ...SHADOWS.medium,
   },
   cancelButton: {
     flex: 1,
-    marginRight: 8,
+    marginRight: SPACING.small,
+    paddingVertical: SPACING.buttonPadding,
+    paddingHorizontal: SPACING.base,
+    borderRadius: SIZES.borderRadius.medium,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: SIZES.button.height,
   },
-  importButton: {
+  cancelButtonText: {
+    color: COLORS.primary,
+    fontSize: FONTS.sizes.body,
+    fontWeight: FONTS.weights.semibold,
+  },
+  importButtonContainer: {
     flex: 2,
-    marginLeft: 8,
+    marginLeft: SPACING.small,
+    borderRadius: SIZES.borderRadius.medium,
+    overflow: 'hidden',
+    ...SHADOWS.medium,
+  },
+  importButtonDisabled: {
+    opacity: 0.6,
+  },
+  importButtonGradient: {
+    paddingVertical: SPACING.buttonPadding,
+    paddingHorizontal: SPACING.base,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: SIZES.button.height,
+  },
+  importButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.small,
+  },
+  importButtonText: {
+    color: COLORS.textWhite,
+    fontSize: FONTS.sizes.body,
+    fontWeight: FONTS.weights.bold,
+    marginLeft: SPACING.small,
   },
 });
