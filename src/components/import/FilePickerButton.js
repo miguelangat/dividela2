@@ -15,10 +15,8 @@ export default function FilePickerButton({ onFileSelected, loading, style }) {
     try {
       setPicking(true);
 
-      // On web, only allow CSV files (PDF parsing not supported in browser)
-      const allowedTypes = Platform.OS === 'web'
-        ? ['text/csv', 'text/comma-separated-values', 'text/plain']
-        : ['text/csv', 'text/comma-separated-values', 'application/pdf', 'text/plain'];
+      // Allow both CSV and PDF files on all platforms
+      const allowedTypes = ['text/csv', 'text/comma-separated-values', 'application/pdf', 'text/plain'];
 
       const result = await DocumentPicker.getDocumentAsync({
         type: allowedTypes,
@@ -42,23 +40,6 @@ export default function FilePickerButton({ onFileSelected, loading, style }) {
           Alert.alert(
             t('import.errors.invalidFileType') || 'Invalid File Type',
             t('import.errors.invalidFileTypeMessage') || 'Please select a CSV or PDF file.'
-          );
-          setPicking(false);
-          return;
-        }
-
-        // Check if PDF on web
-        if (isPDF && Platform.OS === 'web') {
-          Alert.alert(
-            'PDF Not Supported on Web',
-            'PDF import is only available on mobile apps (iOS/Android). For web access, please use CSV format.\n\n' +
-            '📋 How to get CSV:\n' +
-            '1. Log into your bank\'s website\n' +
-            '2. Go to "Statements" or "Download Transactions"\n' +
-            '3. Select CSV, Excel, or TXT format\n' +
-            '4. Choose your date range\n' +
-            '5. Download and import here\n\n' +
-            '💡 Most banks offer CSV exports in their online banking portal under "Download" or "Export" options.'
           );
           setPicking(false);
           return;

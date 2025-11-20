@@ -1,5 +1,6 @@
 import { parseCSV } from './csvParser';
 import { parsePDF, isPDF } from './pdfParser';
+import { parsePDFWeb } from './pdfParserWeb';
 import * as FileSystem from 'expo-file-system';
 import { Platform } from 'react-native';
 import { autoDetectAndDecode } from './encodingDetector';
@@ -123,22 +124,6 @@ export async function parseBankStatement(fileUri, options = {}) {
       throw new Error(`Unsupported file type: ${fileType}. Only CSV and PDF files are supported.`);
     }
 
-    // Check PDF support on web platform
-    if (fileType === 'pdf' && Platform.OS === 'web') {
-      const error = new Error(
-        'PDF import is only available on mobile apps (iOS/Android). For web access, please use CSV format.'
-      );
-      error.type = 'UNSUPPORTED_FILE_TYPE';
-      error.userMessage = 'PDF not supported on web browser';
-      error.suggestions = [
-        'Download your bank statement as CSV instead of PDF',
-        'Most banks offer CSV export in their online banking portal',
-        'Look for "Download Transactions" or "Export" in your bank\'s website',
-        'Alternatively, use the mobile app to import PDF statements',
-      ];
-      throw error;
-    }
-
     // Read file content
     const fileContent = await readFileContent(fileUri, fileType);
 
@@ -152,7 +137,12 @@ export async function parseBankStatement(fileUri, options = {}) {
     if (fileType === 'csv') {
       result = await parseCSV(fileContent);
     } else if (fileType === 'pdf') {
-      result = await parsePDF(fileContent);
+      // Use web-compatible parser on web, native parser on mobile
+      if (Platform.OS === 'web') {
+        result = await parsePDFWeb(fileContent);
+      } else {
+        result = await parsePDF(fileContent);
+      }
     }
 
     // Add file information to metadata
