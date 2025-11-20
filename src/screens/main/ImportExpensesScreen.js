@@ -289,7 +289,8 @@ export default function ImportExpensesScreen({ navigation }) {
   // Handle view expenses
   const handleViewExpenses = () => {
     setShowSummary(false);
-    navigation.navigate('Home');
+    // Navigate to the HomeTab within MainTabs
+    navigation.navigate('MainTabs', { screen: 'HomeTab' });
   };
 
   // Render different states
