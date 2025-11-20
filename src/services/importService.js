@@ -688,8 +688,12 @@ export async function importFromFile(fileUri, config, onProgress = null, fileInf
  */
 export async function previewImport(fileUri, config, fileInfo = null) {
   try {
+    console.log('🔍 previewImport: Starting preview');
+    console.log('🔍 previewImport: Config coupleId:', config.coupleId);
+
     // Parse file - pass fileInfo for validation and type detection
     const parseResult = await parseFile(fileUri, fileInfo);
+    console.log('✅ previewImport: Parse complete, transactions:', parseResult.transactions?.length);
 
     if (!parseResult.success) {
       throw new Error(parseResult.error);
@@ -699,20 +703,38 @@ export async function previewImport(fileUri, config, fileInfo = null) {
     let existingExpenses = [];
     if (config.detectDuplicates !== false && config.coupleId) {
       try {
-        existingExpenses = await getExpenses(config.coupleId);
+        console.log('🔄 previewImport: Fetching existing expenses for coupleId:', config.coupleId);
+
+        // Add timeout to prevent infinite waiting
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Timeout fetching expenses')), 10000) // 10 second timeout
+        );
+
+        existingExpenses = await Promise.race([
+          getExpenses(config.coupleId),
+          timeoutPromise
+        ]);
+
+        console.log('✅ previewImport: Fetched', existingExpenses.length, 'existing expenses');
       } catch (error) {
-        console.warn('Could not fetch existing expenses:', error);
+        console.warn('⚠️ previewImport: Could not fetch existing expenses:', error.message);
+        // Continue without duplicate detection
+        existingExpenses = [];
       }
+    } else {
+      console.log('⏭️ previewImport: Skipping duplicate detection');
     }
 
+    console.log('🔄 previewImport: Processing transactions...');
     // Process transactions
     const processResult = await processTransactions(parseResult.transactions, {
       ...config,
       existingExpenses,
       detectDuplicates: config.detectDuplicates !== false,
     });
+    console.log('✅ previewImport: Processing complete');
 
-    return {
+    const result = {
       success: true,
       transactions: parseResult.transactions,
       metadata: parseResult.metadata,
@@ -721,11 +743,18 @@ export async function previewImport(fileUri, config, fileInfo = null) {
       duplicateResults: processResult.duplicateResults,
       summary: processResult.summary,
     };
+
+    console.log('✅ previewImport: Returning success result with', result.transactions.length, 'transactions');
+    return result;
   } catch (error) {
+    console.error('❌ previewImport: Error occurred:', error);
+
     // Handle structured error objects
     const structuredError = error.type && error.userMessage
       ? error
       : formatErrorForUser(error, { operation: 'Preview import' });
+
+    console.error('❌ previewImport: Returning error result:', structuredError);
 
     return {
       success: false,
