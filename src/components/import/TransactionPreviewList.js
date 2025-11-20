@@ -2,7 +2,7 @@ import React from 'react';
 import { View, FlatList, StyleSheet } from 'react-native';
 import { Text, Card, Button, Chip, Divider } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
-import { theme } from '../../constants/theme';
+import { COLORS, FONTS, SPACING, SIZES, SHADOWS } from '../../constants/theme';
 import TransactionPreviewItem from './TransactionPreviewItem';
 
 /**
@@ -57,10 +57,10 @@ export default function TransactionPreviewList({
           <Text style={styles.summaryTitle}>{t('import.preview.title')}</Text>
 
           <View style={styles.statsRow}>
-            <StatChip label={t('import.preview.total')} value={totalTransactions} color={theme.colors.primary} />
-            <StatChip label={t('import.preview.selectedLabel')} value={selectedCount} color={theme.colors.success} />
+            <StatChip label={t('import.preview.total')} value={totalTransactions} color={COLORS.primary} />
+            <StatChip label={t('import.preview.selectedLabel')} value={selectedCount} color={COLORS.success} />
             {duplicateCount > 0 && (
-              <StatChip label={t('import.preview.duplicates')} value={duplicateCount} color={theme.colors.warning} />
+              <StatChip label={t('import.preview.duplicates')} value={duplicateCount} color={COLORS.warning} />
             )}
           </View>
 
@@ -129,74 +129,82 @@ function StatChip({ label, value, color }) {
 
 const styles = StyleSheet.create({
   header: {
-    marginBottom: 8,
+    marginBottom: SPACING.small,
   },
   summaryCard: {
-    margin: 16,
-    elevation: 2,
+    margin: SPACING.base,
+    ...SHADOWS.medium,
+    backgroundColor: COLORS.background,
   },
   summaryTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 12,
+    fontSize: FONTS.sizes.heading,
+    fontWeight: FONTS.weights.bold,
+    color: COLORS.text,
+    marginBottom: SPACING.medium,
   },
   statsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: 12,
+    marginBottom: SPACING.medium,
   },
   statChip: {
-    marginRight: 8,
-    marginBottom: 8,
+    marginRight: SPACING.small,
+    marginBottom: SPACING.small,
   },
   statChipText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: FONTS.sizes.small,
+    fontWeight: FONTS.weights.semibold,
   },
   divider: {
-    marginVertical: 12,
+    marginVertical: SPACING.medium,
+    backgroundColor: COLORS.border,
   },
   amountRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: SPACING.medium,
   },
   amountLabel: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: FONTS.sizes.subtitle,
+    fontWeight: FONTS.weights.semibold,
+    color: COLORS.text,
   },
   amountValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: theme.colors.primary,
+    fontSize: FONTS.sizes.heading,
+    fontWeight: FONTS.weights.bold,
+    color: COLORS.primary,
   },
   warningBox: {
-    backgroundColor: theme.colors.warning + '15',
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 12,
+    backgroundColor: COLORS.warning + '15',
+    padding: SPACING.medium,
+    borderRadius: SIZES.borderRadius.medium,
+    marginBottom: SPACING.medium,
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.warning,
   },
   warningText: {
-    fontSize: 12,
-    color: theme.colors.warning,
+    fontSize: FONTS.sizes.small,
+    fontWeight: FONTS.weights.medium,
+    color: COLORS.text,
   },
   actionButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginTop: SPACING.small,
   },
   actionButton: {
     flex: 1,
-    marginHorizontal: 4,
+    marginHorizontal: SPACING.tiny,
   },
   listTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginHorizontal: 16,
-    marginBottom: 8,
-    color: theme.colors.textSecondary,
+    fontSize: FONTS.sizes.body,
+    fontWeight: FONTS.weights.semibold,
+    marginHorizontal: SPACING.base,
+    marginBottom: SPACING.medium,
+    color: COLORS.text,
   },
   listContent: {
-    paddingBottom: 16,
+    paddingBottom: SPACING.base,
   },
 });

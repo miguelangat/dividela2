@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Card, Text, Checkbox, IconButton, Menu, Chip } from 'react-native-paper';
-import { theme } from '../../constants/theme';
+import { COLORS, FONTS, SPACING, SIZES, SHADOWS } from '../../constants/theme';
 import { CATEGORIES, getCategoryById } from '../../constants/categories';
 import CategorySuggestion from './CategorySuggestion';
 import DuplicateWarning from './DuplicateWarning';
@@ -97,9 +97,10 @@ export default function TransactionPreviewItem({
 
 const styles = StyleSheet.create({
   card: {
-    marginHorizontal: 16,
-    marginVertical: 4,
-    elevation: 1,
+    marginHorizontal: SPACING.base,
+    marginVertical: SPACING.tiny,
+    ...SHADOWS.small,
+    backgroundColor: COLORS.background,
   },
   excludedCard: {
     opacity: 0.5,
@@ -107,44 +108,46 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingVertical: 8,
-    paddingRight: 12,
+    paddingVertical: SPACING.small,
+    paddingRight: SPACING.medium,
   },
   content: {
     flex: 1,
-    paddingRight: 8,
+    paddingRight: SPACING.small,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 4,
+    marginBottom: SPACING.tiny,
   },
   description: {
     flex: 1,
-    fontSize: 14,
-    fontWeight: '500',
-    color: theme.colors.text,
-    marginRight: 8,
+    fontSize: FONTS.sizes.body,
+    fontWeight: FONTS.weights.semibold,
+    color: COLORS.text,
+    marginRight: SPACING.small,
+    lineHeight: FONTS.sizes.body * 1.4,
   },
   amount: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: theme.colors.primary,
+    fontSize: FONTS.sizes.subtitle,
+    fontWeight: FONTS.weights.bold,
+    color: COLORS.primary,
   },
   date: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    marginBottom: 8,
+    fontSize: FONTS.sizes.small,
+    fontWeight: FONTS.weights.medium,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.small,
   },
   categoryRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-    marginTop: 4,
+    marginTop: SPACING.tiny,
   },
   categoryChip: {
     height: 28,
-    marginRight: 8,
+    marginRight: SPACING.small,
   },
 });
