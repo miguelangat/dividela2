@@ -17,14 +17,45 @@ const DATE_FORMATS = [
 
 /**
  * Common column names for transaction data
+ * Supports English and Spanish column names
  */
 const COLUMN_MAPPINGS = {
-  date: ['date', 'transaction date', 'posting date', 'trans date', 'value date'],
-  description: ['description', 'details', 'memo', 'transaction details', 'narration', 'particulars'],
-  amount: ['amount', 'transaction amount'],
-  debit: ['debit', 'withdrawal', 'withdrawals', 'debit amount'],
-  credit: ['credit', 'deposit', 'deposits', 'credit amount'],
-  balance: ['balance', 'running balance', 'account balance'],
+  date: [
+    // English
+    'date', 'transaction date', 'posting date', 'trans date', 'value date', 'transaction_date',
+    // Spanish
+    'fecha', 'fecha de transacción', 'fecha de transaccion', 'fecha transacción', 'fecha transaccion',
+  ],
+  description: [
+    // English
+    'description', 'details', 'memo', 'transaction details', 'narration', 'particulars', 'transaction_details',
+    // Spanish
+    'descripción', 'descripcion', 'detalles', 'concepto', 'referencia', 'movimiento',
+  ],
+  amount: [
+    // English
+    'amount', 'transaction amount', 'value',
+    // Spanish
+    'monto', 'importe', 'valor', 'cantidad',
+  ],
+  debit: [
+    // English
+    'debit', 'withdrawal', 'withdrawals', 'debit amount', 'debits',
+    // Spanish
+    'débito', 'debito', 'cargo', 'cargos', 'retiro', 'retiros', 'salida', 'salidas',
+  ],
+  credit: [
+    // English
+    'credit', 'deposit', 'deposits', 'credit amount', 'credits',
+    // Spanish
+    'crédito', 'credito', 'abono', 'abonos', 'depósito', 'deposito', 'entrada', 'entradas',
+  ],
+  balance: [
+    // English
+    'balance', 'running balance', 'account balance', 'closing balance',
+    // Spanish
+    'saldo', 'saldo final', 'saldo disponible', 'balance',
+  ],
 };
 
 /**
@@ -408,16 +439,51 @@ function processCSVData(rows, dateFormat = 'auto') {
 
   if (dateIndex === -1) {
     console.error('❌ Date column not found. Available headers:', headers);
-    const msg = headerResult.confidence === 'uncertain'
-      ? 'Could not find date column. Header detection was uncertain - please verify your CSV has a header row with "Date" column.'
-      : 'Could not find date column in CSV file. Please ensure your CSV has a "Date" column.';
+
+    // Check if this might be an account summary instead of transactions
+    const hasAccountHeaders = headers.some(h => {
+      const lower = (h || '').toLowerCase();
+      return lower.includes('account') || lower.includes('cuenta') ||
+             lower.includes('number') || lower.includes('número') ||
+             lower.includes('name') || lower.includes('nombre');
+    });
+
+    let msg;
+    if (hasAccountHeaders) {
+      msg = 'This CSV appears to be an account summary, not a transaction list.\n\n' +
+            'Please download your bank TRANSACTIONS or STATEMENT file instead.\n' +
+            'The file should have columns like:\n' +
+            '• Date / Fecha\n' +
+            '• Description / Descripción\n' +
+            '• Amount / Monto / Importe';
+    } else if (headerResult.confidence === 'uncertain') {
+      msg = 'Could not find date column. Header detection was uncertain.\n\n' +
+            'Please verify your CSV has a header row with a "Date" or "Fecha" column.\n' +
+            `Found headers: ${headers.join(', ')}`;
+    } else {
+      msg = 'Could not find date column in CSV file.\n\n' +
+            'Please ensure your CSV has one of these columns:\n' +
+            '• Date (English) or Fecha (Spanish)\n' +
+            `Found headers: ${headers.join(', ')}`;
+    }
     throw new Error(msg);
   }
 
   if (amountIndex === -1 && debitIndex === -1 && creditIndex === -1) {
+    console.error('❌ Amount column not found. Available headers:', headers);
+
     const msg = headerResult.confidence === 'uncertain'
-      ? 'Could not find amount column. Header detection was uncertain - please verify your CSV has a header row with "Amount", "Debit", or "Credit" column.'
-      : 'Could not find amount column in CSV file. Please ensure your CSV has an "Amount", "Debit", or "Credit" column.';
+      ? 'Could not find amount column. Header detection was uncertain.\n\n' +
+        'Please verify your CSV has columns like:\n' +
+        '• Amount / Monto / Importe\n' +
+        '• Debit / Débito / Cargo (withdrawals)\n' +
+        '• Credit / Crédito / Abono (deposits)\n' +
+        `Found headers: ${headers.join(', ')}`
+      : 'Could not find amount column in CSV file.\n\n' +
+        'Please ensure your CSV has one of these columns:\n' +
+        '• Amount / Monto (combined)\n' +
+        '• Debit and Credit (separate columns)\n' +
+        `Found headers: ${headers.join(', ')}`;
     throw new Error(msg);
   }
 
