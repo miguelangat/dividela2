@@ -65,9 +65,9 @@ export default function ImportExpensesScreen({ navigation }) {
       headerRight: () => (
         <TouchableOpacity
           onPress={() => setShowDebugPanel(true)}
-          style={{ marginRight: 16 }}
+          style={{ marginRight: SPACING.base }}
         >
-          <Ionicons name="settings-outline" size={24} color={theme.colors.primary} />
+          <Ionicons name="settings-outline" size={24} color={COLORS.primary} />
         </TouchableOpacity>
       ),
     });
