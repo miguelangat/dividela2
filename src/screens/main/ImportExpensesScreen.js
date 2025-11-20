@@ -76,22 +76,34 @@ export default function ImportExpensesScreen({ navigation }) {
   // Handle file selection
   const handleFileSelected = async (file) => {
     try {
+      console.log('📁 File selected:', file.name);
       setSelectedFile(file);
       setIsLoading(true);
       setPreviewData(null);
 
+      console.log('🔍 Starting preview import...');
       // Preview the import - pass file object so previewImport can access fileType
       const result = await previewImport(file.uri, config, file);
+      console.log('✅ Preview result:', { success: result.success, transactionCount: result.transactions?.length });
 
       if (!result.success) {
+        console.error('❌ Preview failed:', result.error);
+
+        // Extract error message from structured error object
+        const errorMessage = typeof result.error === 'object' && result.error !== null
+          ? (result.error.userMessage || result.error.message || JSON.stringify(result.error))
+          : (result.error || t('import.errors.parseErrorMessage'));
+
         Alert.alert(
           t('import.errors.parseError'),
-          result.error || t('import.errors.parseErrorMessage')
+          errorMessage
         );
         setSelectedFile(null);
+        setIsLoading(false);
         return;
       }
 
+      console.log('📊 Processing duplicates and creating preview...');
       // Mark duplicates for review
       const markedTransactions = result.duplicateResults
         ? markDuplicatesForReview(result.duplicateResults)
@@ -108,14 +120,16 @@ export default function ImportExpensesScreen({ navigation }) {
         ...result,
         transactions: markedTransactions,
       });
+      console.log('✅ Preview complete, showing', markedTransactions.length, 'transactions');
     } catch (error) {
-      console.error('Error previewing file:', error);
+      console.error('💥 Exception during preview:', error);
       Alert.alert(
         t('import.errors.previewError'),
-        t('import.errors.previewErrorMessage')
+        error.message || t('import.errors.previewErrorMessage')
       );
       setSelectedFile(null);
     } finally {
+      console.log('🏁 Setting isLoading to false');
       setIsLoading(false);
     }
   };
