@@ -272,7 +272,16 @@ export async function parsePDF(pdfBuffer) {
     const data = await pdf(pdfBuffer);
 
     if (!data.text || data.text.trim().length === 0) {
-      throw new Error('PDF appears to be empty or contains no readable text');
+      const error = new Error('PDF appears to be empty or contains no readable text');
+      error.type = 'PDF_PARSING_ERROR';
+      error.userMessage = 'Unable to read PDF content';
+      error.suggestions = [
+        'This PDF may be image-based (scanned) rather than text-based',
+        'Try downloading your statement in CSV format instead',
+        'If your bank only provides PDF, convert it to CSV using online tools',
+        'Ensure the PDF is not password-protected',
+      ];
+      throw error;
     }
 
     // Extract metadata
@@ -290,9 +299,19 @@ export async function parsePDF(pdfBuffer) {
     }
 
     if (transactions.length === 0) {
-      throw new Error(
-        'Could not extract transactions from PDF. This might be a scanned document or an unsupported format. Try converting to CSV instead.'
+      const error = new Error(
+        'Could not extract transactions from PDF. This might be a scanned document or an unsupported format.'
       );
+      error.type = 'PDF_NO_TRANSACTIONS';
+      error.userMessage = 'No transactions found in PDF';
+      error.suggestions = [
+        'This PDF format is not supported - try CSV format instead',
+        'The PDF may be a scanned image rather than digital text',
+        'Your bank\'s PDF format may not be compatible',
+        'Download transactions as CSV from your bank\'s website',
+        'Use the mobile app on iOS/Android for better PDF support',
+      ];
+      throw error;
     }
 
     // Sort by date (oldest first)
@@ -320,10 +339,22 @@ export async function parsePDF(pdfBuffer) {
       },
     };
   } catch (error) {
-    if (error.message.includes('Could not extract transactions')) {
+    // Re-throw structured errors
+    if (error.type === 'PDF_PARSING_ERROR' || error.type === 'PDF_NO_TRANSACTIONS') {
       throw error;
     }
-    throw new Error(`PDF parsing failed: ${error.message}`);
+
+    // Wrap other errors with helpful context
+    const wrappedError = new Error(`PDF parsing failed: ${error.message}`);
+    wrappedError.type = 'PDF_PARSING_ERROR';
+    wrappedError.userMessage = 'Failed to parse PDF file';
+    wrappedError.suggestions = [
+      'Ensure the file is a valid PDF document',
+      'Try downloading the statement in CSV format instead',
+      'Check if the PDF is password-protected and remove protection',
+      'Contact your bank if the issue persists',
+    ];
+    throw wrappedError;
   }
 }
 

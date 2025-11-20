@@ -406,6 +406,16 @@ export default function ImportExpensesScreen({ navigation }) {
                   <MaterialCommunityIcons name="numeric-4-circle" size={20} color={COLORS.primary} />
                   <Text style={styles.instruction}>{t('import.step4')}</Text>
                 </View>
+
+                {/* File format note */}
+                {Platform.OS === 'web' && (
+                  <View style={styles.formatNote}>
+                    <MaterialCommunityIcons name="information-outline" size={16} color={COLORS.info} />
+                    <Text style={styles.formatNoteText}>
+                      PDF files are only supported on mobile apps. For web, please use CSV format.
+                    </Text>
+                  </View>
+                )}
               </Card.Content>
             </Card>
           </View>
@@ -626,6 +636,21 @@ const styles = StyleSheet.create({
     marginLeft: SPACING.small,
     flex: 1,
     lineHeight: 20,
+  },
+  formatNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: SPACING.medium,
+    paddingTop: SPACING.medium,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  formatNoteText: {
+    fontSize: FONTS.sizes.small,
+    color: COLORS.info,
+    marginLeft: SPACING.small,
+    flex: 1,
+    fontStyle: 'italic',
   },
   // Preview Container
   previewContainer: {

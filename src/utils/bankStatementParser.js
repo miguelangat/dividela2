@@ -3,6 +3,7 @@ import { parsePDF, isPDF } from './pdfParser';
 import * as FileSystem from 'expo-file-system';
 import { Platform } from 'react-native';
 import { autoDetectAndDecode } from './encodingDetector';
+import { Buffer } from 'buffer';
 
 /**
  * Main orchestrator for bank statement parsing
@@ -124,10 +125,18 @@ export async function parseBankStatement(fileUri, options = {}) {
 
     // Check PDF support on web platform
     if (fileType === 'pdf' && Platform.OS === 'web') {
-      throw new Error(
-        'PDF import is not currently supported on web browsers. Please convert your bank statement to CSV format and try again.\n\n' +
-        'Tip: Most banks allow you to download statements as CSV files.'
+      const error = new Error(
+        'PDF import is only available on mobile apps (iOS/Android). For web access, please use CSV format.'
       );
+      error.type = 'UNSUPPORTED_FILE_TYPE';
+      error.userMessage = 'PDF not supported on web browser';
+      error.suggestions = [
+        'Download your bank statement as CSV instead of PDF',
+        'Most banks offer CSV export in their online banking portal',
+        'Look for "Download Transactions" or "Export" in your bank\'s website',
+        'Alternatively, use the mobile app to import PDF statements',
+      ];
+      throw error;
     }
 
     // Read file content
