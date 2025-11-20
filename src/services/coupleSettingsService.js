@@ -41,6 +41,13 @@ export const DEFAULT_COUPLE_SETTINGS = {
     showFiscalYearProgress: true,
     showSavingsOnHome: true,
   },
+  importPreferences: {
+    dateFormat: 'auto', // 'auto', 'MM/DD/YYYY', 'DD/MM/YYYY'
+    defaultCategory: 'other',
+    enableDuplicateDetection: true,
+    enableCategorySuggestions: true,
+    autoRollbackOnFailure: true,
+  },
 };
 
 /**
@@ -247,6 +254,89 @@ export const updateDisplayPreferences = async (coupleId, display) => {
     return { success: true };
   } catch (error) {
     console.error('Error updating display preferences:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update import preferences
+ *
+ * @param {string} coupleId - The couple ID
+ * @param {Object} importPreferences - New import preferences
+ * @returns {Object} Success status
+ */
+export const updateImportPreferences = async (coupleId, importPreferences) => {
+  try {
+    const settingsRef = doc(db, 'coupleSettings', coupleId);
+
+    // Check if document exists
+    const settingsDoc = await getDoc(settingsRef);
+
+    if (settingsDoc.exists()) {
+      // Update existing document
+      await updateDoc(settingsRef, {
+        importPreferences,
+        updatedAt: serverTimestamp(),
+      });
+    } else {
+      // Create new document with defaults and provided import preferences
+      await setDoc(settingsRef, {
+        ...DEFAULT_COUPLE_SETTINGS,
+        importPreferences,
+        coupleId,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    }
+
+    console.log('✅ Import preferences updated:', coupleId);
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating import preferences:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get import preferences only
+ *
+ * @param {string} coupleId - The couple ID
+ * @returns {Object} Import preferences
+ */
+export const getImportPreferences = async (coupleId) => {
+  try {
+    const settings = await getCoupleSettings(coupleId);
+    return settings.importPreferences || DEFAULT_COUPLE_SETTINGS.importPreferences;
+  } catch (error) {
+    console.error('Error getting import preferences:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update date format preference for imports
+ *
+ * @param {string} coupleId - The couple ID
+ * @param {string} dateFormat - Date format ('auto', 'MM/DD/YYYY', 'DD/MM/YYYY')
+ * @returns {Object} Success status
+ */
+export const updateDateFormatPreference = async (coupleId, dateFormat) => {
+  try {
+    const validFormats = ['auto', 'MM/DD/YYYY', 'DD/MM/YYYY'];
+    if (!validFormats.includes(dateFormat)) {
+      throw new Error(`Invalid date format. Must be one of: ${validFormats.join(', ')}`);
+    }
+
+    const settings = await getCoupleSettings(coupleId);
+
+    const importPreferences = {
+      ...settings.importPreferences,
+      dateFormat,
+    };
+
+    return updateImportPreferences(coupleId, importPreferences);
+  } catch (error) {
+    console.error('Error updating date format preference:', error);
     throw error;
   }
 };

@@ -19,6 +19,26 @@ Object.defineProperty = function(obj, prop, descriptor) {
   return originalDefineProperty(obj, prop, descriptor);
 };
 
+// React 19 compatibility fix
+// Suppress ReactDOM.render deprecation warnings
+const originalError = console.error;
+beforeAll(() => {
+  console.error = (...args) => {
+    if (
+      typeof args[0] === 'string' &&
+      (args[0].includes('ReactDOM.render') ||
+        args[0].includes('not wrapped in act'))
+    ) {
+      return;
+    }
+    originalError.call(console, ...args);
+  };
+});
+
+afterAll(() => {
+  console.error = originalError;
+});
+
 // Polyfill for fetch API
 if (typeof global.fetch === 'undefined') {
   global.fetch = jest.fn(() =>
@@ -133,6 +153,27 @@ jest.mock('firebase/firestore', () => ({
   increment: jest.fn(),
 }));
 
+// Mock react-i18next
+jest.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key, params) => {
+      // Simple mock translation that returns the key with params
+      if (params) {
+        return key + JSON.stringify(params);
+      }
+      return key;
+    },
+    i18n: {
+      changeLanguage: jest.fn(),
+      language: 'en',
+    },
+  }),
+  initReactI18next: {
+    type: '3rdParty',
+    init: jest.fn(),
+  },
+}));
+
 // Mock expo-image-picker
 jest.mock('expo-image-picker', () => ({
   MediaTypeOptions: {
@@ -162,6 +203,11 @@ jest.mock('expo-image-manipulator', () => ({
   manipulateAsync: jest.fn(),
 }));
 
+// Mock expo-document-picker
+jest.mock('expo-document-picker', () => ({
+  getDocumentAsync: jest.fn(),
+}));
+
 // Mock expo-file-system
 jest.mock('expo-file-system', () => ({
   documentDirectory: 'file:///mock-documents/',
@@ -178,6 +224,28 @@ jest.mock('expo-file-system', () => ({
     Base64: 'base64',
   },
 }));
+
+// Mock pdf-parse
+jest.mock('pdf-parse', () => {
+  return jest.fn().mockResolvedValue({
+    text: 'Sample PDF text',
+    numpages: 1,
+    numrender: 1,
+    info: {},
+    metadata: {},
+    version: '1.0',
+  });
+});
+
+// Mock react-native-paper Portal
+jest.mock('react-native-paper', () => {
+  const RealModule = jest.requireActual('react-native-paper');
+  const { View } = require('react-native');
+  return {
+    ...RealModule,
+    Portal: ({ children }) => children,
+  };
+});
 
 // Mock string-similarity
 jest.mock('string-similarity', () => ({
