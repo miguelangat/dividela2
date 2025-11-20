@@ -42,7 +42,7 @@ export default function ImportExpensesScreen({ navigation }) {
     splitConfig: { type: '50/50' },
     defaultCategoryKey: 'other',
     availableCategories: ['food', 'groceries', 'transport', 'home', 'fun', 'other'],
-    detectDuplicates: true,
+    detectDuplicates: false, // Disabled by default to improve browser performance
   });
 
   // Preview state

@@ -726,6 +726,10 @@ export async function previewImport(fileUri, config, fileInfo = null) {
     }
 
     console.log('🔄 previewImport: Processing transactions...');
+
+    // Add a small delay to let the browser update the loading UI
+    await new Promise(resolve => setTimeout(resolve, 50));
+
     // Process transactions
     const processResult = await processTransactions(parseResult.transactions, {
       ...config,
