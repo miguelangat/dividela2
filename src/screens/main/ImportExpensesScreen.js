@@ -14,6 +14,7 @@ import ImportSummary from '../../components/import/ImportSummary';
 import DebugPanel from '../../components/import/DebugPanel';
 import { previewImport, importFromFile } from '../../services/importService';
 import { markDuplicatesForReview } from '../../utils/duplicateDetector';
+import { getPrimaryCurrency } from '../../services/coupleSettingsService';
 
 /**
  * Screen for importing expenses from bank statements
@@ -43,7 +44,25 @@ export default function ImportExpensesScreen({ navigation }) {
     defaultCategoryKey: 'other',
     availableCategories: ['food', 'groceries', 'transport', 'home', 'fun', 'other'],
     detectDuplicates: false, // Disabled by default to improve browser performance
+    currency: 'USD', // Will be updated to primary currency
   });
+
+  // Fetch primary currency on mount
+  React.useEffect(() => {
+    const fetchPrimaryCurrency = async () => {
+      if (coupleId) {
+        try {
+          const primaryCurrency = await getPrimaryCurrency(coupleId);
+          setConfig(prev => ({ ...prev, currency: primaryCurrency.code }));
+          console.log('💰 Primary currency loaded:', primaryCurrency.code);
+        } catch (error) {
+          console.error('Error fetching primary currency:', error);
+          // Keep default USD if fetch fails
+        }
+      }
+    };
+    fetchPrimaryCurrency();
+  }, [coupleId]);
 
   // Preview state
   const [previewData, setPreviewData] = useState(null);

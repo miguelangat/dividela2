@@ -1,4 +1,5 @@
 import { calculateSplitAmounts } from './calculations';
+import { createMultiCurrencyExpense } from './currencyUtils';
 
 /**
  * Maps bank transactions to expense format
@@ -18,6 +19,7 @@ import { calculateSplitAmounts } from './calculations';
  * @param {number} config.splitConfig.percentage - Percentage for custom split (0-100)
  * @param {string} config.categoryKey - Default category key
  * @param {string} config.suggestedCategory - Auto-mapped category (optional)
+ * @param {string} config.currency - Currency code (defaults to 'USD')
  * @returns {Object} Expense object ready for Firestore
  */
 export function mapTransactionToExpense(transaction, config) {
@@ -28,6 +30,7 @@ export function mapTransactionToExpense(transaction, config) {
     splitConfig = { type: '50/50' },
     categoryKey = 'other',
     suggestedCategory,
+    currency = 'USD',
   } = config;
 
   // Use suggested category if available, otherwise use default
@@ -65,7 +68,7 @@ export function mapTransactionToExpense(transaction, config) {
     splitWarning = `Split amounts didn't match total, recalculated with 50/50`;
   }
 
-  return {
+  const baseExpense = {
     coupleId,
     paidBy,
     amount: transaction.amount,
@@ -87,6 +90,10 @@ export function mapTransactionToExpense(transaction, config) {
       splitWarning, // Include warning if split had issues
     },
   };
+
+  // Add multi-currency support fields
+  // Imported expenses default to the couple's primary currency
+  return createMultiCurrencyExpense(baseExpense, currency);
 }
 
 /**

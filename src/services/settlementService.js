@@ -39,10 +39,13 @@ export const generateCategoryBreakdown = (expenses, categories) => {
       };
     }
 
-    breakdown[categoryKey].totalAmount += expense.amount;
+    // Use primaryCurrencyAmount for multi-currency support, fallback to amount
+    const expenseAmount = expense.primaryCurrencyAmount || expense.amount;
+
+    breakdown[categoryKey].totalAmount += expenseAmount;
     breakdown[categoryKey].expenseCount += 1;
-    breakdown[categoryKey].user1Amount += expense.splitDetails?.user1Amount || expense.amount / 2;
-    breakdown[categoryKey].user2Amount += expense.splitDetails?.user2Amount || expense.amount / 2;
+    breakdown[categoryKey].user1Amount += expense.splitDetails?.user1Amount || expenseAmount / 2;
+    breakdown[categoryKey].user2Amount += expense.splitDetails?.user2Amount || expenseAmount / 2;
   });
 
   return breakdown;
@@ -69,7 +72,8 @@ export const generateBudgetSummary = (expenses, currentBudget, categories) => {
   }
 
   // Calculate total spent on these expenses
-  const totalSpent = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+  // Use primaryCurrencyAmount for multi-currency support, fallback to amount
+  const totalSpent = expenses.reduce((sum, expense) => sum + (expense.primaryCurrencyAmount || expense.amount), 0);
 
   const now = new Date();
   const monthYear = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -342,8 +346,11 @@ export const calculateSettlementAmount = (expenses, settlements, user1Id, user2I
   expenses.forEach((expense) => {
     if (expense.settledAt) return; // Skip settled expenses
 
-    const user1Share = expense.splitDetails?.user1Amount || expense.amount / 2;
-    const user2Share = expense.splitDetails?.user2Amount || expense.amount / 2;
+    // Use primaryCurrencyAmount for multi-currency support, fallback to amount
+    const expenseAmount = expense.primaryCurrencyAmount || expense.amount;
+
+    const user1Share = expense.splitDetails?.user1Amount || expenseAmount / 2;
+    const user2Share = expense.splitDetails?.user2Amount || expenseAmount / 2;
 
     if (expense.paidBy === user1Id) {
       balance += user2Share; // User2 owes User1
