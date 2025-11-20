@@ -575,20 +575,38 @@ export async function batchImportExpenses(expenses, onProgress = null, options =
  */
 export async function importFromFile(fileUri, config, onProgress = null, fileInfo = null) {
   try {
-    // Step 1: Parse file
-    if (onProgress) onProgress({ step: 'parsing', progress: 0 });
+    let transactions;
+    let metadata = {};
 
-    const parseResult = await parseFile(fileUri, fileInfo);
+    // Check if transactions are already provided (from preview selection)
+    if (config.transactions && config.transactions.length > 0) {
+      // Use pre-filtered transactions from preview
+      console.log('📋 Using pre-selected transactions from preview:', config.transactions.length);
+      transactions = config.transactions;
+      metadata = {
+        fileName: fileInfo?.name || 'Unknown',
+        fileType: fileInfo?.type || 'unknown',
+        parsedAt: new Date().toISOString(),
+      };
+      if (onProgress) onProgress({ step: 'parsing', progress: 100 });
+    } else {
+      // Step 1: Parse file
+      if (onProgress) onProgress({ step: 'parsing', progress: 0 });
 
-    if (!parseResult.success) {
-      // If error is already structured, throw it directly; otherwise wrap it
-      if (parseResult.error && typeof parseResult.error === 'object' && parseResult.error.userMessage) {
-        throw parseResult.error;
+      const parseResult = await parseFile(fileUri, fileInfo);
+
+      if (!parseResult.success) {
+        // If error is already structured, throw it directly; otherwise wrap it
+        if (parseResult.error && typeof parseResult.error === 'object' && parseResult.error.userMessage) {
+          throw parseResult.error;
+        }
+        throw new Error(parseResult.error || 'Failed to parse file');
       }
-      throw new Error(parseResult.error || 'Failed to parse file');
-    }
 
-    if (onProgress) onProgress({ step: 'parsing', progress: 100 });
+      transactions = parseResult.transactions;
+      metadata = parseResult.metadata;
+      if (onProgress) onProgress({ step: 'parsing', progress: 100 });
+    }
 
     // Step 2: Fetch existing expenses for duplicate detection
     let existingExpenses = [];
@@ -607,7 +625,7 @@ export async function importFromFile(fileUri, config, onProgress = null, fileInf
     // Step 3: Process transactions
     if (onProgress) onProgress({ step: 'processing', progress: 0 });
 
-    const processResult = await processTransactions(parseResult.transactions, {
+    const processResult = await processTransactions(transactions, {
       ...config,
       existingExpenses,
       detectDuplicates: config.detectDuplicates !== false,
@@ -644,13 +662,13 @@ export async function importFromFile(fileUri, config, onProgress = null, fileInf
 
     return {
       success: importResult.success,
-      parseResult,
+      parseResult: { transactions, metadata },
       processResult,
       importResult,
       summary: {
-        fileName: parseResult.metadata.fileName,
-        fileType: parseResult.metadata.fileType,
-        totalTransactions: parseResult.transactions.length,
+        fileName: metadata.fileName || 'Unknown',
+        fileType: metadata.fileType || 'unknown',
+        totalTransactions: transactions.length,
         imported: importResult.importedCount,
         duplicates: processResult.summary.duplicates,
         errors: importResult.errors.length,
