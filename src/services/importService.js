@@ -46,8 +46,10 @@ export async function parseFile(fileUri, fileInfo = null) {
     }
 
     // Parse with retry logic for network-related failures
+    // Pass fileType if available from fileInfo to help with blob URL detection
+    const options = fileInfo?.type ? { fileType: fileInfo.type } : {};
     const result = await retryOperation(
-      () => parseBankStatement(fileUri),
+      () => parseBankStatement(fileUri, options),
       undefined,
       'Parse bank statement'
     );
@@ -669,10 +671,10 @@ export async function importFromFile(fileUri, config, onProgress = null) {
  * @param {Object} config - Preview configuration
  * @returns {Promise<Object>} Preview result
  */
-export async function previewImport(fileUri, config) {
+export async function previewImport(fileUri, config, fileInfo = null) {
   try {
-    // Parse file
-    const parseResult = await parseFile(fileUri);
+    // Parse file - pass fileInfo for validation and type detection
+    const parseResult = await parseFile(fileUri, fileInfo);
 
     if (!parseResult.success) {
       throw new Error(parseResult.error);

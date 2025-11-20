@@ -79,8 +79,8 @@ export default function ImportExpensesScreen({ navigation }) {
       setIsLoading(true);
       setPreviewData(null);
 
-      // Preview the import
-      const result = await previewImport(file.uri, config);
+      // Preview the import - pass file object so previewImport can access fileType
+      const result = await previewImport(file.uri, config, file);
 
       if (!result.success) {
         Alert.alert(
