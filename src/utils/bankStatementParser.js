@@ -122,6 +122,14 @@ export async function parseBankStatement(fileUri, options = {}) {
       throw new Error(`Unsupported file type: ${fileType}. Only CSV and PDF files are supported.`);
     }
 
+    // Check PDF support on web platform
+    if (fileType === 'pdf' && Platform.OS === 'web') {
+      throw new Error(
+        'PDF import is not currently supported on web browsers. Please convert your bank statement to CSV format and try again.\n\n' +
+        'Tip: Most banks allow you to download statements as CSV files.'
+      );
+    }
+
     // Read file content
     const fileContent = await readFileContent(fileUri, fileType);
 
@@ -156,12 +164,14 @@ export async function parseBankStatement(fileUri, options = {}) {
       ...result,
     };
   } catch (error) {
+    console.error('❌ Bank statement parsing error:', error);
     return {
       success: false,
       error: error.message,
       transactions: [],
       metadata: {
         error: error.message,
+        errorStack: error.stack,
         fileType: options.fileType || 'unknown',
       },
     };
