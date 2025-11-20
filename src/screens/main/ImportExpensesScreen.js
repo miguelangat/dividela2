@@ -1,5 +1,5 @@
 import React, { useState, useLayoutEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, TouchableOpacity, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, TouchableOpacity, Platform, Modal, ActivityIndicator } from 'react-native';
 import { Text, Button, Card } from 'react-native-paper';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -458,6 +458,33 @@ export default function ImportExpensesScreen({ navigation }) {
         </View>
       )}
 
+      {/* File reading loading modal */}
+      <Modal
+        visible={isLoading}
+        transparent
+        animationType="fade"
+      >
+        <View style={styles.loadingModalOverlay}>
+          <View style={styles.loadingModalContent}>
+            <LinearGradient
+              colors={[COLORS.gradientStart, COLORS.gradientEnd]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.loadingModalGradient}
+            >
+              <View style={styles.loadingIconContainer}>
+                <MaterialCommunityIcons name="file-document-outline" size={60} color={COLORS.textWhite} />
+              </View>
+              <ActivityIndicator size="large" color={COLORS.textWhite} style={styles.loadingSpinner} />
+              <Text style={styles.loadingTitle}>{t('import.readingFile', 'Reading File')}</Text>
+              <Text style={styles.loadingSubtitle}>
+                {t('import.analyzingTransactions', 'Analyzing transactions...')}
+              </Text>
+            </LinearGradient>
+          </View>
+        </View>
+      </Modal>
+
       {/* Import progress modal */}
       <ImportProgressModal
         visible={importing}
@@ -644,5 +671,49 @@ const styles = StyleSheet.create({
     fontSize: FONTS.sizes.body,
     fontWeight: FONTS.weights.bold,
     marginLeft: SPACING.small,
+  },
+  // Loading Modal Styles
+  loadingModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingModalContent: {
+    width: 300,
+    borderRadius: SIZES.borderRadius.xlarge,
+    overflow: 'hidden',
+    ...SHADOWS.large,
+  },
+  loadingModalGradient: {
+    padding: SPACING.xxlarge,
+    alignItems: 'center',
+  },
+  loadingIconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    marginBottom: SPACING.large,
+  },
+  loadingSpinner: {
+    marginVertical: SPACING.base,
+  },
+  loadingTitle: {
+    fontSize: FONTS.sizes.heading,
+    fontWeight: FONTS.weights.bold,
+    color: COLORS.textWhite,
+    textAlign: 'center',
+    marginBottom: SPACING.small,
+  },
+  loadingSubtitle: {
+    fontSize: FONTS.sizes.body,
+    color: COLORS.textWhite,
+    textAlign: 'center',
+    opacity: 0.9,
   },
 });
