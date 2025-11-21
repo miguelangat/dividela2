@@ -19,6 +19,7 @@ const UPLOAD_TIMEOUT_MS = Platform.OS === 'web' ? 120000 : 60000; // 120s for we
  */
 async function uploadWithTimeout(uploadTask, timeoutMs = UPLOAD_TIMEOUT_MS, onProgress = null) {
   console.log(`⏱️ Upload timeout set to ${timeoutMs}ms (${timeoutMs/1000}s)`);
+  console.log('📊 Initial upload task state:', uploadTask.snapshot?.state || 'unknown');
 
   return new Promise((resolve, reject) => {
     let isComplete = false;
@@ -33,10 +34,12 @@ async function uploadWithTimeout(uploadTask, timeoutMs = UPLOAD_TIMEOUT_MS, onPr
         if (unsubscribe) unsubscribe();
         uploadTask.cancel();
         console.error(`❌ Upload timeout exceeded after ${timeoutMs}ms. Last progress: ${lastProgress}%`);
+        console.error(`❌ Upload task final state:`, uploadTask.snapshot?.state || 'unknown');
         reject(new Error(`Upload timeout exceeded after ${timeoutMs/1000}s. Last progress: ${lastProgress}%`));
       }
     }, timeoutMs);
 
+    console.log('🔗 Attaching state_changed listener to upload task...');
     // Upload progress listener
     unsubscribe = uploadTask.on('state_changed',
       (snapshot) => {
@@ -77,6 +80,8 @@ async function uploadWithTimeout(uploadTask, timeoutMs = UPLOAD_TIMEOUT_MS, onPr
         }
       }
     );
+
+    console.log('✅ State change listener attached successfully. Waiting for upload events...');
   });
 }
 
@@ -148,20 +153,48 @@ export const uploadReceipt = async (fileUri, coupleId, userId, onProgress, timeo
     const filename = `${userId}_${timestamp}.${extension}`;
     const storagePath = `receipts/${coupleId}/${filename}`;
 
-    console.log('📤 Uploading receipt:', { extension, storagePath, size: blob.size });
+    console.log('📤 Uploading receipt:', { extension, storagePath, size: blob.size, type: blob.type });
 
     // Create storage reference
+    console.log('🔗 Creating Firebase Storage reference for path:', storagePath);
+    console.log('🔗 Storage bucket:', storage.app.options.storageBucket);
     const storageRef = ref(storage, storagePath);
+    console.log('✅ Storage reference created:', {
+      bucket: storageRef.bucket,
+      fullPath: storageRef.fullPath,
+      name: storageRef.name,
+    });
+
+    // Log blob details
+    console.log('📦 Blob details:', {
+      size: blob.size,
+      type: blob.type,
+      isBlob: blob instanceof Blob,
+    });
 
     // Create upload task
-    const uploadTask = uploadBytesResumable(storageRef, blob);
+    console.log('🚀 Creating upload task with uploadBytesResumable...');
+    try {
+      const uploadTask = uploadBytesResumable(storageRef, blob);
+      console.log('✅ Upload task created successfully. Task state:', uploadTask.snapshot?.state || 'unknown');
 
-    // Upload with timeout and progress tracking
-    const uploadStart = Date.now();
-    const downloadURL = await uploadWithTimeout(uploadTask, timeoutMs, onProgress);
-    console.log(`✅ Upload completed in ${Date.now() - uploadStart}ms`);
-    console.log('✅ Receipt uploaded:', downloadURL);
-    return downloadURL;
+      // Upload with timeout and progress tracking
+      const uploadStart = Date.now();
+      console.log('⏳ Starting upload with timeout handler...');
+      const downloadURL = await uploadWithTimeout(uploadTask, timeoutMs, onProgress);
+      console.log(`✅ Upload completed in ${Date.now() - uploadStart}ms`);
+      console.log('✅ Receipt uploaded:', downloadURL);
+      return downloadURL;
+    } catch (uploadError) {
+      console.error('❌ Error during upload task creation or execution:', uploadError);
+      console.error('Upload error details:', {
+        message: uploadError.message,
+        code: uploadError.code,
+        name: uploadError.name,
+        stack: uploadError.stack,
+      });
+      throw uploadError;
+    }
   } catch (error) {
     console.error('Error uploading receipt:', error);
     throw error;
