@@ -109,26 +109,34 @@ export default function AddExpenseScreen({ navigation, route }) {
 
   // OCR Handlers
   const handleScanReceipt = async () => {
-    // Show option: Camera or File
-    Alert.alert(
-      'Scan Receipt',
-      'How would you like to add your receipt?',
-      [
-        {
-          text: 'Take Photo',
-          onPress: handleCameraCapture,
-        },
-        {
-          text: 'Choose File',
-          onPress: handleFileSelection,
-        },
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-      ],
-      { cancelable: true }
-    );
+    try {
+      console.log('=== SCAN RECEIPT BUTTON TAPPED ===');
+      console.log('Current OCR state:', ocrState.status);
+
+      // Show option: Camera or File
+      Alert.alert(
+        'Scan Receipt',
+        'How would you like to add your receipt?',
+        [
+          {
+            text: 'Take Photo',
+            onPress: handleCameraCapture,
+          },
+          {
+            text: 'Choose File',
+            onPress: handleFileSelection,
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+        ],
+        { cancelable: true }
+      );
+    } catch (error) {
+      console.error('ERROR in handleScanReceipt:', error);
+      Alert.alert('Error', `Failed to show receipt options: ${error.message}`);
+    }
   };
 
   const handleCameraCapture = async () => {
