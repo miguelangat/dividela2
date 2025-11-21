@@ -7,7 +7,7 @@
  */
 
 import * as ImageManipulator from 'expo-image-manipulator';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 
 // Compression constants
 const MAX_FILE_SIZE = 1024 * 1024; // 1MB in bytes

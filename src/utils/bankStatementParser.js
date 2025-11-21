@@ -1,7 +1,7 @@
 import { parseCSV } from './csvParser';
 import { parsePDF, isPDF } from './pdfParser';
 import { parsePDFWeb } from './pdfParserWeb';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
 import { autoDetectAndDecode } from './encodingDetector';
 import { Buffer } from 'buffer';
