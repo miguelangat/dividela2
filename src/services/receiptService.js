@@ -4,9 +4,11 @@
 import { ref, uploadBytesResumable, deleteObject, getDownloadURL } from 'firebase/storage';
 import { doc, getDoc } from 'firebase/firestore';
 import { storage, db } from '../config/firebase';
+import { Platform } from 'react-native';
 
-// Upload timeout in milliseconds (60 seconds)
-const UPLOAD_TIMEOUT_MS = 60000;
+// Upload timeout in milliseconds
+// Web uploads can be slower, so we give them more time
+const UPLOAD_TIMEOUT_MS = Platform.OS === 'web' ? 120000 : 60000; // 120s for web, 60s for native
 
 /**
  * Wraps an upload task with timeout functionality
@@ -16,10 +18,13 @@ const UPLOAD_TIMEOUT_MS = 60000;
  * @returns {Promise<string>} Download URL of the uploaded file
  */
 async function uploadWithTimeout(uploadTask, timeoutMs = UPLOAD_TIMEOUT_MS, onProgress = null) {
+  console.log(`⏱️ Upload timeout set to ${timeoutMs}ms (${timeoutMs/1000}s)`);
+
   return new Promise((resolve, reject) => {
     let isComplete = false;
     let timeoutId = null;
     let unsubscribe = null;
+    let lastProgress = 0;
 
     // Timeout handler
     timeoutId = setTimeout(() => {
@@ -27,7 +32,8 @@ async function uploadWithTimeout(uploadTask, timeoutMs = UPLOAD_TIMEOUT_MS, onPr
         isComplete = true;
         if (unsubscribe) unsubscribe();
         uploadTask.cancel();
-        reject(new Error('Upload timeout exceeded'));
+        console.error(`❌ Upload timeout exceeded after ${timeoutMs}ms. Last progress: ${lastProgress}%`);
+        reject(new Error(`Upload timeout exceeded after ${timeoutMs/1000}s. Last progress: ${lastProgress}%`));
       }
     }, timeoutMs);
 
@@ -35,10 +41,14 @@ async function uploadWithTimeout(uploadTask, timeoutMs = UPLOAD_TIMEOUT_MS, onPr
     unsubscribe = uploadTask.on('state_changed',
       (snapshot) => {
         // Report progress
+        const progress = Math.round(
+          (snapshot.bytesTransferred / snapshot.totalBytes) * 100
+        );
+        lastProgress = progress;
+
+        console.log(`📤 Upload progress: ${progress}% (${snapshot.bytesTransferred}/${snapshot.totalBytes} bytes)`);
+
         if (onProgress && typeof onProgress === 'function') {
-          const progress = Math.round(
-            (snapshot.bytesTransferred / snapshot.totalBytes) * 100
-          );
           onProgress(progress);
         }
       },
@@ -47,6 +57,7 @@ async function uploadWithTimeout(uploadTask, timeoutMs = UPLOAD_TIMEOUT_MS, onPr
           isComplete = true;
           clearTimeout(timeoutId);
           if (unsubscribe) unsubscribe();
+          console.error('❌ Upload error:', error);
           reject(error);
         }
       },
@@ -54,10 +65,13 @@ async function uploadWithTimeout(uploadTask, timeoutMs = UPLOAD_TIMEOUT_MS, onPr
         if (!isComplete) {
           isComplete = true;
           clearTimeout(timeoutId);
+          console.log('✅ Upload complete, getting download URL...');
           try {
             const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            console.log('✅ Download URL obtained:', downloadURL);
             resolve(downloadURL);
           } catch (error) {
+            console.error('❌ Error getting download URL:', error);
             reject(error);
           }
         }
@@ -116,9 +130,15 @@ export const uploadReceipt = async (fileUri, coupleId, userId, onProgress, timeo
       throw new Error('User ID is required');
     }
 
+    console.log('📥 Starting receipt upload process...');
+    console.log('📁 File URI:', fileUri);
+
     // Fetch the file as blob
+    console.log('🔄 Fetching file as blob...');
+    const fetchStart = Date.now();
     const response = await fetch(fileUri);
     blob = await response.blob();
+    console.log(`✅ Blob fetched in ${Date.now() - fetchStart}ms. Size: ${blob.size} bytes (${(blob.size/1024).toFixed(2)} KB)`);
 
     // Detect file extension
     const extension = detectFileExtension(fileUri, blob);
@@ -128,7 +148,7 @@ export const uploadReceipt = async (fileUri, coupleId, userId, onProgress, timeo
     const filename = `${userId}_${timestamp}.${extension}`;
     const storagePath = `receipts/${coupleId}/${filename}`;
 
-    console.log('Uploading receipt:', { extension, storagePath, size: blob.size });
+    console.log('📤 Uploading receipt:', { extension, storagePath, size: blob.size });
 
     // Create storage reference
     const storageRef = ref(storage, storagePath);
@@ -137,7 +157,9 @@ export const uploadReceipt = async (fileUri, coupleId, userId, onProgress, timeo
     const uploadTask = uploadBytesResumable(storageRef, blob);
 
     // Upload with timeout and progress tracking
+    const uploadStart = Date.now();
     const downloadURL = await uploadWithTimeout(uploadTask, timeoutMs, onProgress);
+    console.log(`✅ Upload completed in ${Date.now() - uploadStart}ms`);
     console.log('✅ Receipt uploaded:', downloadURL);
     return downloadURL;
   } catch (error) {

@@ -28,19 +28,21 @@ export const scanReceiptInBackground = async (imageUri, coupleId, userId, onProg
     }
 
     // Step 1: Compress image
-    console.log('Compressing image...');
+    console.log('🗜️ Starting image compression...');
+    const compressionStart = Date.now();
     const compressedImage = await compressImage(imageUri);
-    console.log('Image compressed:', compressedImage.size, 'bytes');
+    console.log(`✅ Image compressed in ${Date.now() - compressionStart}ms. Size: ${compressedImage.size} bytes (${(compressedImage.size/1024).toFixed(2)} KB)`);
 
     // Step 2: Upload to Storage
-    console.log('Uploading to Storage...');
+    console.log('📤 Starting upload to Firebase Storage...');
+    const uploadStart = Date.now();
     const receiptUrl = await uploadReceipt(
       compressedImage.uri,
       coupleId,
       userId,
       onProgress || undefined
     );
-    console.log('Upload complete');
+    console.log(`✅ Upload complete in ${Date.now() - uploadStart}ms`);
 
     // Step 3: Create pending expense document
     console.log('Creating expense document...');
