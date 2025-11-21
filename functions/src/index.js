@@ -15,10 +15,11 @@ admin.initializeApp();
 const db = admin.firestore();
 const storage = admin.storage();
 
-// TODO: Import and export cloud functions here
-// Example:
-// const { processReceipt } = require('./ocr/processReceipt');
-// exports.processReceipt = processReceipt;
+// Import OCR functions
+const processReceiptDirect = require('./ocr/processReceiptDirect');
+
+// Export OCR function (callable from client)
+exports.processReceiptDirect = functions.https.onCall(processReceiptDirect);
 
 // Placeholder function to verify deployment
 exports.helloWorld = functions.https.onRequest((req, res) => {

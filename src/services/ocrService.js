@@ -1,20 +1,20 @@
 // src/services/ocrService.js
-// Service for OCR receipt scanning operations
+// Service for OCR receipt scanning operations (Storage-free version)
 
 import { doc, addDoc, collection, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import * as FileSystem from 'expo-file-system/legacy';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from '../config/firebase';
-import { uploadReceipt } from './receiptService';
 import { compressImage } from '../utils/imageCompression';
 
 /**
- * Scan receipt in background by uploading and triggering Cloud Function
+ * Scan receipt directly using Cloud Function (no Storage upload)
  * @param {string} imageUri - Local URI of the receipt image
  * @param {string} coupleId - ID of the couple
  * @param {string} userId - ID of the user
- * @param {Function} onProgress - Optional callback for upload progress
- * @returns {Promise<Object>} Object with expenseId and receiptUrl
+ * @returns {Promise<Object>} Object with parsed receipt data
  */
-export const scanReceiptInBackground = async (imageUri, coupleId, userId, onProgress) => {
+export const scanReceiptDirect = async (imageUri, coupleId, userId) => {
   try {
     // Validate inputs
     if (!imageUri || imageUri.trim() === '') {
@@ -33,45 +33,66 @@ export const scanReceiptInBackground = async (imageUri, coupleId, userId, onProg
     const compressedImage = await compressImage(imageUri);
     console.log(`✅ Image compressed in ${Date.now() - compressionStart}ms. Size: ${compressedImage.size} bytes (${(compressedImage.size/1024).toFixed(2)} KB)`);
 
-    // Step 2: Upload to Storage
-    console.log('📤 Starting upload to Firebase Storage...');
-    const uploadStart = Date.now();
-    const receiptUrl = await uploadReceipt(
-      compressedImage.uri,
-      coupleId,
-      userId,
-      onProgress || undefined
-    );
-    console.log(`✅ Upload complete in ${Date.now() - uploadStart}ms`);
+    // Step 2: Convert to base64
+    console.log('🔄 Converting image to base64...');
+    const base64Start = Date.now();
+    const base64Image = await FileSystem.readAsStringAsync(compressedImage.uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    console.log(`✅ Base64 conversion complete in ${Date.now() - base64Start}ms. Size: ${(base64Image.length/1024).toFixed(2)} KB`);
 
-    // Step 3: Create pending expense document
-    console.log('Creating expense document...');
-    const expensesRef = collection(db, 'expenses');
-    const expenseData = {
-      coupleId,
-      paidBy: userId,
-      receiptUrl,
-      ocrStatus: 'processing',
-      amount: 0, // Placeholder until OCR completes
-      merchant: 'Processing...', // Placeholder until OCR completes
-      description: 'Receipt scan in progress',
-      createdAt: serverTimestamp(),
-    };
+    // Step 3: Call Cloud Function with base64 image
+    console.log('📡 Calling Cloud Function for OCR processing...');
+    const ocrStart = Date.now();
 
-    const docRef = await addDoc(expensesRef, expenseData);
-    console.log('Expense document created:', docRef.id);
+    const functions = getFunctions();
+    const processReceipt = httpsCallable(functions, 'processReceiptDirect');
 
-    // Cloud Function will be triggered automatically via Firestore trigger
-    // It will process the receipt and update the document
+    const result = await processReceipt({
+      imageBase64: base64Image,
+      coupleId: coupleId
+    });
+
+    console.log(`✅ OCR complete in ${Date.now() - ocrStart}ms`);
+
+    if (!result.data || !result.data.success) {
+      throw new Error(result.data?.error || 'OCR processing failed');
+    }
+
+    const ocrData = result.data.data;
+    console.log('📋 Parsed receipt data:', {
+      merchant: ocrData.merchant,
+      amount: ocrData.amount,
+      date: ocrData.date,
+      category: ocrData.suggestedCategory,
+      confidence: ocrData.ocrConfidence
+    });
 
     return {
-      expenseId: docRef.id,
-      receiptUrl,
+      merchant: ocrData.merchant,
+      amount: ocrData.amount,
+      date: ocrData.date,
+      tax: ocrData.tax,
+      subtotal: ocrData.subtotal,
+      suggestedCategory: ocrData.suggestedCategory,
+      categoryConfidence: ocrData.categoryConfidence,
+      alternativeCategories: ocrData.alternativeCategories,
+      ocrConfidence: ocrData.ocrConfidence,
+      rawText: ocrData.rawText,
+      processedAt: ocrData.processedAt,
+      processingTimeMs: ocrData.processingTimeMs
     };
+
   } catch (error) {
-    console.error('Error scanning receipt:', error);
+    console.error('❌ Error scanning receipt:', error);
     throw error;
   }
+};
+
+// Legacy function - kept for backwards compatibility but deprecated
+export const scanReceiptInBackground = async (imageUri, coupleId, userId, onProgress) => {
+  console.warn('⚠️ scanReceiptInBackground is deprecated. Use scanReceiptDirect instead.');
+  return scanReceiptDirect(imageUri, coupleId, userId);
 };
 
 /**

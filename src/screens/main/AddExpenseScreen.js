@@ -24,9 +24,6 @@ import {
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system/legacy';
-import { Buffer } from 'buffer';
 import { updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -34,10 +31,8 @@ import { useBudget } from '../../contexts/BudgetContext';
 import { COLORS, FONTS, SPACING, COMMON_STYLES } from '../../constants/theme';
 import { calculateEqualSplit, calculateSplit, roundCurrency } from '../../utils/calculations';
 import * as expenseService from '../../services/expenseService';
-import { scanReceiptInBackground, subscribeToOCRResults, recordOCRFeedback } from '../../services/ocrService';
+import { scanReceiptDirect, recordOCRFeedback } from '../../services/ocrService';
 import { createMerchantAlias } from '../../services/merchantAliasService';
-import { parseReceiptPDF, isPDF } from '../../utils/receiptPdfParser';
-import { convertPDFPageToImage, validatePDFSize } from '../../utils/pdfToImage';
 import OCRSuggestionCard from '../../components/OCRSuggestionCard';
 import OCRProcessingBanner from '../../components/OCRProcessingBanner';
 
@@ -58,11 +53,9 @@ export default function AddExpenseScreen({ navigation, route }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // OCR state
+  // OCR state (simplified - no upload/storage needed)
   const [ocrState, setOcrState] = useState({
-    status: 'idle', // idle | uploading | processing | ready | failed
-    expenseId: null,
-    receiptUrl: null,
+    status: 'idle', // idle | processing | ready | failed
     suggestions: null,
     error: null,
   });
@@ -112,44 +105,7 @@ export default function AddExpenseScreen({ navigation, route }) {
     try {
       console.log('=== SCAN RECEIPT BUTTON TAPPED ===');
       console.log('Current OCR state:', ocrState.status);
-      console.log('Platform:', Platform.OS);
 
-      // On web, Alert.alert doesn't support multiple buttons
-      // So we directly open the file picker
-      if (Platform.OS === 'web') {
-        console.log('Web platform detected - opening file picker directly');
-        await handleFileSelection();
-        return;
-      }
-
-      // On mobile, show option: Camera or File
-      Alert.alert(
-        'Scan Receipt',
-        'How would you like to add your receipt?',
-        [
-          {
-            text: 'Take Photo',
-            onPress: handleCameraCapture,
-          },
-          {
-            text: 'Choose File',
-            onPress: handleFileSelection,
-          },
-          {
-            text: 'Cancel',
-            style: 'cancel',
-          },
-        ],
-        { cancelable: true }
-      );
-    } catch (error) {
-      console.error('ERROR in handleScanReceipt:', error);
-      Alert.alert('Error', `Failed to show receipt options: ${error.message}`);
-    }
-  };
-
-  const handleCameraCapture = async () => {
-    try {
       // Request camera permissions
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
 
@@ -174,184 +130,74 @@ export default function AddExpenseScreen({ navigation, route }) {
       }
 
       const imageUri = result.assets[0].uri;
+      console.log('📸 Photo captured:', imageUri);
       await processImageReceipt(imageUri);
     } catch (err) {
-      console.error('Error capturing photo:', err);
+      console.error('❌ Error capturing photo:', err);
       setOcrState({
         status: 'failed',
-        expenseId: null,
-        receiptUrl: null,
         suggestions: null,
         error: err.message || 'Failed to capture photo',
       });
     }
   };
 
-  const handleFileSelection = async () => {
-    try {
-      console.log('=== OPENING FILE PICKER ===');
-
-      // Use DocumentPicker to allow PDF and image files
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ['image/*', 'application/pdf'],
-        copyToCacheDirectory: true,
-      });
-
-      console.log('File picker result:', result);
-
-      if (result.canceled || result.type === 'cancel') {
-        console.log('File selection canceled');
-        return;
-      }
-
-      const fileUri = result.assets?.[0]?.uri || result.uri;
-      const fileName = result.assets?.[0]?.name || result.name || '';
-      const mimeType = result.assets?.[0]?.mimeType || result.mimeType || '';
-
-      console.log('Selected file:', { fileUri, fileName, mimeType });
-
-      // Detect file type
-      const isPdfFile = mimeType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf');
-
-      if (isPdfFile) {
-        console.log('Detected PDF file - processing as PDF');
-        await processPDFReceipt(fileUri);
-      } else {
-        console.log('Detected image file - processing as image');
-        await processImageReceipt(fileUri);
-      }
-    } catch (err) {
-      console.error('Error selecting file:', err);
-      setOcrState({
-        status: 'failed',
-        expenseId: null,
-        receiptUrl: null,
-        suggestions: null,
-        error: err.message || 'Failed to select file',
-      });
-    }
-  };
-
   const processImageReceipt = async (imageUri) => {
     try {
-      // Start background processing
+      // Set processing state
       setOcrState({
-        status: 'uploading',
-        expenseId: null,
-        receiptUrl: null,
+        status: 'processing',
         suggestions: null,
         error: null,
       });
       setError('');
 
-      // Upload and create pending expense
-      const { expenseId, receiptUrl } = await scanReceiptInBackground(
+      console.log('🔍 Starting OCR processing...');
+
+      // Call Cloud Function directly with image
+      const ocrData = await scanReceiptDirect(
         imageUri,
         userDetails.coupleId,
-        user.uid,
-        (progress) => {
-          console.log('Upload progress:', progress);
-        }
+        user.uid
       );
 
-      // Update state to processing
+      console.log('✅ OCR completed successfully');
+
+      // Update state with suggestions
       setOcrState({
-        status: 'processing',
-        expenseId,
-        receiptUrl,
-        suggestions: null,
+        status: 'ready',
+        suggestions: {
+          merchant: ocrData.merchant,
+          amount: ocrData.amount,
+          date: ocrData.date,
+          category: ocrData.suggestedCategory,
+          categoryConfidence: ocrData.categoryConfidence,
+          alternativeCategories: ocrData.alternativeCategories,
+          confidence: ocrData.ocrConfidence,
+          source: 'direct-ocr',
+        },
         error: null,
       });
+
+      // Show success message
+      Alert.alert(
+        'Receipt Scanned',
+        'Receipt information extracted. Please review and edit as needed.',
+        [{ text: 'OK' }]
+      );
     } catch (err) {
-      console.error('Error processing image receipt:', err);
-      throw err;
-    }
-  };
-
-  const processPDFReceipt = async (pdfUri) => {
-    try {
-      setOcrState({
-        status: 'processing',
-        expenseId: null,
-        receiptUrl: null,
-        suggestions: null,
-        error: null,
-      });
-      setError('');
-
-      // Read PDF file
-      const pdfData = await FileSystem.readAsStringAsync(pdfUri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-      const pdfBuffer = Buffer.from(pdfData, 'base64');
-
-      // Validate file size
-      try {
-        validatePDFSize(pdfBuffer);
-      } catch (sizeError) {
-        throw new Error(sizeError.message);
-      }
-
-      // Try text extraction first
-      const parseResult = await parseReceiptPDF(pdfBuffer);
-
-      if (parseResult.requiresOCR) {
-        // PDF is scanned or low confidence - convert to image and use OCR
-        try {
-          if (Platform.OS !== 'web') {
-            throw new Error(
-              'PDF receipt scanning is currently only supported on the web app. ' +
-              'Please use the web app or take a photo of the receipt instead.'
-            );
-          }
-
-          // Convert PDF to image
-          const imageData = await convertPDFPageToImage(pdfBuffer, 1);
-
-          // Process as image
-          await processImageReceipt(imageData.uri);
-        } catch (conversionError) {
-          throw new Error(
-            `Could not process PDF: ${conversionError.message}. ` +
-            'Try taking a photo of the receipt instead.'
-          );
-        }
-      } else {
-        // Text-based PDF - use extracted data directly
-        const { receipt } = parseResult;
-
-        // Use extracted text directly
-        setOcrState({
-          status: 'ready',
-          expenseId: null,
-          receiptUrl: null,
-          suggestions: {
-            merchant: receipt.merchant,
-            amount: receipt.amount,
-            date: receipt.date,
-            category: receipt.vendorType ? { category: receipt.vendorType } : null,
-            confidence: receipt.confidence,
-            source: 'pdf-text-extraction',
-          },
-          error: null,
-        });
-
-        // Show success message
-        Alert.alert(
-          'PDF Processed',
-          'Receipt information extracted from PDF. Please review and edit as needed.',
-          [{ text: 'OK' }]
-        );
-      }
-    } catch (err) {
-      console.error('Error processing PDF receipt:', err);
+      console.error('❌ Error processing image receipt:', err);
       setOcrState({
         status: 'failed',
-        expenseId: null,
-        receiptUrl: null,
         suggestions: null,
-        error: err.message || 'Failed to process PDF receipt',
+        error: err.message || 'Failed to process receipt',
       });
+
+      Alert.alert(
+        'Processing Failed',
+        err.message || 'Failed to process receipt. Please try again.',
+        [{ text: 'OK' }]
+      );
     }
   };
 
@@ -397,38 +243,7 @@ export default function AddExpenseScreen({ navigation, route }) {
     }
   };
 
-  // Subscribe to OCR results with proper cleanup
-  useEffect(() => {
-    if (!ocrState.expenseId || ocrState.status !== 'processing') {
-      return;
-    }
-
-    let isActive = true;
-
-    const unsubscribe = subscribeToOCRResults(ocrState.expenseId, (result) => {
-      if (!isActive) return; // Don't update if unmounted
-
-      if (result.status === 'completed') {
-        setOcrState((prev) => ({
-          ...prev,
-          status: 'ready',
-          suggestions: result.data,
-          error: null,
-        }));
-      } else if (result.status === 'failed') {
-        setOcrState((prev) => ({
-          ...prev,
-          status: 'failed',
-          error: result.error || 'OCR processing failed',
-        }));
-      }
-    });
-
-    return () => {
-      isActive = false;
-      unsubscribe();
-    };
-  }, [ocrState.expenseId, ocrState.status]);
+  // Note: OCR processing is now direct/immediate, no subscription needed
 
   const handleSubmit = async () => {
     // Validation
@@ -593,16 +408,15 @@ export default function AddExpenseScreen({ navigation, route }) {
               style={styles.scanButton}
               onPress={handleScanReceipt}
               testID="scan-receipt-button"
-              disabled={ocrState.status === 'uploading' || ocrState.status === 'processing'}
+              disabled={ocrState.status === 'processing'}
             >
               <Ionicons name="camera" size={24} color={COLORS.primary} />
               <Text style={styles.scanButtonText}>Scan Receipt</Text>
             </TouchableOpacity>
 
             {/* OCR Processing Banner */}
-            {(ocrState.status === 'uploading' || ocrState.status === 'processing') && (
+            {ocrState.status === 'processing' && (
               <OCRProcessingBanner
-                receiptUrl={ocrState.receiptUrl}
                 status={ocrState.status}
                 style={styles.ocrBanner}
               />
