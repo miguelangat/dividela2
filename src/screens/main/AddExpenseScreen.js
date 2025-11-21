@@ -112,8 +112,17 @@ export default function AddExpenseScreen({ navigation, route }) {
     try {
       console.log('=== SCAN RECEIPT BUTTON TAPPED ===');
       console.log('Current OCR state:', ocrState.status);
+      console.log('Platform:', Platform.OS);
 
-      // Show option: Camera or File
+      // On web, Alert.alert doesn't support multiple buttons
+      // So we directly open the file picker
+      if (Platform.OS === 'web') {
+        console.log('Web platform detected - opening file picker directly');
+        await handleFileSelection();
+        return;
+      }
+
+      // On mobile, show option: Camera or File
       Alert.alert(
         'Scan Receipt',
         'How would you like to add your receipt?',
@@ -180,13 +189,18 @@ export default function AddExpenseScreen({ navigation, route }) {
 
   const handleFileSelection = async () => {
     try {
+      console.log('=== OPENING FILE PICKER ===');
+
       // Use DocumentPicker to allow PDF and image files
       const result = await DocumentPicker.getDocumentAsync({
         type: ['image/*', 'application/pdf'],
         copyToCacheDirectory: true,
       });
 
+      console.log('File picker result:', result);
+
       if (result.canceled || result.type === 'cancel') {
+        console.log('File selection canceled');
         return;
       }
 
@@ -194,12 +208,16 @@ export default function AddExpenseScreen({ navigation, route }) {
       const fileName = result.assets?.[0]?.name || result.name || '';
       const mimeType = result.assets?.[0]?.mimeType || result.mimeType || '';
 
+      console.log('Selected file:', { fileUri, fileName, mimeType });
+
       // Detect file type
       const isPdfFile = mimeType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf');
 
       if (isPdfFile) {
+        console.log('Detected PDF file - processing as PDF');
         await processPDFReceipt(fileUri);
       } else {
+        console.log('Detected image file - processing as image');
         await processImageReceipt(fileUri);
       }
     } catch (err) {
