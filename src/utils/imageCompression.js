@@ -8,6 +8,7 @@
 
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system/legacy';
+import { Platform } from 'react-native';
 
 // Compression constants
 const MAX_FILE_SIZE = 1024 * 1024; // 1MB in bytes
@@ -24,6 +25,18 @@ const FALLBACK_QUALITY = 0.6; // 60% quality - more aggressive compression
  */
 export async function getImageInfo(imageUri) {
   try {
+    // On web, FileSystem.getInfoAsync is not available
+    // Use fetch to get blob and check size
+    if (Platform.OS === 'web') {
+      const response = await fetch(imageUri);
+      const blob = await response.blob();
+      return {
+        size: blob.size,
+        uri: imageUri,
+      };
+    }
+
+    // On native platforms, use FileSystem
     const fileInfo = await FileSystem.getInfoAsync(imageUri);
 
     if (!fileInfo.exists) {
