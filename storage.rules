@@ -16,17 +16,18 @@ service firebase.storage {
              coupleData.user2Id == request.auth.uid;
     }
 
-    // Helper function to validate image file type
-    function isValidImageType() {
-      return request.resource.contentType.matches('image/.*');
+    // Helper function to validate receipt file type (images and PDFs)
+    function isValidReceiptType() {
+      return request.resource.contentType.matches('image/.*') ||
+             request.resource.contentType == 'application/pdf';
     }
 
-    // Helper function to validate file size (max 2MB)
+    // Helper function to validate file size (max 10MB for PDFs, images are typically smaller)
     function isValidSize() {
-      return request.resource.size <= 2 * 1024 * 1024; // 2MB in bytes
+      return request.resource.size <= 10 * 1024 * 1024; // 10MB in bytes
     }
 
-    // Receipt images storage
+    // Receipt files storage (images and PDFs)
     // Path: /receipts/{coupleId}/{receiptId}
     match /receipts/{coupleId}/{receiptId} {
       // Allow read if user is a member of the couple
@@ -35,11 +36,11 @@ service firebase.storage {
       // Allow write (upload/update) if:
       // - User is authenticated
       // - User is a member of the couple
-      // - File is a valid image type
-      // - File size is within limits
+      // - File is a valid receipt type (image or PDF)
+      // - File size is within limits (10MB)
       allow write: if isSignedIn() &&
                       isCoupleMember(coupleId) &&
-                      isValidImageType() &&
+                      isValidReceiptType() &&
                       isValidSize();
 
       // Allow delete if user is a member of the couple
@@ -49,12 +50,12 @@ service firebase.storage {
     // Receipt thumbnails storage (if needed in the future)
     // Path: /receipts/{coupleId}/thumbnails/{receiptId}
     match /receipts/{coupleId}/thumbnails/{receiptId} {
-      // Same rules as regular receipts
+      // Same rules as regular receipts (images only for thumbnails)
       allow read: if isSignedIn() && isCoupleMember(coupleId);
 
       allow write: if isSignedIn() &&
                       isCoupleMember(coupleId) &&
-                      isValidImageType() &&
+                      request.resource.contentType.matches('image/.*') &&
                       isValidSize();
 
       allow delete: if isSignedIn() && isCoupleMember(coupleId);
