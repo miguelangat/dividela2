@@ -1,0 +1,116 @@
+{
+  "sampleExpenses": [
+    {
+      "id": "exp_001",
+      "amount": 87.45,
+      "merchant": "Whole Foods Market",
+      "category": "Groceries",
+      "date": "2025-11-15",
+      "description": "Weekly grocery shopping",
+      "paidBy": "user1",
+      "splitType": "equal",
+      "receiptUrl": "test://receipts/grocery-receipt.jpg",
+      "ocrData": {
+        "confidence": 0.95,
+        "extractedAmount": 87.45,
+        "extractedMerchant": "Whole Foods Market",
+        "extractedDate": "2025-11-15"
+      }
+    },
+    {
+      "id": "exp_002",
+      "amount": 125.50,
+      "merchant": "The Italian Place",
+      "category": "Dining",
+      "date": "2025-11-18",
+      "description": "Dinner date",
+      "paidBy": "user2",
+      "splitType": "equal",
+      "receiptUrl": "test://receipts/restaurant-receipt.jpg",
+      "ocrData": {
+        "confidence": 0.92,
+        "extractedAmount": 125.50,
+        "extractedMerchant": "The Italian Place",
+        "extractedDate": "2025-11-18",
+        "tip": 20.52
+      }
+    },
+    {
+      "id": "exp_003",
+      "amount": 52.30,
+      "merchant": "Shell Gas Station",
+      "category": "Transportation",
+      "date": "2025-11-17",
+      "description": "Gas for car",
+      "paidBy": "user1",
+      "splitType": "custom",
+      "splitRatio": {"user1": 0.6, "user2": 0.4},
+      "receiptUrl": "test://receipts/gas-receipt.jpg",
+      "ocrData": {
+        "confidence": 0.89,
+        "extractedAmount": 52.30,
+        "extractedMerchant": "Shell Gas Station",
+        "extractedDate": "2025-11-17"
+      }
+    },
+    {
+      "id": "exp_004",
+      "amount": 15.75,
+      "merchant": "Starbucks Coffee",
+      "category": "Dining",
+      "date": "2025-11-19",
+      "description": "Morning coffee",
+      "paidBy": "user2",
+      "splitType": "individual",
+      "receiptUrl": "test://receipts/coffee-receipt.jpg",
+      "ocrData": {
+        "confidence": 0.94,
+        "extractedAmount": 17.75,
+        "extractedMerchant": "Starbucks Coffee",
+        "extractedDate": "2025-11-19",
+        "discount": 2.00
+      }
+    },
+    {
+      "id": "exp_005",
+      "amount": 43.98,
+      "merchant": "CVS Pharmacy",
+      "category": "Health",
+      "date": "2025-11-16",
+      "description": "Medicine and supplies",
+      "paidBy": "user1",
+      "splitType": "equal",
+      "receiptUrl": "test://receipts/pharmacy-receipt.jpg",
+      "ocrData": {
+        "confidence": 0.91,
+        "extractedAmount": 43.98,
+        "extractedMerchant": "CVS Pharmacy",
+        "extractedDate": "2025-11-16"
+      }
+    }
+  ],
+  "testScenarios": {
+    "successfulOCR": {
+      "description": "Receipt with clear text and high confidence",
+      "expenseId": "exp_001"
+    },
+    "lowConfidence": {
+      "description": "Receipt with poor quality requiring manual review",
+      "confidence": 0.45,
+      "requiresManualReview": true
+    },
+    "partialExtraction": {
+      "description": "Receipt with some fields extracted successfully",
+      "extractedFields": ["amount", "date"],
+      "missingFields": ["merchant"]
+    },
+    "withDiscount": {
+      "description": "Receipt with discount applied",
+      "expenseId": "exp_004"
+    },
+    "withTip": {
+      "description": "Restaurant receipt with tip",
+      "expenseId": "exp_002"
+    }
+  }
+}
