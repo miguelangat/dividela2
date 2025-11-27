@@ -2,21 +2,41 @@
 // Tests for OCR receipt scanning operations
 
 import {
+  scanReceiptDirect,
   scanReceiptInBackground,
   subscribeToOCRResults,
   recordOCRFeedback,
 } from '../ocrService';
 
-import { uploadReceipt } from '../receiptService';
 import { doc, addDoc, collection, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { groceryReceipt, poorQualityReceipt } from '../../../test-fixtures';
 
+// Mock react-native Platform
+jest.mock('react-native', () => ({
+  Platform: {
+    OS: 'ios',
+    select: jest.fn((obj) => obj.ios || obj.default),
+  },
+}));
+
 // Mock dependencies
-jest.mock('../receiptService');
 jest.mock('firebase/firestore');
+jest.mock('firebase/functions', () => ({
+  httpsCallable: jest.fn(),
+}));
 jest.mock('../../config/firebase', () => ({
   db: {},
   storage: {},
+  functions: {
+    region: 'us-central1',
+    app: {},
+  },
+}));
+jest.mock('expo-file-system/legacy', () => ({
+  readAsStringAsync: jest.fn(),
+  EncodingType: {
+    Base64: 'base64',
+  },
 }));
 
 // Mock image compression utility
@@ -28,113 +48,327 @@ jest.mock('../../utils/imageCompression', () => ({
 }));
 
 import { compressImage } from '../../utils/imageCompression';
+import * as FileSystem from 'expo-file-system/legacy';
+import { httpsCallable } from 'firebase/functions';
+import { Platform } from 'react-native';
 
 describe('ocrService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Reset Platform.OS to default 'ios'
+    Platform.OS = 'ios';
   });
 
-  describe('scanReceiptInBackground', () => {
-    it('should compress image before upload', async () => {
-      const imageUri = 'file:///local/receipt.jpg';
-      const coupleId = 'couple123';
-      const userId = 'user456';
-      const compressedUri = 'file:///local/receipt_compressed.jpg';
+  describe('scanReceiptDirect', () => {
+    const mockCloudFunction = jest.fn();
 
-      compressImage.mockResolvedValue({
-        uri: compressedUri,
-        size: 512000,
-      });
-
-      uploadReceipt.mockResolvedValue('https://storage.example.com/receipt.jpg');
-
-      const mockDocRef = { id: 'expense123' };
-      addDoc.mockResolvedValue(mockDocRef);
-      serverTimestamp.mockReturnValue('mock-timestamp');
-
-      await scanReceiptInBackground(imageUri, coupleId, userId);
-
-      expect(compressImage).toHaveBeenCalledWith(imageUri);
-      expect(uploadReceipt).toHaveBeenCalledWith(compressedUri, coupleId, userId, undefined);
+    beforeEach(() => {
+      httpsCallable.mockReturnValue(mockCloudFunction);
     });
 
-    it('should upload compressed image to Firebase Storage', async () => {
+    describe('Native Platform (iOS/Android)', () => {
+      it('should use FileSystem.readAsStringAsync for base64 conversion', async () => {
+        const imageUri = 'file:///local/receipt.jpg';
+        const coupleId = 'couple123';
+        const userId = 'user456';
+
+        compressImage.mockResolvedValue({
+          uri: 'file:///local/receipt_compressed.jpg',
+          size: 512000,
+        });
+
+        FileSystem.readAsStringAsync.mockResolvedValue('base64ImageData');
+
+        mockCloudFunction.mockResolvedValue({
+          data: {
+            success: true,
+            data: {
+              merchant: 'Test Store',
+              amount: 25.50,
+              date: '2025-11-23',
+              tax: 2.50,
+              subtotal: 23.00,
+              suggestedCategory: 'Shopping',
+              categoryConfidence: 0.85,
+              alternativeCategories: [],
+              ocrConfidence: 0.92,
+              rawText: 'TEST RECEIPT',
+              processedAt: '2025-11-23T12:00:00Z',
+              processingTimeMs: 1500,
+            },
+          },
+        });
+
+        await scanReceiptDirect(imageUri, coupleId, userId);
+
+        expect(FileSystem.readAsStringAsync).toHaveBeenCalledWith(
+          'file:///local/receipt_compressed.jpg',
+          { encoding: 'base64' }
+        );
+      });
+
+      it('should successfully process receipt on native platform', async () => {
+        const imageUri = 'file:///local/receipt.jpg';
+        const coupleId = 'couple123';
+        const userId = 'user456';
+
+        compressImage.mockResolvedValue({
+          uri: 'file:///local/receipt_compressed.jpg',
+          size: 512000,
+        });
+
+        FileSystem.readAsStringAsync.mockResolvedValue('base64ImageData');
+
+        mockCloudFunction.mockResolvedValue({
+          data: {
+            success: true,
+            data: {
+              merchant: 'Test Store',
+              amount: 25.50,
+              date: '2025-11-23',
+              tax: 2.50,
+              subtotal: 23.00,
+              suggestedCategory: 'Shopping',
+              categoryConfidence: 0.85,
+              alternativeCategories: ['Groceries', 'Food'],
+              ocrConfidence: 0.92,
+              rawText: 'TEST RECEIPT',
+              processedAt: '2025-11-23T12:00:00Z',
+              processingTimeMs: 1500,
+            },
+          },
+        });
+
+        const result = await scanReceiptDirect(imageUri, coupleId, userId);
+
+        expect(result).toEqual({
+          merchant: 'Test Store',
+          amount: 25.50,
+          date: '2025-11-23',
+          tax: 2.50,
+          subtotal: 23.00,
+          suggestedCategory: 'Shopping',
+          categoryConfidence: 0.85,
+          alternativeCategories: ['Groceries', 'Food'],
+          ocrConfidence: 0.92,
+          rawText: 'TEST RECEIPT',
+          processedAt: '2025-11-23T12:00:00Z',
+          processingTimeMs: 1500,
+        });
+      });
+    });
+
+    describe('Web Platform', () => {
+      beforeEach(() => {
+        Platform.OS = 'web';
+      });
+
+      it('should use fetch + FileReader for base64 conversion on web', async () => {
+        const imageUri = 'blob:http://localhost:19006/abc-123';
+        const coupleId = 'couple123';
+        const userId = 'user456';
+
+        compressImage.mockResolvedValue({
+          uri: imageUri,
+          size: 512000,
+        });
+
+        // Mock fetch and FileReader
+        const mockBlob = new Blob(['test image data'], { type: 'image/png' });
+        global.fetch = jest.fn().mockResolvedValue({
+          blob: () => Promise.resolve(mockBlob),
+        });
+
+        // Mock FileReader
+        const mockFileReader = {
+          readAsDataURL: jest.fn(),
+          result: 'data:image/png;base64,base64ImageData',
+          onloadend: null,
+          onerror: null,
+        };
+
+        global.FileReader = jest.fn(() => mockFileReader);
+
+        mockCloudFunction.mockResolvedValue({
+          data: {
+            success: true,
+            data: {
+              merchant: 'Test Store',
+              amount: 25.50,
+              date: '2025-11-23',
+              tax: 2.50,
+              subtotal: 23.00,
+              suggestedCategory: 'Shopping',
+              categoryConfidence: 0.85,
+              alternativeCategories: [],
+              ocrConfidence: 0.92,
+              rawText: 'TEST RECEIPT',
+              processedAt: '2025-11-23T12:00:00Z',
+              processingTimeMs: 1500,
+            },
+          },
+        });
+
+        const scanPromise = scanReceiptDirect(imageUri, coupleId, userId);
+
+        // Trigger FileReader onloadend
+        setTimeout(() => {
+          if (mockFileReader.onloadend) {
+            mockFileReader.onloadend();
+          }
+        }, 0);
+
+        await scanPromise;
+
+        expect(fetch).toHaveBeenCalledWith(imageUri);
+        expect(mockFileReader.readAsDataURL).toHaveBeenCalledWith(mockBlob);
+        expect(FileSystem.readAsStringAsync).not.toHaveBeenCalled();
+      });
+
+      it('should successfully process receipt on web platform', async () => {
+        const imageUri = 'blob:http://localhost:19006/abc-123';
+        const coupleId = 'couple123';
+        const userId = 'user456';
+
+        compressImage.mockResolvedValue({
+          uri: imageUri,
+          size: 512000,
+        });
+
+        // Mock fetch and FileReader
+        const mockBlob = new Blob(['test image data'], { type: 'image/png' });
+        global.fetch = jest.fn().mockResolvedValue({
+          blob: () => Promise.resolve(mockBlob),
+        });
+
+        const mockFileReader = {
+          readAsDataURL: jest.fn(),
+          result: 'data:image/png;base64,base64ImageData',
+          onloadend: null,
+          onerror: null,
+        };
+
+        global.FileReader = jest.fn(() => mockFileReader);
+
+        mockCloudFunction.mockResolvedValue({
+          data: {
+            success: true,
+            data: {
+              merchant: 'Web Store',
+              amount: 42.00,
+              date: '2025-11-23',
+              tax: 3.50,
+              subtotal: 38.50,
+              suggestedCategory: 'Food',
+              categoryConfidence: 0.90,
+              alternativeCategories: ['Groceries'],
+              ocrConfidence: 0.95,
+              rawText: 'WEB RECEIPT TEST',
+              processedAt: '2025-11-23T12:00:00Z',
+              processingTimeMs: 1200,
+            },
+          },
+        });
+
+        const scanPromise = scanReceiptDirect(imageUri, coupleId, userId);
+
+        // Trigger FileReader onloadend
+        setTimeout(() => {
+          if (mockFileReader.onloadend) {
+            mockFileReader.onloadend();
+          }
+        }, 0);
+
+        const result = await scanPromise;
+
+        expect(result).toEqual({
+          merchant: 'Web Store',
+          amount: 42.00,
+          date: '2025-11-23',
+          tax: 3.50,
+          subtotal: 38.50,
+          suggestedCategory: 'Food',
+          categoryConfidence: 0.90,
+          alternativeCategories: ['Groceries'],
+          ocrConfidence: 0.95,
+          rawText: 'WEB RECEIPT TEST',
+          processedAt: '2025-11-23T12:00:00Z',
+          processingTimeMs: 1200,
+        });
+      });
+
+      it('should handle FileReader errors on web', async () => {
+        const imageUri = 'blob:http://localhost:19006/abc-123';
+        const coupleId = 'couple123';
+        const userId = 'user456';
+
+        compressImage.mockResolvedValue({
+          uri: imageUri,
+          size: 512000,
+        });
+
+        const mockBlob = new Blob(['test image data'], { type: 'image/png' });
+        global.fetch = jest.fn().mockResolvedValue({
+          blob: () => Promise.resolve(mockBlob),
+        });
+
+        const mockFileReader = {
+          readAsDataURL: jest.fn(),
+          onloadend: null,
+          onerror: null,
+        };
+
+        global.FileReader = jest.fn(() => mockFileReader);
+
+        const scanPromise = scanReceiptDirect(imageUri, coupleId, userId);
+
+        // Trigger FileReader error
+        setTimeout(() => {
+          if (mockFileReader.onerror) {
+            mockFileReader.onerror(new Error('FileReader failed'));
+          }
+        }, 0);
+
+        await expect(scanPromise).rejects.toThrow('FileReader failed');
+      });
+    });
+
+    it('should validate required parameters', async () => {
+      await expect(
+        scanReceiptDirect('', 'couple123', 'user456')
+      ).rejects.toThrow('Image URI is required');
+
+      await expect(
+        scanReceiptDirect('file:///receipt.jpg', '', 'user456')
+      ).rejects.toThrow('Couple ID is required');
+
+      await expect(
+        scanReceiptDirect('file:///receipt.jpg', 'couple123', '')
+      ).rejects.toThrow('User ID is required');
+    });
+
+    it('should handle cloud function errors', async () => {
       const imageUri = 'file:///local/receipt.jpg';
       const coupleId = 'couple123';
       const userId = 'user456';
-      const receiptUrl = 'https://storage.example.com/receipt.jpg';
 
       compressImage.mockResolvedValue({
         uri: 'file:///local/receipt_compressed.jpg',
         size: 512000,
       });
 
-      uploadReceipt.mockResolvedValue(receiptUrl);
+      FileSystem.readAsStringAsync.mockResolvedValue('base64ImageData');
 
-      const mockDocRef = { id: 'expense123' };
-      addDoc.mockResolvedValue(mockDocRef);
-      serverTimestamp.mockReturnValue('mock-timestamp');
-
-      const result = await scanReceiptInBackground(imageUri, coupleId, userId);
-
-      expect(uploadReceipt).toHaveBeenCalled();
-      expect(result.receiptUrl).toBe(receiptUrl);
-    });
-
-    it('should create pending expense document in Firestore', async () => {
-      const imageUri = 'file:///local/receipt.jpg';
-      const coupleId = 'couple123';
-      const userId = 'user456';
-      const receiptUrl = 'https://storage.example.com/receipt.jpg';
-
-      compressImage.mockResolvedValue({
-        uri: 'file:///local/receipt_compressed.jpg',
-        size: 512000,
+      mockCloudFunction.mockResolvedValue({
+        data: {
+          success: false,
+          error: 'OCR processing failed',
+        },
       });
 
-      uploadReceipt.mockResolvedValue(receiptUrl);
-
-      const mockDocRef = { id: 'expense123' };
-      addDoc.mockResolvedValue(mockDocRef);
-      serverTimestamp.mockReturnValue('mock-timestamp');
-
-      await scanReceiptInBackground(imageUri, coupleId, userId);
-
-      expect(collection).toHaveBeenCalled();
-      const addDocCalls = addDoc.mock.calls[0];
-      expect(addDocCalls[1]).toMatchObject({
-        coupleId,
-        paidBy: userId,
-        receiptUrl,
-        ocrStatus: 'processing',
-        createdAt: 'mock-timestamp',
-      });
-    });
-
-    it('should return expenseId and receiptUrl', async () => {
-      const imageUri = 'file:///local/receipt.jpg';
-      const coupleId = 'couple123';
-      const userId = 'user456';
-      const receiptUrl = 'https://storage.example.com/receipt.jpg';
-      const expenseId = 'expense123';
-
-      compressImage.mockResolvedValue({
-        uri: 'file:///local/receipt_compressed.jpg',
-        size: 512000,
-      });
-
-      uploadReceipt.mockResolvedValue(receiptUrl);
-
-      const mockDocRef = { id: expenseId };
-      addDoc.mockResolvedValue(mockDocRef);
-      serverTimestamp.mockReturnValue('mock-timestamp');
-
-      const result = await scanReceiptInBackground(imageUri, coupleId, userId);
-
-      expect(result).toEqual({
-        expenseId,
-        receiptUrl,
-      });
+      await expect(
+        scanReceiptDirect(imageUri, coupleId, userId)
+      ).rejects.toThrow('OCR processing failed');
     });
 
     it('should handle compression errors', async () => {
@@ -145,11 +379,19 @@ describe('ocrService', () => {
       compressImage.mockRejectedValue(new Error('Compression failed'));
 
       await expect(
-        scanReceiptInBackground(imageUri, coupleId, userId)
+        scanReceiptDirect(imageUri, coupleId, userId)
       ).rejects.toThrow('Compression failed');
     });
+  });
 
-    it('should handle upload errors', async () => {
+  describe('scanReceiptInBackground (deprecated)', () => {
+    const mockCloudFunction = jest.fn();
+
+    beforeEach(() => {
+      httpsCallable.mockReturnValue(mockCloudFunction);
+    });
+
+    it('should delegate to scanReceiptDirect', async () => {
       const imageUri = 'file:///local/receipt.jpg';
       const coupleId = 'couple123';
       const userId = 'user456';
@@ -159,75 +401,44 @@ describe('ocrService', () => {
         size: 512000,
       });
 
-      uploadReceipt.mockRejectedValue(new Error('Upload failed'));
+      FileSystem.readAsStringAsync.mockResolvedValue('base64ImageData');
 
-      await expect(
-        scanReceiptInBackground(imageUri, coupleId, userId)
-      ).rejects.toThrow('Upload failed');
-    });
-
-    it('should handle Firestore errors when creating expense', async () => {
-      const imageUri = 'file:///local/receipt.jpg';
-      const coupleId = 'couple123';
-      const userId = 'user456';
-
-      compressImage.mockResolvedValue({
-        uri: 'file:///local/receipt_compressed.jpg',
-        size: 512000,
+      mockCloudFunction.mockResolvedValue({
+        data: {
+          success: true,
+          data: {
+            merchant: 'Test Store',
+            amount: 25.50,
+            date: '2025-11-23',
+            tax: 2.50,
+            subtotal: 23.00,
+            suggestedCategory: 'Shopping',
+            categoryConfidence: 0.85,
+            alternativeCategories: [],
+            ocrConfidence: 0.92,
+            rawText: 'TEST RECEIPT',
+            processedAt: '2025-11-23T12:00:00Z',
+            processingTimeMs: 1500,
+          },
+        },
       });
 
-      uploadReceipt.mockResolvedValue('https://storage.example.com/receipt.jpg');
-      addDoc.mockRejectedValue(new Error('Firestore error'));
+      const result = await scanReceiptInBackground(imageUri, coupleId, userId);
 
-      await expect(
-        scanReceiptInBackground(imageUri, coupleId, userId)
-      ).rejects.toThrow('Firestore error');
-    });
-
-    it('should validate required parameters', async () => {
-      await expect(
-        scanReceiptInBackground(null, 'couple123', 'user456')
-      ).rejects.toThrow('Image URI is required');
-
-      await expect(
-        scanReceiptInBackground('file:///receipt.jpg', null, 'user456')
-      ).rejects.toThrow('Couple ID is required');
-
-      await expect(
-        scanReceiptInBackground('file:///receipt.jpg', 'couple123', null)
-      ).rejects.toThrow('User ID is required');
-    });
-
-    it('should track upload progress', async () => {
-      const imageUri = 'file:///local/receipt.jpg';
-      const coupleId = 'couple123';
-      const userId = 'user456';
-      const progressCallback = jest.fn();
-
-      compressImage.mockResolvedValue({
-        uri: 'file:///local/receipt_compressed.jpg',
-        size: 512000,
+      expect(result).toEqual({
+        merchant: 'Test Store',
+        amount: 25.50,
+        date: '2025-11-23',
+        tax: 2.50,
+        subtotal: 23.00,
+        suggestedCategory: 'Shopping',
+        categoryConfidence: 0.85,
+        alternativeCategories: [],
+        ocrConfidence: 0.92,
+        rawText: 'TEST RECEIPT',
+        processedAt: '2025-11-23T12:00:00Z',
+        processingTimeMs: 1500,
       });
-
-      uploadReceipt.mockImplementation((uri, cId, uId, onProgress) => {
-        // Simulate progress callbacks
-        if (onProgress) {
-          onProgress(25);
-          onProgress(50);
-          onProgress(100);
-        }
-        return Promise.resolve('https://storage.example.com/receipt.jpg');
-      });
-
-      const mockDocRef = { id: 'expense123' };
-      addDoc.mockResolvedValue(mockDocRef);
-      serverTimestamp.mockReturnValue('mock-timestamp');
-
-      await scanReceiptInBackground(imageUri, coupleId, userId, progressCallback);
-
-      expect(progressCallback).toHaveBeenCalledWith(25);
-      expect(progressCallback).toHaveBeenCalledWith(50);
-      expect(progressCallback).toHaveBeenCalledWith(100);
     });
   });
 
@@ -610,70 +821,6 @@ describe('ocrService', () => {
       const callArgs = addDoc.mock.calls[0][1];
       expect(callArgs.editedFields).toEqual([]);
       expect(callArgs.accuracy).toBe(1);
-    });
-  });
-
-  describe('Integration - Full OCR Workflow', () => {
-    it('should handle complete scan-to-result workflow', async () => {
-      const imageUri = 'file:///local/receipt.jpg';
-      const coupleId = 'couple123';
-      const userId = 'user456';
-
-      // Mock compression
-      compressImage.mockResolvedValue({
-        uri: 'file:///local/receipt_compressed.jpg',
-        size: 512000,
-      });
-
-      // Mock upload
-      uploadReceipt.mockResolvedValue('https://storage.example.com/receipt.jpg');
-
-      // Mock expense creation
-      const mockDocRef = { id: 'expense123' };
-      addDoc.mockResolvedValue(mockDocRef);
-      serverTimestamp.mockReturnValue('mock-timestamp');
-
-      // Scan receipt
-      const scanResult = await scanReceiptInBackground(imageUri, coupleId, userId);
-      expect(scanResult.expenseId).toBe('expense123');
-
-      // Subscribe to results
-      const callback = jest.fn();
-      const mockUnsubscribe = jest.fn();
-      let snapshotHandler;
-
-      onSnapshot.mockImplementation((docRef, handler) => {
-        snapshotHandler = handler;
-        return mockUnsubscribe;
-      });
-
-      const unsubscribe = subscribeToOCRResults(scanResult.expenseId, callback);
-
-      // Simulate OCR completion
-      const mockSnapshot = {
-        exists: () => true,
-        data: () => ({
-          ocrStatus: 'completed',
-          amount: 87.45,
-          merchant: 'Whole Foods Market',
-          date: '2025-11-15',
-          ocrData: groceryReceipt,
-        }),
-      };
-
-      snapshotHandler(mockSnapshot);
-
-      expect(callback).toHaveBeenCalledWith({
-        status: 'completed',
-        data: expect.objectContaining({
-          amount: 87.45,
-          merchant: 'Whole Foods Market',
-        }),
-      });
-
-      // Cleanup
-      unsubscribe();
-      expect(mockUnsubscribe).toHaveBeenCalled();
     });
   });
 });

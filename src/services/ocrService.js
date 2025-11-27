@@ -3,9 +3,41 @@
 
 import { doc, addDoc, collection, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import * as FileSystem from 'expo-file-system/legacy';
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { db } from '../config/firebase';
+import { httpsCallable } from 'firebase/functions';
+import { Platform } from 'react-native';
+import { db, functions, auth } from '../config/firebase';
 import { compressImage } from '../utils/imageCompression';
+
+/**
+ * Convert image URI to base64 string
+ * Handles different platforms (web, iOS, Android)
+ * @param {string} imageUri - URI of the image file
+ * @returns {Promise<string>} Base64 encoded image string
+ */
+async function imageToBase64(imageUri) {
+  if (Platform.OS === 'web') {
+    // On web, use fetch + FileReader to convert blob URI to base64
+    const response = await fetch(imageUri);
+    const blob = await response.blob();
+
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        // FileReader returns "data:image/png;base64,..." format
+        // Extract just the base64 part after the comma
+        const base64String = reader.result.split(',')[1];
+        resolve(base64String);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } else {
+    // On native platforms, use FileSystem
+    return await FileSystem.readAsStringAsync(imageUri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+  }
+}
 
 /**
  * Scan receipt directly using Cloud Function (no Storage upload)
@@ -33,25 +65,50 @@ export const scanReceiptDirect = async (imageUri, coupleId, userId) => {
     const compressedImage = await compressImage(imageUri);
     console.log(`✅ Image compressed in ${Date.now() - compressionStart}ms. Size: ${compressedImage.size} bytes (${(compressedImage.size/1024).toFixed(2)} KB)`);
 
-    // Step 2: Convert to base64
+    // Step 2: Convert to base64 (platform-specific)
     console.log('🔄 Converting image to base64...');
     const base64Start = Date.now();
-    const base64Image = await FileSystem.readAsStringAsync(compressedImage.uri, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
+    const base64Image = await imageToBase64(compressedImage.uri);
     console.log(`✅ Base64 conversion complete in ${Date.now() - base64Start}ms. Size: ${(base64Image.length/1024).toFixed(2)} KB`);
 
     // Step 3: Call Cloud Function with base64 image
     console.log('📡 Calling Cloud Function for OCR processing...');
     const ocrStart = Date.now();
 
-    const functions = getFunctions();
-    const processReceipt = httpsCallable(functions, 'processReceiptDirect');
+    // Get current user's auth token
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      throw new Error('User not authenticated');
+    }
 
-    const result = await processReceipt({
-      imageBase64: base64Image,
-      coupleId: coupleId
+    // Get fresh ID token
+    const idToken = await currentUser.getIdToken();
+    console.log('✅ Got auth token for user:', currentUser.uid);
+
+    // Call Cloud Function with direct HTTP request (required for .onRequest with CORS)
+    const functionUrl = 'https://us-central1-dividela-76aba.cloudfunctions.net/processReceiptDirect';
+
+    const response = await fetch(functionUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`
+      },
+      body: JSON.stringify({
+        data: {
+          imageBase64: base64Image,
+          coupleId: coupleId
+        }
+      })
     });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const responseData = await response.json();
+    const result = { data: responseData.result || responseData };
 
     console.log(`✅ OCR complete in ${Date.now() - ocrStart}ms`);
 

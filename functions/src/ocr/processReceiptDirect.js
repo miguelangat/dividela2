@@ -207,12 +207,21 @@ async function processReceiptDirect(params, context) {
     }
 
     const coupleData = coupleDoc.data();
-    const userIds = [coupleData.partner1Id, coupleData.partner2Id].filter(Boolean);
+    const userIds = [coupleData.user1Id, coupleData.user2Id].filter(Boolean);
+
+    console.log('Authorization check:', {
+      authenticatedUserId,
+      user1Id: coupleData.user1Id,
+      user2Id: coupleData.user2Id,
+      userIds,
+      isAuthorized: userIds.includes(authenticatedUserId)
+    });
 
     if (!userIds.includes(authenticatedUserId)) {
       console.error('Authorization failed', {
         authenticatedUserId,
-        coupleId
+        coupleId,
+        availableUserIds: userIds
       });
       return {
         success: false,
