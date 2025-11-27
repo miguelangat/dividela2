@@ -125,7 +125,13 @@ jest.mock('@react-navigation/native', () => {
 
 // Mock Firebase
 jest.mock('./src/config/firebase', () => ({
-  auth: {},
+  auth: {
+    currentUser: {
+      uid: 'test-user-123',
+      email: 'test@example.com',
+      displayName: 'Test User',
+    },
+  },
   db: {},
   storage: {},
 }));
