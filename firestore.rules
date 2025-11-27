@@ -316,5 +316,61 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
         resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId;
     }
+
+    // Merchant Aliases collection - for OCR merchant name learning
+    match /merchantAliases/{aliasId} {
+      // Users can create merchant aliases for their own couple
+      allow create: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId != null &&
+        request.resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId;
+
+      // Users can read merchant aliases for their couple
+      allow read: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        (!exists(/databases/$(database)/documents/merchantAliases/$(aliasId)) ||
+         resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId);
+
+      // For listing merchant aliases (queries)
+      allow list: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId != null;
+
+      // Users can update merchant aliases for their couple
+      allow update: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId;
+
+      // Users can delete merchant aliases for their couple
+      allow delete: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId;
+    }
+
+    // OCR Learning Data collection - for OCR improvement and audit trail
+    match /ocrLearningData/{learningId} {
+      // Users can create OCR learning data for their own couple (when correcting OCR results)
+      allow create: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId != null &&
+        request.resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId;
+
+      // Users can read OCR learning data for their couple (read-only access for users)
+      allow read: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        (!exists(/databases/$(database)/documents/ocrLearningData/$(learningId)) ||
+         resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId);
+
+      // For listing OCR learning data (queries)
+      allow list: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId != null;
+
+      // OCR learning data is append-only (no updates allowed to maintain audit trail)
+      allow update: if false;
+
+      // Don't allow deleting OCR learning data (maintain audit trail)
+      allow delete: if false;
+    }
   }
 }

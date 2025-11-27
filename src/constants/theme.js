@@ -332,6 +332,22 @@ export const COMMON_STYLES = {
   },
 };
 
+// Export theme object for components that use it directly
+export const theme = {
+  colors: {
+    ...COLORS,
+    background: COLORS.background,
+    surface: COLORS.cardBackground,
+    text: COLORS.text,
+    textSecondary: COLORS.textSecondary,
+    primary: COLORS.primary,
+    success: COLORS.success,
+    error: COLORS.error,
+    warning: COLORS.warning,
+    info: COLORS.info,
+  },
+};
+
 export default {
   COLORS,
   FONTS,
@@ -341,4 +357,5 @@ export default {
   ANIMATIONS,
   COMMON_STYLES,
   createGradient,
+  theme,
 };

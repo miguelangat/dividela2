@@ -1,0 +1,110 @@
+{
+  "merchants": [
+    {
+      "canonicalName": "Whole Foods Market",
+      "aliases": [
+        "whole foods",
+        "wholefoods",
+        "wfm",
+        "whole foods market",
+        "wholefoodsmarket"
+      ],
+      "category": "Groceries"
+    },
+    {
+      "canonicalName": "Starbucks Coffee",
+      "aliases": [
+        "starbucks",
+        "sbux",
+        "starbucks coffee",
+        "starbucks cafe"
+      ],
+      "category": "Dining"
+    },
+    {
+      "canonicalName": "Shell Gas Station",
+      "aliases": [
+        "shell",
+        "shell gas",
+        "shell oil",
+        "shell station"
+      ],
+      "category": "Transportation"
+    },
+    {
+      "canonicalName": "CVS Pharmacy",
+      "aliases": [
+        "cvs",
+        "cvs pharmacy",
+        "cvs health",
+        "cvs/pharmacy"
+      ],
+      "category": "Health"
+    },
+    {
+      "canonicalName": "Target",
+      "aliases": [
+        "target",
+        "target stores",
+        "target corporation"
+      ],
+      "category": "Shopping"
+    },
+    {
+      "canonicalName": "McDonald's",
+      "aliases": [
+        "mcdonalds",
+        "mcdonald's",
+        "mcd",
+        "mc donalds"
+      ],
+      "category": "Dining"
+    },
+    {
+      "canonicalName": "Amazon",
+      "aliases": [
+        "amazon",
+        "amazon.com",
+        "amzn",
+        "amazon marketplace"
+      ],
+      "category": "Shopping"
+    },
+    {
+      "canonicalName": "Costco",
+      "aliases": [
+        "costco",
+        "costco wholesale",
+        "costco warehouse"
+      ],
+      "category": "Groceries"
+    },
+    {
+      "canonicalName": "Walgreens",
+      "aliases": [
+        "walgreens",
+        "walgreen",
+        "walgreens pharmacy"
+      ],
+      "category": "Health"
+    },
+    {
+      "canonicalName": "Uber",
+      "aliases": [
+        "uber",
+        "uber trip",
+        "uber technologies"
+      ],
+      "category": "Transportation"
+    }
+  ],
+  "categoryMappings": {
+    "Groceries": ["Food & Dining", "Groceries"],
+    "Dining": ["Food & Dining", "Restaurants"],
+    "Transportation": ["Transportation", "Gas & Fuel", "Ride Share"],
+    "Health": ["Health & Fitness", "Pharmacy"],
+    "Shopping": ["Shopping", "General Merchandise"],
+    "Entertainment": ["Entertainment", "Fun & Recreation"],
+    "Utilities": ["Bills & Utilities"]
+  }
+}

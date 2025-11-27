@@ -32,6 +32,7 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { onboardingStorage } from '../../utils/storage';
 import { COLORS, FONTS, SPACING } from '../../constants/theme';
 import { formatCurrency, calculateBalance } from '../../utils/calculations';
+import MerchantAliasManager from '../../components/MerchantAliasManager';
 import { useTranslation } from 'react-i18next';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -52,6 +53,7 @@ export default function SettingsScreen({ navigation }) {
   const [signOutModalVisible, setSignOutModalVisible] = useState(false);
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
   const [restartOnboardingModalVisible, setRestartOnboardingModalVisible] = useState(false);
+  const [showAliasManager, setShowAliasManager] = useState(false);
 
   // Fetch partner details
   useEffect(() => {
@@ -415,6 +417,29 @@ export default function SettingsScreen({ navigation }) {
     </View>
   );
 
+  const renderReceiptScanningSection = () => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Receipt Scanning</Text>
+
+      <View style={styles.card}>
+        <TouchableOpacity
+          style={[styles.settingRow, styles.settingRowLast]}
+          onPress={() => setShowAliasManager(true)}
+          activeOpacity={0.6}
+        >
+          <View style={styles.settingIcon}>
+            <Ionicons name="storefront" size={20} color={COLORS.primary} />
+          </View>
+          <View style={styles.settingContent}>
+            <Text style={styles.settingLabel}>Merchant Aliases</Text>
+            <Text style={styles.settingValue}>Manage merchant name variations</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
   const renderAboutSection = () => (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{t('settings.about')}</Text>
@@ -517,6 +542,9 @@ export default function SettingsScreen({ navigation }) {
 
         {/* Preferences Section */}
         {renderPreferencesSection()}
+
+        {/* Receipt Scanning Section */}
+        {renderReceiptScanningSection()}
 
         {/* About Section */}
         {renderAboutSection()}
@@ -623,6 +651,17 @@ export default function SettingsScreen({ navigation }) {
         </View>
       </Modal>
 
+      {/* Merchant Alias Manager Modal */}
+      <Modal
+        visible={showAliasManager}
+        animationType="slide"
+        onRequestClose={() => setShowAliasManager(false)}
+      >
+        <MerchantAliasManager
+          coupleId={userDetails?.coupleId}
+          onClose={() => setShowAliasManager(false)}
+        />
+      </Modal>
     </View>
   );
 }

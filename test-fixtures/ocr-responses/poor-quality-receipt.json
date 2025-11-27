@@ -1,0 +1,17 @@
+{
+  "merchant": "Unknown Merchant",
+  "amount": 0,
+  "date": null,
+  "confidence": 0.45,
+  "rawText": "****** ******\n*** **** ****\n*****, ** *****\n\nDate: **/**/****\nTime: **:**\n\n**** ****          $**.** \n**** ****          $**.** \n**** ****          $**.** \n\nSubtotal:          $**.** \nTax:               $*.** \nTotal:             $**.** \n\nPayment: **** ****",
+  "items": [],
+  "currency": "USD",
+  "errors": [
+    "Low image quality",
+    "Unable to extract merchant name",
+    "Unable to extract date",
+    "Unable to extract amount",
+    "Text recognition confidence below threshold"
+  ],
+  "requiresManualReview": true
+}

@@ -20,8 +20,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -29,6 +31,10 @@ import { useBudget } from '../../contexts/BudgetContext';
 import { COLORS, FONTS, SPACING, COMMON_STYLES } from '../../constants/theme';
 import { calculateEqualSplit, calculateSplit, roundCurrency } from '../../utils/calculations';
 import * as expenseService from '../../services/expenseService';
+import { scanReceiptDirect, recordOCRFeedback } from '../../services/ocrService';
+import { createMerchantAlias } from '../../services/merchantAliasService';
+import OCRSuggestionCard from '../../components/OCRSuggestionCard';
+import OCRProcessingBanner from '../../components/OCRProcessingBanner';
 
 export default function AddExpenseScreen({ navigation, route }) {
   const { user, userDetails } = useAuth();
@@ -46,6 +52,13 @@ export default function AddExpenseScreen({ navigation, route }) {
   const [userSplitPercentage, setUserSplitPercentage] = useState('50');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // OCR state (simplified - no upload/storage needed)
+  const [ocrState, setOcrState] = useState({
+    status: 'idle', // idle | processing | ready | failed
+    suggestions: null,
+    error: null,
+  });
 
   // Pre-populate form when editing
   useEffect(() => {
@@ -86,6 +99,151 @@ export default function AddExpenseScreen({ navigation, route }) {
     if (num > 100) return;
     setUserSplitPercentage(String(num));
   };
+
+  // OCR Handlers
+  const handleScanReceipt = async () => {
+    try {
+      console.log('=== SCAN RECEIPT BUTTON TAPPED ===');
+      console.log('Current OCR state:', ocrState.status);
+
+      // Request camera permissions
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Required',
+          'Camera permission is required to scan receipts. Please enable it in your device settings.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      // Launch camera
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 0.8,
+      });
+
+      if (result.canceled) {
+        return;
+      }
+
+      const imageUri = result.assets[0].uri;
+      console.log('📸 Photo captured:', imageUri);
+      await processImageReceipt(imageUri);
+    } catch (err) {
+      console.error('❌ Error capturing photo:', err);
+      setOcrState({
+        status: 'failed',
+        suggestions: null,
+        error: err.message || 'Failed to capture photo',
+      });
+    }
+  };
+
+  const processImageReceipt = async (imageUri) => {
+    try {
+      // Set processing state
+      setOcrState({
+        status: 'processing',
+        suggestions: null,
+        error: null,
+      });
+      setError('');
+
+      console.log('🔍 Starting OCR processing...');
+
+      // Call Cloud Function directly with image
+      const ocrData = await scanReceiptDirect(
+        imageUri,
+        userDetails.coupleId,
+        user.uid
+      );
+
+      console.log('✅ OCR completed successfully');
+
+      // Update state with suggestions
+      setOcrState({
+        status: 'ready',
+        suggestions: {
+          merchant: ocrData.merchant,
+          amount: ocrData.amount,
+          date: ocrData.date,
+          category: ocrData.suggestedCategory,
+          categoryConfidence: ocrData.categoryConfidence,
+          alternativeCategories: ocrData.alternativeCategories,
+          confidence: ocrData.ocrConfidence,
+          source: 'direct-ocr',
+        },
+        error: null,
+      });
+
+      // Show success message
+      Alert.alert(
+        'Receipt Scanned',
+        'Receipt information extracted. Please review and edit as needed.',
+        [{ text: 'OK' }]
+      );
+    } catch (err) {
+      console.error('❌ Error processing image receipt:', err);
+      setOcrState({
+        status: 'failed',
+        suggestions: null,
+        error: err.message || 'Failed to process receipt',
+      });
+
+      Alert.alert(
+        'Processing Failed',
+        err.message || 'Failed to process receipt. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  const handleAcceptSuggestions = (suggestions) => {
+    // Pre-fill form fields
+    if (suggestions.amount) {
+      setAmount(suggestions.amount.toString());
+    }
+    if (suggestions.merchant) {
+      setDescription(suggestions.merchant);
+    }
+    if (suggestions.category?.category) {
+      setSelectedCategory(suggestions.category.category.toLowerCase());
+    }
+
+    // Clear OCR state
+    setOcrState({
+      status: 'idle',
+      expenseId: null,
+      receiptUrl: null,
+      suggestions: null,
+      error: null,
+    });
+  };
+
+  const handleDismissSuggestions = () => {
+    setOcrState({
+      status: 'idle',
+      expenseId: null,
+      receiptUrl: null,
+      suggestions: null,
+      error: null,
+    });
+  };
+
+  const handleCreateAlias = async (ocrMerchant, userAlias) => {
+    try {
+      await createMerchantAlias(ocrMerchant, userAlias, userDetails.coupleId);
+      Alert.alert('Success', 'Merchant alias created successfully');
+    } catch (err) {
+      console.error('Error creating alias:', err);
+      Alert.alert('Error', err.message || 'Failed to create merchant alias');
+    }
+  };
+
+  // Note: OCR processing is now direct/immediate, no subscription needed
 
   const handleSubmit = async () => {
     // Validation
@@ -188,6 +346,25 @@ export default function AddExpenseScreen({ navigation, route }) {
         console.log('✓ Expense created successfully');
       }
 
+      // Record OCR feedback if suggestions were used
+      if (ocrState.suggestions && !isEditMode) {
+        try {
+          await recordOCRFeedback(
+            ocrState.suggestions,
+            {
+              amount: expenseAmount,
+              description: description.trim(),
+              category: selectedCategory,
+            },
+            userDetails.coupleId
+          );
+          console.log('✓ OCR feedback recorded');
+        } catch (feedbackErr) {
+          console.error('Error recording OCR feedback:', feedbackErr);
+          // Don't fail the expense creation if feedback recording fails
+        }
+      }
+
       // Update couple's lastActivity
       await updateDoc(doc(db, 'couples', userDetails.coupleId), {
         lastActivity: serverTimestamp(),
@@ -222,6 +399,57 @@ export default function AddExpenseScreen({ navigation, route }) {
           <Text style={styles.headerTitle}>{isEditMode ? 'Edit Expense' : 'Add Expense'}</Text>
           <View style={{ width: 24 }} />
         </View>
+
+        {/* OCR Section - Only show in add mode */}
+        {!isEditMode && (
+          <>
+            {/* Scan Receipt Button */}
+            <TouchableOpacity
+              style={styles.scanButton}
+              onPress={handleScanReceipt}
+              testID="scan-receipt-button"
+              disabled={ocrState.status === 'processing'}
+            >
+              <Ionicons name="camera" size={24} color={COLORS.primary} />
+              <Text style={styles.scanButtonText}>Scan Receipt</Text>
+            </TouchableOpacity>
+
+            {/* OCR Processing Banner */}
+            {ocrState.status === 'processing' && (
+              <OCRProcessingBanner
+                status={ocrState.status}
+                style={styles.ocrBanner}
+              />
+            )}
+
+            {/* OCR Suggestion Card */}
+            {ocrState.status === 'ready' && ocrState.suggestions && (
+              <OCRSuggestionCard
+                receiptUrl={ocrState.receiptUrl}
+                suggestions={ocrState.suggestions}
+                onAccept={handleAcceptSuggestions}
+                onDismiss={handleDismissSuggestions}
+                onCreateAlias={handleCreateAlias}
+                style={styles.ocrSuggestion}
+              />
+            )}
+
+            {/* OCR Error Banner */}
+            {ocrState.status === 'failed' && ocrState.error && (
+              <View style={styles.errorContainer}>
+                <Ionicons name="alert-circle" size={20} color={COLORS.error} />
+                <Text style={styles.errorText}>{ocrState.error}</Text>
+              </View>
+            )}
+
+            {/* Divider */}
+            <View style={styles.dividerContainer}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or</Text>
+              <View style={styles.dividerLine} />
+            </View>
+          </>
+        )}
 
         {/* Amount Input */}
         <View style={styles.amountSection}>
@@ -268,6 +496,7 @@ export default function AddExpenseScreen({ navigation, route }) {
                     selectedCategory === key && { backgroundColor: COLORS.primary + '20' },
                   ]}
                   onPress={() => setSelectedCategory(key)}
+                  testID={`category-button-${key}`}
                 >
                   <Text style={styles.categoryIcon}>{category.icon}</Text>
                   <Text style={styles.categoryName}>{category.name}</Text>
@@ -612,5 +841,46 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.5,
+  },
+  // OCR Styles
+  scanButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primary + '15',
+    borderRadius: 12,
+    padding: SPACING.base,
+    marginBottom: SPACING.base,
+    borderWidth: 2,
+    borderColor: COLORS.primary + '30',
+    gap: SPACING.small,
+  },
+  scanButtonText: {
+    ...FONTS.body,
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  ocrBanner: {
+    marginBottom: SPACING.base,
+  },
+  ocrSuggestion: {
+    marginBottom: SPACING.base,
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: SPACING.large,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.border,
+  },
+  dividerText: {
+    ...FONTS.body,
+    color: COLORS.textSecondary,
+    marginHorizontal: SPACING.base,
+    textTransform: 'uppercase',
+    fontSize: 12,
   },
 });

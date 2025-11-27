@@ -1,0 +1,17 @@
+{
+  "merchant": "Starbucks Coffee",
+  "amount": 15.75,
+  "date": "2025-11-19",
+  "confidence": 0.94,
+  "rawText": "STARBUCKS COFFEE\n321 Main Street\nAnytown, CA 94000\n\nDate: 11/19/2025\nTime: 07:30 AM\n\nGrande Latte             $5.25\nVenti Americano          $4.50\nBlueberry Muffin         $3.75\nChocolate Croissant      $4.25\n\nSubtotal:               $17.75\nDiscount (Rewards):     -$2.00\nTotal:                  $15.75\n\nRewards Points Earned: 15\nPayment: AMEX ****9012",
+  "items": [
+    {"name": "Grande Latte", "price": 5.25},
+    {"name": "Venti Americano", "price": 4.50},
+    {"name": "Blueberry Muffin", "price": 3.75},
+    {"name": "Chocolate Croissant", "price": 4.25}
+  ],
+  "subtotal": 17.75,
+  "discount": 2.00,
+  "currency": "USD",
+  "category": "Dining"
+}
