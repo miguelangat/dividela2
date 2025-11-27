@@ -130,21 +130,42 @@ jest.mock('./src/config/firebase', () => ({
   storage: {},
 }));
 
+// Mock Firebase Auth
+jest.mock('firebase/auth', () => ({
+  getAuth: jest.fn(() => ({})),
+  createUserWithEmailAndPassword: jest.fn(),
+  signInWithEmailAndPassword: jest.fn(),
+  signOut: jest.fn(),
+  onAuthStateChanged: jest.fn((auth, callback) => {
+    // Call callback with null user by default
+    setTimeout(() => callback(null), 0);
+    return jest.fn(); // unsubscribe function
+  }),
+  updateProfile: jest.fn(),
+  updateEmail: jest.fn(),
+  updatePassword: jest.fn(),
+  sendPasswordResetEmail: jest.fn(),
+  deleteUser: jest.fn(),
+}));
+
 // Mock Firebase Storage
 jest.mock('firebase/storage', () => ({
   ref: jest.fn(),
   uploadBytesResumable: jest.fn(),
   deleteObject: jest.fn(),
   getDownloadURL: jest.fn(),
+  getStorage: jest.fn(() => ({})),
 }));
 
 // Mock Firebase Firestore
 jest.mock('firebase/firestore', () => ({
+  getFirestore: jest.fn(() => ({})),
   collection: jest.fn(),
   doc: jest.fn(),
   getDoc: jest.fn(),
   getDocs: jest.fn(),
   addDoc: jest.fn(),
+  setDoc: jest.fn(),
   updateDoc: jest.fn(),
   deleteDoc: jest.fn(),
   query: jest.fn(),
@@ -152,8 +173,14 @@ jest.mock('firebase/firestore', () => ({
   orderBy: jest.fn(),
   limit: jest.fn(),
   onSnapshot: jest.fn(),
-  serverTimestamp: jest.fn(),
-  increment: jest.fn(),
+  serverTimestamp: jest.fn(() => new Date()),
+  increment: jest.fn((n) => n),
+  arrayUnion: jest.fn(),
+  arrayRemove: jest.fn(),
+  Timestamp: {
+    now: jest.fn(() => ({ seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 })),
+    fromDate: jest.fn((date) => ({ seconds: Math.floor(date.getTime() / 1000), nanoseconds: 0 })),
+  },
 }));
 
 // Mock react-i18next
@@ -270,6 +297,59 @@ jest.mock('string-similarity', () => ({
     };
   }),
 }));
+
+// Mock react-native-purchases
+jest.mock('react-native-purchases', () => {
+  const mockCustomerInfo = {
+    activeSubscriptions: [],
+    allPurchasedProductIdentifiers: [],
+    latestExpirationDate: null,
+    entitlements: {
+      active: {},
+      all: {},
+    },
+  };
+
+  return {
+    __esModule: true,
+    default: {
+      configure: jest.fn(),
+      setLogLevel: jest.fn(),
+      getCustomerInfo: jest.fn().mockResolvedValue(mockCustomerInfo),
+      logIn: jest.fn().mockResolvedValue({ customerInfo: mockCustomerInfo, created: false }),
+      logOut: jest.fn().mockResolvedValue(mockCustomerInfo),
+      getOfferings: jest.fn().mockResolvedValue({ all: {}, current: null }),
+      purchasePackage: jest.fn(),
+      restorePurchases: jest.fn().mockResolvedValue(mockCustomerInfo),
+      syncPurchases: jest.fn().mockResolvedValue(mockCustomerInfo),
+    },
+    LOG_LEVEL: {
+      VERBOSE: 'VERBOSE',
+      DEBUG: 'DEBUG',
+      INFO: 'INFO',
+      WARN: 'WARN',
+      ERROR: 'ERROR',
+    },
+    PURCHASES_ERROR_CODE: {
+      UNKNOWN_ERROR: 0,
+      PURCHASE_CANCELLED_ERROR: 1,
+      STORE_PROBLEM_ERROR: 2,
+      PURCHASE_NOT_ALLOWED_ERROR: 3,
+      PURCHASE_INVALID_ERROR: 4,
+      PRODUCT_NOT_AVAILABLE_FOR_PURCHASE_ERROR: 5,
+      PRODUCT_ALREADY_PURCHASED_ERROR: 6,
+      RECEIPT_ALREADY_IN_USE_ERROR: 7,
+      INVALID_RECEIPT_ERROR: 8,
+      MISSING_RECEIPT_FILE_ERROR: 9,
+      NETWORK_ERROR: 10,
+      INVALID_CREDENTIALS_ERROR: 11,
+      UNEXPECTED_BACKEND_RESPONSE_ERROR: 12,
+      INVALID_APP_USER_ID_ERROR: 14,
+      OPERATION_ALREADY_IN_PROGRESS_ERROR: 15,
+      UNKNOWN_BACKEND_ERROR: 16,
+    },
+  };
+});
 
 // Silence console warnings in tests
 global.console = {
