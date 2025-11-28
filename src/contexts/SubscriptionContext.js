@@ -4,6 +4,8 @@
 import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
 import { AppState, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../config/firebase';
 import { useAuth } from './AuthContext';
 import {
   initializeRevenueCat,
@@ -14,6 +16,8 @@ import {
   hasFeatureAccess,
   canCreateBudget,
   subscribeToSubscriptionUpdates,
+  checkFirestorePremiumStatus,
+  checkPartnerPremiumStatus,
 } from '../services/subscriptionService';
 
 // Constants
@@ -43,7 +47,9 @@ const errorLog = (message, error = null) => {
 const saveToCache = async (data) => {
   try {
     const cacheData = {
-      ...data,
+      isPremium: data.isPremium || false,
+      premiumSource: data.premiumSource || 'none',
+      subscriptionInfo: data.subscriptionInfo || null,
       cachedAt: Date.now(),
     };
     await AsyncStorage.setItem(SUBSCRIPTION_CACHE_KEY, JSON.stringify(cacheData));
@@ -66,7 +72,11 @@ const loadFromCache = async () => {
       return null;
     }
 
-    debugLog('Loaded from cache', { age, data });
+    debugLog('Loaded from cache', {
+      age,
+      isPremium: data.isPremium,
+      premiumSource: data.premiumSource,
+    });
     return data;
   } catch (error) {
     errorLog('Failed to load cache', error);
@@ -125,6 +135,7 @@ export const SubscriptionProvider = ({ children }) => {
   const [subscriptionInfo, setSubscriptionInfo] = useState(null);
   const [isOffline, setIsOffline] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState(null);
+  const [premiumSource, setPremiumSource] = useState('none'); // 'own', 'partner', 'none'
 
   // Refs for tracking state
   const isInitialized = useRef(false);
@@ -159,43 +170,120 @@ export const SubscriptionProvider = ({ children }) => {
         if (cached) {
           debugLog('Using cached subscription status');
           setIsPremium(cached.isPremium || false);
+          setPremiumSource(cached.premiumSource || 'none');
           setSubscriptionInfo(cached.subscriptionInfo || null);
           setLastSyncTime(cached.cachedAt);
           // Continue to sync in background
         }
 
         // Step 2: Initialize RevenueCat with retry
-        const initResult = await retryWithBackoff(async () => {
-          return await initializeRevenueCat(user.uid);
-        });
+        let initResult = { success: false };
+        try {
+          initResult = await retryWithBackoff(async () => {
+            return await initializeRevenueCat(user.uid);
+          });
+        } catch (initError) {
+          errorLog('RevenueCat initialization failed after retries', initError);
+          initResult = { success: false };
+        }
 
         if (!initResult.success) {
-          errorLog('RevenueCat initialization failed', initResult.error);
+          errorLog('RevenueCat initialization failed, checking Firestore only');
           setIsOffline(true);
-          // Use cached value if available, otherwise default to free
-          if (!cached) {
-            setIsPremium(false);
+
+          // Still check Firestore even if RevenueCat failed
+          try {
+            const firestoreStatus = await checkFirestorePremiumStatus(user.uid);
+            let finalPremium = firestoreStatus.isPremium;
+            let finalSource = firestoreStatus.isPremium ? 'own' : 'none';
+
+            // Check partner if own Firestore shows not premium
+            if (!finalPremium && userDetails?.partnerId) {
+              const partnerStatus = await checkPartnerPremiumStatus(userDetails.partnerId);
+              if (partnerStatus.isPremium) {
+                finalPremium = true;
+                finalSource = 'partner';
+              }
+            }
+
+            setIsPremium(finalPremium);
+            setPremiumSource(finalSource);
+            setSubscriptionInfo({
+              expirationDate: firestoreStatus.expirationDate,
+            });
+            setLastSyncTime(Date.now());
+
+            // Cache Firestore result
+            await saveToCache({
+              isPremium: finalPremium,
+              premiumSource: finalSource,
+              subscriptionInfo: { expirationDate: firestoreStatus.expirationDate },
+            });
+
+            console.log('✅ Using Firestore premium status (RevenueCat unavailable):', finalPremium, 'source:', finalSource);
+          } catch (firestoreError) {
+            errorLog('Firestore check also failed', firestoreError);
+            if (!cached) {
+              setIsPremium(false);
+              setPremiumSource('none');
+            }
           }
+
           setLoading(false);
           return;
         }
 
-        // Step 3: Check subscription status with retry
-        const status = await retryWithBackoff(async () => {
+        // Step 3: Check own subscription status with retry
+        const ownStatus = await retryWithBackoff(async () => {
           return await checkSubscriptionStatus(user.uid);
         });
 
-        setIsPremium(status.isPremium);
+        let finalPremium = ownStatus.isPremium;
+        let finalSource = ownStatus.isPremium ? 'own' : 'none';
+        let finalExpirationDate = ownStatus.expirationDate;
+
+        // Step 4: If not premium, check partner premium (couple sharing)
+        if (!finalPremium && userDetails?.partnerId) {
+          debugLog('User not premium, checking partner status...', {
+            partnerId: userDetails.partnerId,
+            coupleId: userDetails.coupleId,
+          });
+
+          try {
+            const partnerStatus = await checkPartnerPremiumStatus(userDetails.partnerId);
+
+            if (partnerStatus.isPremium) {
+              console.log('✅ Premium granted via partner subscription!', {
+                partnerId: userDetails.partnerId,
+                source: partnerStatus.source,
+                expirationDate: partnerStatus.expirationDate,
+              });
+
+              finalPremium = true;
+              finalSource = 'partner';
+              finalExpirationDate = partnerStatus.expirationDate;
+            } else {
+              debugLog('Partner is also not premium');
+            }
+          } catch (partnerError) {
+            // Partner check is non-critical - log but don't fail
+            errorLog('Partner premium check failed (non-critical)', partnerError);
+          }
+        }
+
+        setIsPremium(finalPremium);
+        setPremiumSource(finalSource);
         setSubscriptionInfo({
-          expirationDate: status.expirationDate,
+          expirationDate: finalExpirationDate,
         });
         setLastSyncTime(Date.now());
         setIsOffline(false);
 
-        // Cache the result
+        // Cache the result (including partner status)
         await saveToCache({
-          isPremium: status.isPremium,
-          subscriptionInfo: { expirationDate: status.expirationDate },
+          isPremium: finalPremium,
+          premiumSource: finalSource,
+          subscriptionInfo: { expirationDate: finalExpirationDate },
         });
 
         // Step 4: Load offerings (non-critical, don't fail on error)
@@ -207,7 +295,7 @@ export const SubscriptionProvider = ({ children }) => {
         }
 
         isInitialized.current = true;
-        debugLog('✅ Initialization complete', { isPremium: status.isPremium });
+        debugLog('✅ Initialization complete', { isPremium: finalPremium, premiumSource: finalSource });
       } catch (err) {
         errorLog('Initialization error', err);
         setError(err.message);
@@ -229,6 +317,55 @@ export const SubscriptionProvider = ({ children }) => {
 
     initialize();
   }, [user]);
+
+  // Check partner premium when userDetails becomes available
+  useEffect(() => {
+    const checkPartnerWhenReady = async () => {
+      // Only check if:
+      // 1. User is logged in
+      // 2. User is NOT already premium
+      // 3. UserDetails has partnerId
+      // 4. Not currently loading
+      if (!user || isPremium || !userDetails?.partnerId || loading) {
+        return;
+      }
+
+      debugLog('UserDetails now available, checking partner premium...', {
+        partnerId: userDetails.partnerId,
+        currentPremium: isPremium,
+      });
+
+      try {
+        const partnerStatus = await checkPartnerPremiumStatus(userDetails.partnerId);
+
+        if (partnerStatus.isPremium) {
+          console.log('✅ Partner premium detected after userDetails loaded!', {
+            partnerId: userDetails.partnerId,
+            source: partnerStatus.source,
+            expirationDate: partnerStatus.expirationDate,
+          });
+
+          setIsPremium(true);
+          setPremiumSource('partner');
+          setSubscriptionInfo({
+            expirationDate: partnerStatus.expirationDate,
+          });
+          setLastSyncTime(Date.now());
+
+          // Update cache
+          await saveToCache({
+            isPremium: true,
+            premiumSource: 'partner',
+            subscriptionInfo: { expirationDate: partnerStatus.expirationDate },
+          });
+        }
+      } catch (error) {
+        errorLog('Failed to check partner premium (non-critical)', error);
+      }
+    };
+
+    checkPartnerWhenReady();
+  }, [userDetails?.partnerId, isPremium, loading, user]);
 
   // Subscribe to real-time subscription updates
   useEffect(() => {
@@ -266,24 +403,43 @@ export const SubscriptionProvider = ({ children }) => {
         syncInProgress.current = true;
         debugLog('App came to foreground, reconciling subscription');
 
-        const status = await retryWithBackoff(async () => {
+        const ownStatus = await retryWithBackoff(async () => {
           return await checkSubscriptionStatus(user.uid);
         }, 2); // Only 2 retries for foreground sync
 
-        const hasChanged = status.isPremium !== isPremium;
+        let finalPremium = ownStatus.isPremium;
+        let finalSource = ownStatus.isPremium ? 'own' : 'none';
+
+        // Check partner if not premium
+        if (!finalPremium && userDetails?.partnerId) {
+          try {
+            const partnerStatus = await checkPartnerPremiumStatus(userDetails.partnerId);
+            if (partnerStatus.isPremium) {
+              finalPremium = true;
+              finalSource = 'partner';
+            }
+          } catch (partnerError) {
+            errorLog('Partner check failed during foreground sync (non-critical)', partnerError);
+          }
+        }
+
+        const hasChanged = finalPremium !== isPremium;
 
         if (hasChanged) {
           debugLog('Subscription status changed', {
             old: isPremium,
-            new: status.isPremium
+            new: finalPremium,
+            source: finalSource
           });
-          setIsPremium(status.isPremium);
-          setSubscriptionInfo({ expirationDate: status.expirationDate });
+          setIsPremium(finalPremium);
+          setPremiumSource(finalSource);
+          setSubscriptionInfo({ expirationDate: ownStatus.expirationDate });
 
           // Update cache
           await saveToCache({
-            isPremium: status.isPremium,
-            subscriptionInfo: { expirationDate: status.expirationDate },
+            isPremium: finalPremium,
+            premiumSource: finalSource,
+            subscriptionInfo: { expirationDate: ownStatus.expirationDate },
           });
         } else {
           debugLog('Subscription status unchanged');
@@ -340,6 +496,60 @@ export const SubscriptionProvider = ({ children }) => {
       }
     }
   }, [userDetails?.subscriptionStatus, userDetails?.subscriptionExpiresAt, isPremium]);
+
+  // Direct Firestore listener for subscription changes (independent of AuthContext)
+  useEffect(() => {
+    if (!user) return;
+
+    debugLog('Setting up direct Firestore subscription listener');
+
+    const userRef = doc(db, 'users', user.uid);
+
+    const unsubscribe = onSnapshot(userRef,
+      (snapshot) => {
+        if (!snapshot.exists()) return;
+
+        const userData = snapshot.data();
+        const firestoreStatus = userData.subscriptionStatus;
+        const expiresAt = userData.subscriptionExpiresAt;
+
+        // Check if manual grant exists and is valid
+        if (firestoreStatus === 'premium') {
+          const isValid = !expiresAt || expiresAt.toDate() > new Date();
+
+          if (isValid && !isPremium) {
+            console.log('🔥 Direct Firestore listener detected premium grant!');
+            setIsPremium(true);
+            setSubscriptionInfo({
+              expirationDate: expiresAt?.toDate() || null,
+            });
+            setLastSyncTime(Date.now());
+          } else if (!isValid && isPremium) {
+            console.log('⏰ Premium expired via Firestore listener');
+            setIsPremium(false);
+          }
+        } else if (firestoreStatus === 'free' && isPremium) {
+          // Only downgrade if we don't have RevenueCat premium
+          // (Don't let manual revoke override real subscription)
+          console.log('🔄 Firestore shows free, checking if RevenueCat has subscription');
+          checkSubscriptionStatus(user.uid).then(status => {
+            if (!status.isPremium) {
+              console.log('📉 Downgrading to free (both sources agree)');
+              setIsPremium(false);
+            }
+          });
+        }
+      },
+      (error) => {
+        console.error('Error in Firestore subscription listener:', error);
+      }
+    );
+
+    return () => {
+      debugLog('Cleaning up Firestore subscription listener');
+      unsubscribe();
+    };
+  }, [user?.uid]); // Only depend on user ID, not isPremium to avoid loops
 
   /**
    * Purchase a subscription package
@@ -426,12 +636,12 @@ export const SubscriptionProvider = ({ children }) => {
   /**
    * Check if user has access to a specific feature
    */
-  const hasAccess = async (featureId) => {
+  const hasAccess = (featureId) => {
     // If not logged in, no premium features
     if (!user) return false;
 
-    // Check via RevenueCat service
-    return await hasFeatureAccess(featureId);
+    // Check via RevenueCat service (pass isPremium state)
+    return hasFeatureAccess(featureId, isPremium);
   };
 
   /**
@@ -549,6 +759,7 @@ export const SubscriptionProvider = ({ children }) => {
   // Value provided to consumers
   const value = {
     isPremium,
+    premiumSource,
     loading,
     error,
     offerings,

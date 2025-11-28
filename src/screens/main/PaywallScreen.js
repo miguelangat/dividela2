@@ -117,6 +117,8 @@ export default function PaywallScreen({ navigation, route }) {
       advanced_analytics: 'Advanced Analytics',
       export_data: 'Export Data',
       custom_categories: 'Custom Categories',
+      receipt_scanning: 'Receipt Scanning',
+      import_expenses: 'CSV Import',
     };
 
     return titles[feature] || 'Premium Features';
@@ -124,9 +126,11 @@ export default function PaywallScreen({ navigation, route }) {
 
   const premiumFeatures = [
     { icon: 'infinite', title: 'Unlimited Budgets', description: 'Create as many budgets as you need' },
+    { icon: 'camera', title: 'Receipt Scanning', description: 'Scan receipts with AI-powered OCR' },
     { icon: 'calendar', title: 'Annual View', description: 'Track expenses across the entire year' },
     { icon: 'stats-chart', title: 'Advanced Analytics', description: 'Insights and trends for smarter spending' },
     { icon: 'download', title: 'Export Data', description: 'Download expenses for taxes or records' },
+    { icon: 'cloud-upload', title: 'CSV Import', description: 'Bulk import expenses from bank statements' },
     { icon: 'pricetag', title: 'Custom Categories', description: 'Create your own expense categories' },
     { icon: 'repeat', title: 'Recurring Expenses', description: 'Automate regular bills and subscriptions' },
     { icon: 'heart', title: 'Relationship Insights', description: 'Financial health scores for couples' },

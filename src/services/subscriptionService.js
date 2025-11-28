@@ -3,7 +3,7 @@
 
 import Purchases from 'react-native-purchases';
 import { Platform } from 'react-native';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
 // RevenueCat API Keys (to be configured in .env)
@@ -125,29 +125,169 @@ export const purchasePackage = async (packageToPurchase, userId) => {
 };
 
 /**
- * Check current subscription status
+ * Check Firestore for manually granted premium status
+ * This is used as a fallback when RevenueCat doesn't have subscription data
  */
-export const checkSubscriptionStatus = async (userId) => {
+export const checkFirestorePremiumStatus = async (userId) => {
   try {
-    const customerInfo = await Purchases.getCustomerInfo();
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
 
-    // Check if user has active premium entitlement
-    const isPremium = customerInfo.entitlements.active[ENTITLEMENT_IDS.PREMIUM] !== undefined;
+    if (!userDoc.exists()) {
+      return { isPremium: false, expirationDate: null };
+    }
 
-    console.log('Subscription status - Premium:', isPremium);
+    const userData = userDoc.data();
 
-    // Sync with Firebase
-    await syncSubscriptionWithFirebase(customerInfo, userId);
+    // Check if user has premium status in Firestore
+    const isPremium = userData.subscriptionStatus === 'premium';
+
+    // Check if subscription is still valid (not expired)
+    let isValid = true;
+    if (userData.subscriptionExpiresAt) {
+      const expirationDate = userData.subscriptionExpiresAt.toDate();
+      isValid = expirationDate > new Date();
+    }
 
     return {
-      isPremium,
-      customerInfo,
-      expirationDate: customerInfo.entitlements.active[ENTITLEMENT_IDS.PREMIUM]?.expirationDate,
+      isPremium: isPremium && isValid,
+      expirationDate: userData.subscriptionExpiresAt?.toDate() || null,
+      manuallyGranted: userData.manuallyGranted || false,
     };
   } catch (error) {
-    console.error('Error checking subscription status:', error);
-    throw error;
+    console.error('Error checking Firestore premium status:', error);
+    return { isPremium: false, expirationDate: null };
   }
+};
+
+/**
+ * Check partner's premium status from Firestore
+ * Used for couple premium sharing
+ *
+ * @param {string} partnerId - The partner's user ID
+ * @returns {Promise<{isPremium: boolean, expirationDate: Date|null, source: string}>}
+ */
+export const checkPartnerPremiumStatus = async (partnerId) => {
+  if (!partnerId) {
+    return { isPremium: false, expirationDate: null, source: 'none' };
+  }
+
+  try {
+    console.log('Checking partner premium status for:', partnerId);
+
+    const partnerRef = doc(db, 'users', partnerId);
+    const partnerDoc = await getDoc(partnerRef);
+
+    if (!partnerDoc.exists()) {
+      console.log('Partner document not found');
+      return { isPremium: false, expirationDate: null, source: 'none' };
+    }
+
+    const partnerData = partnerDoc.data();
+
+    // Check if partner has premium status
+    const isPremium = partnerData.subscriptionStatus === 'premium';
+
+    // Validate expiration
+    let isValid = true;
+    if (partnerData.subscriptionExpiresAt) {
+      const expirationDate = partnerData.subscriptionExpiresAt.toDate();
+      isValid = expirationDate > new Date();
+
+      if (!isValid) {
+        console.log('Partner subscription expired', { expirationDate });
+      }
+    }
+
+    const finalPremium = isPremium && isValid;
+
+    console.log('Partner premium check result:', {
+      isPremium: finalPremium,
+      subscriptionStatus: partnerData.subscriptionStatus,
+      manuallyGranted: partnerData.manuallyGranted,
+      expirationDate: partnerData.subscriptionExpiresAt?.toDate(),
+    });
+
+    return {
+      isPremium: finalPremium,
+      expirationDate: partnerData.subscriptionExpiresAt?.toDate() || null,
+      source: partnerData.manuallyGranted ? 'partner_manual' : 'partner_revenuecat',
+    };
+  } catch (error) {
+    console.error('Error checking partner premium status:', error);
+    // Non-critical error - return false to not block own premium
+    return { isPremium: false, expirationDate: null, source: 'error' };
+  }
+};
+
+/**
+ * Check current subscription status
+ * Checks both RevenueCat and Firestore (for manually granted premium) in parallel
+ */
+export const checkSubscriptionStatus = async (userId) => {
+  let revenueCatPremium = false;
+  let firestorePremium = false;
+  let expirationDate = null;
+
+  // Check both sources in parallel
+  const [revenueCatResult, firestoreResult] = await Promise.allSettled([
+    // Check RevenueCat
+    (async () => {
+      try {
+        const customerInfo = await Purchases.getCustomerInfo();
+        const isPremium = customerInfo.entitlements.active[ENTITLEMENT_IDS.PREMIUM] !== undefined;
+        const expiration = customerInfo.entitlements.active[ENTITLEMENT_IDS.PREMIUM]?.expirationDate;
+
+        console.log('RevenueCat subscription status - Premium:', isPremium);
+
+        // Sync to Firebase if has data
+        if (isPremium) {
+          await syncSubscriptionWithFirebase(customerInfo, userId);
+        }
+
+        return { isPremium, expirationDate: expiration, customerInfo, source: 'RevenueCat' };
+      } catch (error) {
+        console.error('RevenueCat check failed:', error);
+        return { isPremium: false, expirationDate: null, customerInfo: null, source: 'RevenueCat', error };
+      }
+    })(),
+
+    // Check Firestore
+    checkFirestorePremiumStatus(userId)
+  ]);
+
+  // Process RevenueCat result
+  if (revenueCatResult.status === 'fulfilled') {
+    revenueCatPremium = revenueCatResult.value.isPremium;
+    if (revenueCatPremium) {
+      expirationDate = revenueCatResult.value.expirationDate;
+    }
+  }
+
+  // Process Firestore result
+  if (firestoreResult.status === 'fulfilled') {
+    firestorePremium = firestoreResult.value.isPremium;
+    if (!revenueCatPremium && firestorePremium) {
+      expirationDate = firestoreResult.value.expirationDate;
+      console.log('✅ Using manual premium grant from Firestore');
+    }
+  }
+
+  // Premium if EITHER source says premium
+  const isPremium = revenueCatPremium || firestorePremium;
+
+  console.log('📊 Subscription status summary:', {
+    revenueCat: revenueCatPremium,
+    firestore: firestorePremium,
+    final: isPremium,
+    source: revenueCatPremium ? 'RevenueCat' : (firestorePremium ? 'Firestore' : 'None')
+  });
+
+  return {
+    isPremium,
+    customerInfo: revenueCatResult.status === 'fulfilled' ? revenueCatResult.value.customerInfo : null,
+    expirationDate,
+  };
 };
 
 /**
@@ -281,6 +421,8 @@ export const hasFeatureAccess = (featureId, isPremium) => {
     'export_data',
     'custom_categories',
     'receipt_photos',
+    'receipt_scanning',     // OCR receipt scanning with AI
+    'import_expenses',      // CSV/bank statement import
     'recurring_expenses',
     'relationship_insights',
   ];

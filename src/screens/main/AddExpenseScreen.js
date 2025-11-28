@@ -28,6 +28,7 @@ import { updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBudget } from '../../contexts/BudgetContext';
+import { useSubscription } from '../../contexts/SubscriptionContext';
 import { COLORS, FONTS, SPACING, COMMON_STYLES } from '../../constants/theme';
 import { calculateEqualSplit, calculateSplit, roundCurrency } from '../../utils/calculations';
 import * as expenseService from '../../services/expenseService';
@@ -39,6 +40,7 @@ import OCRProcessingBanner from '../../components/OCRProcessingBanner';
 export default function AddExpenseScreen({ navigation, route }) {
   const { user, userDetails } = useAuth();
   const { categories: budgetCategories, budgetProgress, isBudgetEnabled } = useBudget();
+  const { isPremium } = useSubscription();
 
   // Check if we're editing an existing expense
   const editingExpense = route.params?.expense;
@@ -105,6 +107,14 @@ export default function AddExpenseScreen({ navigation, route }) {
     try {
       console.log('=== SCAN RECEIPT BUTTON TAPPED ===');
       console.log('Current OCR state:', ocrState.status);
+      console.log('User isPremium:', isPremium);
+
+      // Check premium status before proceeding
+      if (!isPremium) {
+        console.log('User is not premium, redirecting to paywall');
+        navigation.navigate('Paywall', { feature: 'receipt_scanning' });
+        return;
+      }
 
       // Request camera permissions
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -412,6 +422,9 @@ export default function AddExpenseScreen({ navigation, route }) {
             >
               <Ionicons name="camera" size={24} color={COLORS.primary} />
               <Text style={styles.scanButtonText}>Scan Receipt</Text>
+              {!isPremium && (
+                <Ionicons name="lock-closed" size={16} color={COLORS.warning} style={{ marginLeft: 4 }} />
+              )}
             </TouchableOpacity>
 
             {/* OCR Processing Banner */}
