@@ -1,6 +1,6 @@
-# Dividela Cleanup Scripts
+# Dividela Admin Scripts
 
-This directory contains admin scripts for managing your Dividela data.
+This directory contains admin scripts for managing your Dividela data and user accounts.
 
 ## Prerequisites
 
@@ -24,7 +24,50 @@ It will:
 - Look up your user account
 - Display your Couple ID and partner information
 
-### 2. Cleanup All Data
+### 2. Grant Premium Access
+
+Manually grant premium access to users for testing or promotional purposes:
+
+```bash
+cd scripts
+node grant-premium-cli.js <email> <duration>
+```
+
+**Duration Options:**
+- `30d` - 30 days
+- `12m` - 12 months
+- `1y` - 1 year
+- `lifetime` - Lifetime access (100 years)
+- `revoke` - Revoke premium access
+
+**Examples:**
+```bash
+# Grant 30 days of premium
+node grant-premium-cli.js user@example.com 30d
+
+# Grant lifetime access
+node grant-premium-cli.js user@example.com lifetime
+
+# Revoke premium access
+node grant-premium-cli.js user@example.com revoke
+```
+
+The script will:
+1. Find the user by email
+2. Display current subscription status
+3. Update their premium access in Firestore
+4. Show the new expiration date
+
+**What It Updates:**
+- `subscriptionStatus` - Set to "premium" or "free"
+- `subscriptionExpiresAt` - Expiration timestamp
+- `subscriptionProductId` - Set to "manual_grant"
+- `subscriptionPlatform` - Set to "admin"
+- `manuallyGranted` - Flag for tracking manual grants
+
+**Note:** The user will see premium features immediately when they restart the app or their subscription context refreshes.
+
+### 3. Cleanup All Data
 
 **⚠️ WARNING: This is destructive and cannot be undone!**
 

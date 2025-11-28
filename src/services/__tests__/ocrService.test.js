@@ -25,6 +25,13 @@ jest.mock('firebase/functions', () => ({
   httpsCallable: jest.fn(),
 }));
 jest.mock('../../config/firebase', () => ({
+  auth: {
+    currentUser: {
+      uid: 'test-user-123',
+      email: 'test@example.com',
+      getIdToken: jest.fn().mockResolvedValue('mock-auth-token'),
+    },
+  },
   db: {},
   storage: {},
   functions: {

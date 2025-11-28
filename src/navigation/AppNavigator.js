@@ -26,6 +26,7 @@ import OnboardingNavigator from './OnboardingNavigator';
 import TabNavigator from './TabNavigator';
 import AddExpenseScreen from '../screens/main/AddExpenseScreen';
 import ImportExpensesScreen from '../screens/main/ImportExpensesScreen';
+import PaywallScreen from '../screens/main/PaywallScreen';
 
 const Stack = createStackNavigator();
 
@@ -307,6 +308,19 @@ export default function AppNavigator() {
                 presentation: 'modal',
                 headerShown: true,
                 title: 'Import Expenses',
+                headerStyle: {
+                  backgroundColor: COLORS.background,
+                },
+                headerTintColor: COLORS.primary,
+              }}
+            />
+            <Stack.Screen
+              name="Paywall"
+              component={PaywallScreen}
+              options={{
+                presentation: 'modal',
+                headerShown: true,
+                title: 'Upgrade to Premium',
                 headerStyle: {
                   backgroundColor: COLORS.background,
                 },

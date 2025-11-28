@@ -11,7 +11,7 @@ import {
   OAuthProvider,
   signInWithPopup
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
 
 // Create the context
@@ -35,46 +35,84 @@ export const AuthProvider = ({ children }) => {
 
   // Listen for auth state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    let userDocUnsubscribe = null;
+
+    const authUnsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       try {
         if (firebaseUser) {
           console.log('AuthContext: Auth state changed, user logged in:', firebaseUser.uid);
           setUser(firebaseUser);
 
-          // Fetch additional user details from Firestore
-          console.log('AuthContext: Fetching user document from Firestore...');
-          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            console.log('AuthContext: User document fetched:', userData);
-            setUserDetails(userData);
-          } else {
-            // User document doesn't exist - create a minimal one
-            console.warn('User document not found, creating minimal user details');
-            const minimalUserDetails = {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email,
-              displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
-              partnerId: null,
-              coupleId: null,
-            };
-            setUserDetails(minimalUserDetails);
-          }
+          // Set up real-time listener for user document
+          console.log('AuthContext: Setting up real-time listener for user document...');
+          const userRef = doc(db, 'users', firebaseUser.uid);
+
+          userDocUnsubscribe = onSnapshot(
+            userRef,
+            (snapshot) => {
+              if (snapshot.exists()) {
+                const userData = snapshot.data();
+                console.log('🔄 User details updated from Firestore:', {
+                  subscriptionStatus: userData.subscriptionStatus,
+                  manuallyGranted: userData.manuallyGranted,
+                  subscriptionExpiresAt: userData.subscriptionExpiresAt,
+                });
+                setUserDetails(userData);
+              } else {
+                // User document doesn't exist - create a minimal one
+                console.warn('User document not found, creating minimal user details');
+                const minimalUserDetails = {
+                  uid: firebaseUser.uid,
+                  email: firebaseUser.email,
+                  displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+                  partnerId: null,
+                  coupleId: null,
+                  subscriptionStatus: 'free',
+                  subscriptionPlatform: null,
+                  subscriptionExpiresAt: null,
+                  subscriptionProductId: null,
+                  revenueCatUserId: firebaseUser.uid,
+                  trialUsed: false,
+                  trialEndsAt: null,
+                };
+                setUserDetails(minimalUserDetails);
+              }
+              setLoading(false);
+            },
+            (error) => {
+              console.error('Error listening to user details:', error);
+              // Fallback to one-time fetch on error
+              getDoc(userRef).then(doc => {
+                if (doc.exists()) {
+                  setUserDetails(doc.data());
+                }
+                setLoading(false);
+              }).catch(err => {
+                console.error('Fallback getDoc also failed:', err);
+                setLoading(false);
+              });
+            }
+          );
         } else {
           console.log('AuthContext: Auth state changed, user logged out');
           setUser(null);
           setUserDetails(null);
+          setLoading(false);
         }
       } catch (err) {
         console.error('Error in auth state change:', err);
         setError(err.message);
-      } finally {
         setLoading(false);
       }
     });
 
-    // Cleanup subscription
-    return unsubscribe;
+    // Cleanup subscriptions
+    return () => {
+      authUnsubscribe();
+      if (userDocUnsubscribe) {
+        userDocUnsubscribe();
+      }
+    };
   }, []);
 
   // Sign up with email and password
@@ -102,6 +140,14 @@ export const AuthProvider = ({ children }) => {
           defaultSplit: 50,
           currency: 'USD',
         },
+        // Subscription fields
+        subscriptionStatus: 'free', // 'free' | 'premium' | 'trial' | 'expired'
+        subscriptionPlatform: null, // 'ios' | 'android' | 'web' | null
+        subscriptionExpiresAt: null,
+        subscriptionProductId: null,
+        revenueCatUserId: firebaseUser.uid, // Links to RevenueCat
+        trialUsed: false,
+        trialEndsAt: null,
       };
 
       console.log('Creating Firestore user document...');
@@ -241,6 +287,19 @@ export const AuthProvider = ({ children }) => {
           partnerId: null,
           coupleId: null,
           createdAt: new Date(),
+          settings: {
+            notifications: true,
+            defaultSplit: 50,
+            currency: 'USD',
+          },
+          // Subscription fields
+          subscriptionStatus: 'free',
+          subscriptionPlatform: null,
+          subscriptionExpiresAt: null,
+          subscriptionProductId: null,
+          revenueCatUserId: firebaseUser.uid,
+          trialUsed: false,
+          trialEndsAt: null,
         };
 
         await setDoc(doc(db, 'users', firebaseUser.uid), userData);
@@ -290,6 +349,19 @@ export const AuthProvider = ({ children }) => {
           partnerId: null,
           coupleId: null,
           createdAt: new Date(),
+          settings: {
+            notifications: true,
+            defaultSplit: 50,
+            currency: 'USD',
+          },
+          // Subscription fields
+          subscriptionStatus: 'free',
+          subscriptionPlatform: null,
+          subscriptionExpiresAt: null,
+          subscriptionProductId: null,
+          revenueCatUserId: firebaseUser.uid,
+          trialUsed: false,
+          trialEndsAt: null,
         };
 
         await setDoc(doc(db, 'users', firebaseUser.uid), userData);

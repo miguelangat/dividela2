@@ -6,6 +6,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { AuthProvider } from './src/contexts/AuthContext';
+import { SubscriptionProvider } from './src/contexts/SubscriptionContext';
 import { BudgetProvider } from './src/contexts/BudgetContext';
 import { LanguageProvider } from './src/contexts/LanguageContext';
 import AppNavigator from './src/navigation/AppNavigator';
@@ -18,9 +19,11 @@ export default function App() {
         <PaperProvider>
           <LanguageProvider>
             <AuthProvider>
-              <BudgetProvider>
-                <AppNavigator />
-              </BudgetProvider>
+              <SubscriptionProvider>
+                <BudgetProvider>
+                  <AppNavigator />
+                </BudgetProvider>
+              </SubscriptionProvider>
             </AuthProvider>
           </LanguageProvider>
         </PaperProvider>
