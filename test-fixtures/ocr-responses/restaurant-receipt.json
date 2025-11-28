@@ -1,0 +1,20 @@
+{
+  "merchant": "The Italian Place",
+  "amount": 125.50,
+  "date": "2025-11-18",
+  "confidence": 0.92,
+  "rawText": "THE ITALIAN PLACE\n456 Restaurant Row\nAnytown, CA 94000\n\nTable: 12\nServer: Maria\nDate: 11/18/2025\nTime: 19:45\n\nPasta Carbonara x2       $36.00\nMargherita Pizza         $18.00\nCaesar Salad            $12.00\nTiramisu x2             $16.00\nHouse Wine (Glass) x2   $24.00\nEspresso x2             $8.00\n\nSubtotal:              $114.00\nTax (9.5%):            $10.83\nTip (Suggested 18%):   $20.52\nTotal:                 $125.50\n\nThank you for dining with us!",
+  "items": [
+    {"name": "Pasta Carbonara", "price": 36.00, "quantity": 2},
+    {"name": "Margherita Pizza", "price": 18.00},
+    {"name": "Caesar Salad", "price": 12.00},
+    {"name": "Tiramisu", "price": 16.00, "quantity": 2},
+    {"name": "House Wine (Glass)", "price": 24.00, "quantity": 2},
+    {"name": "Espresso", "price": 8.00, "quantity": 2}
+  ],
+  "subtotal": 114.00,
+  "tax": 10.83,
+  "tip": 20.52,
+  "currency": "USD",
+  "category": "Dining"
+}

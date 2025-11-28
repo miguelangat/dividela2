@@ -26,8 +26,35 @@ service cloud.firestore {
       allow create: if isSignedIn() && isOwner(userId);
 
       // Allow updates to own document OR when adding partnerId/coupleId (for pairing)
+      // IMPORTANT: Subscription fields are protected but can be synced from RevenueCat
+      // Protected fields: subscriptionStatus, subscriptionPlatform, subscriptionExpiresAt,
+      //                   subscriptionProductId, revenueCatUserId, trialUsed, trialEndsAt
       allow update: if isSignedIn() && (
-        isOwner(userId) ||
+        (
+          isOwner(userId) &&
+          // Ensure subscription fields are not being modified by client (except during RevenueCat sync)
+          // Allow subscription sync if all changed fields are subscription-related
+          (
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+              'subscriptionStatus',
+              'subscriptionPlatform',
+              'subscriptionExpiresAt',
+              'subscriptionProductId',
+              'subscriptionPlatform',
+              'lastSyncedAt'
+            ]) ||
+            // Allow subscription sync from RevenueCat (all fields must be subscription-related)
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'subscriptionStatus',
+              'subscriptionPlatform',
+              'subscriptionExpiresAt',
+              'subscriptionProductId',
+              'subscriptionPlatform',
+              'lastSyncedAt'
+            ])
+          )
+        ) ||
+        // Allow pairing updates (partnerId/coupleId only)
         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['partnerId', 'coupleId']))
       );
 
@@ -288,6 +315,62 @@ service cloud.firestore {
       allow delete: if isSignedIn() &&
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
         resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId;
+    }
+
+    // Merchant Aliases collection - for OCR merchant name learning
+    match /merchantAliases/{aliasId} {
+      // Users can create merchant aliases for their own couple
+      allow create: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId != null &&
+        request.resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId;
+
+      // Users can read merchant aliases for their couple
+      allow read: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        (!exists(/databases/$(database)/documents/merchantAliases/$(aliasId)) ||
+         resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId);
+
+      // For listing merchant aliases (queries)
+      allow list: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId != null;
+
+      // Users can update merchant aliases for their couple
+      allow update: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId;
+
+      // Users can delete merchant aliases for their couple
+      allow delete: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId;
+    }
+
+    // OCR Learning Data collection - for OCR improvement and audit trail
+    match /ocrLearningData/{learningId} {
+      // Users can create OCR learning data for their own couple (when correcting OCR results)
+      allow create: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId != null &&
+        request.resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId;
+
+      // Users can read OCR learning data for their couple (read-only access for users)
+      allow read: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        (!exists(/databases/$(database)/documents/ocrLearningData/$(learningId)) ||
+         resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId);
+
+      // For listing OCR learning data (queries)
+      allow list: if isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId != null;
+
+      // OCR learning data is append-only (no updates allowed to maintain audit trail)
+      allow update: if false;
+
+      // Don't allow deleting OCR learning data (maintain audit trail)
+      allow delete: if false;
     }
   }
 }

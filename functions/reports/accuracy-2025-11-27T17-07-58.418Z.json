@@ -1,0 +1,289 @@
+{
+  "timestamp": "2025-11-27T17:07:58.418Z",
+  "accuracy": 0.625,
+  "totalExamples": 40,
+  "correct": 25,
+  "incorrect": 15,
+  "results": [
+    {
+      "merchant": "Walmart",
+      "expected": "groceries",
+      "predicted": "groceries",
+      "confidence": 0.992,
+      "correct": true
+    },
+    {
+      "merchant": "Whole Foods",
+      "expected": "groceries",
+      "predicted": "groceries",
+      "confidence": 0.925,
+      "correct": true
+    },
+    {
+      "merchant": "Costco",
+      "expected": "groceries",
+      "predicted": "groceries",
+      "confidence": 0.87,
+      "correct": true
+    },
+    {
+      "merchant": "Trader Joes",
+      "expected": "groceries",
+      "predicted": "groceries",
+      "confidence": 0.915,
+      "correct": true
+    },
+    {
+      "merchant": "Safeway",
+      "expected": "groceries",
+      "predicted": "groceries",
+      "confidence": 0.984,
+      "correct": true
+    },
+    {
+      "merchant": "Target",
+      "expected": "groceries",
+      "predicted": "groceries",
+      "confidence": 0.996,
+      "correct": true
+    },
+    {
+      "merchant": "Kroger",
+      "expected": "groceries",
+      "predicted": "groceries",
+      "confidence": 0.905,
+      "correct": true
+    },
+    {
+      "merchant": "Publix",
+      "expected": "groceries",
+      "predicted": null,
+      "confidence": 0.547,
+      "correct": false
+    },
+    {
+      "merchant": "Starbucks",
+      "expected": "food",
+      "predicted": "food",
+      "confidence": 0.997,
+      "correct": true
+    },
+    {
+      "merchant": "McDonalds",
+      "expected": "food",
+      "predicted": "food",
+      "confidence": 0.997,
+      "correct": true
+    },
+    {
+      "merchant": "Chipotle",
+      "expected": "food",
+      "predicted": "food",
+      "confidence": 0.991,
+      "correct": true
+    },
+    {
+      "merchant": "Subway",
+      "expected": "food",
+      "predicted": "food",
+      "confidence": 0.914,
+      "correct": true
+    },
+    {
+      "merchant": "Panera Bread",
+      "expected": "food",
+      "predicted": "food",
+      "confidence": 0.995,
+      "correct": true
+    },
+    {
+      "merchant": "Pizza Hut",
+      "expected": "food",
+      "predicted": "food",
+      "confidence": 0.982,
+      "correct": true
+    },
+    {
+      "merchant": "Taco Bell",
+      "expected": "food",
+      "predicted": "food",
+      "confidence": 0.7,
+      "correct": true
+    },
+    {
+      "merchant": "Dunkin Donuts",
+      "expected": "food",
+      "predicted": "food",
+      "confidence": 0.993,
+      "correct": true
+    },
+    {
+      "merchant": "Shell Gas",
+      "expected": "transportation",
+      "predicted": "transport",
+      "confidence": 0.976,
+      "correct": false
+    },
+    {
+      "merchant": "Chevron",
+      "expected": "transportation",
+      "predicted": "transport",
+      "confidence": 0.984,
+      "correct": false
+    },
+    {
+      "merchant": "BP Gas Station",
+      "expected": "transportation",
+      "predicted": "transport",
+      "confidence": 0.978,
+      "correct": false
+    },
+    {
+      "merchant": "Exxon",
+      "expected": "transportation",
+      "predicted": "transport",
+      "confidence": 0.973,
+      "correct": false
+    },
+    {
+      "merchant": "Uber",
+      "expected": "transportation",
+      "predicted": "transport",
+      "confidence": 0.969,
+      "correct": false
+    },
+    {
+      "merchant": "Lyft",
+      "expected": "transportation",
+      "predicted": "transport",
+      "confidence": 0.63,
+      "correct": false
+    },
+    {
+      "merchant": "Auto Zone",
+      "expected": "transportation",
+      "predicted": "transport",
+      "confidence": 0.998,
+      "correct": false
+    },
+    {
+      "merchant": "Jiffy Lube",
+      "expected": "transportation",
+      "predicted": null,
+      "confidence": 0.392,
+      "correct": false
+    },
+    {
+      "merchant": "Home Depot",
+      "expected": "home",
+      "predicted": "home",
+      "confidence": 0.992,
+      "correct": true
+    },
+    {
+      "merchant": "Lowes",
+      "expected": "home",
+      "predicted": "home",
+      "confidence": 0.999,
+      "correct": true
+    },
+    {
+      "merchant": "IKEA",
+      "expected": "home",
+      "predicted": "home",
+      "confidence": 0.958,
+      "correct": true
+    },
+    {
+      "merchant": "Bed Bath Beyond",
+      "expected": "home",
+      "predicted": "home",
+      "confidence": 0.733,
+      "correct": true
+    },
+    {
+      "merchant": "ACE Hardware",
+      "expected": "home",
+      "predicted": "home",
+      "confidence": 0.979,
+      "correct": true
+    },
+    {
+      "merchant": "AMC Theatres",
+      "expected": "fun",
+      "predicted": "fun",
+      "confidence": 0.988,
+      "correct": true
+    },
+    {
+      "merchant": "Netflix",
+      "expected": "fun",
+      "predicted": "fun",
+      "confidence": 0.989,
+      "correct": true
+    },
+    {
+      "merchant": "Spotify",
+      "expected": "fun",
+      "predicted": "fun",
+      "confidence": 0.985,
+      "correct": true
+    },
+    {
+      "merchant": "Steam",
+      "expected": "fun",
+      "predicted": "fun",
+      "confidence": 0.977,
+      "correct": true
+    },
+    {
+      "merchant": "PlayStation Store",
+      "expected": "fun",
+      "predicted": "fun",
+      "confidence": 0.969,
+      "correct": true
+    },
+    {
+      "merchant": "CVS Pharmacy",
+      "expected": "healthcare",
+      "predicted": null,
+      "confidence": 0.391,
+      "correct": false
+    },
+    {
+      "merchant": "Walgreens",
+      "expected": "healthcare",
+      "predicted": null,
+      "confidence": 0.39,
+      "correct": false
+    },
+    {
+      "merchant": "Dr Smith Office",
+      "expected": "healthcare",
+      "predicted": null,
+      "confidence": 0.358,
+      "correct": false
+    },
+    {
+      "merchant": "Amazon",
+      "expected": "shopping",
+      "predicted": null,
+      "confidence": 0.392,
+      "correct": false
+    },
+    {
+      "merchant": "Best Buy",
+      "expected": "shopping",
+      "predicted": null,
+      "confidence": 0.28,
+      "correct": false
+    },
+    {
+      "merchant": "Macy's",
+      "expected": "shopping",
+      "predicted": null,
+      "confidence": 0.379,
+      "correct": false
+    }
+  ]
+}

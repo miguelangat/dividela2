@@ -1,10 +1,11 @@
-import React, { useState, useLayoutEffect } from 'react';
+import React, { useState, useLayoutEffect, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, TouchableOpacity, Platform, Modal, ActivityIndicator } from 'react-native';
 import { Text, Button, Card } from 'react-native-paper';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSubscription } from '../../contexts/SubscriptionContext';
 import { COLORS, FONTS, SPACING, SIZES, SHADOWS } from '../../constants/theme';
 import FilePickerButton from '../../components/import/FilePickerButton';
 import ImportConfigPanel from '../../components/import/ImportConfigPanel';
@@ -22,6 +23,7 @@ import { getPrimaryCurrency } from '../../services/coupleSettingsService';
 export default function ImportExpensesScreen({ navigation }) {
   const { t } = useTranslation();
   const { user, userDetails } = useAuth();
+  const { isPremium, loading: subscriptionLoading } = useSubscription();
 
   // Extract partner info from userDetails
   const partnerId = userDetails?.partnerId;
@@ -29,7 +31,15 @@ export default function ImportExpensesScreen({ navigation }) {
   const partnerName = userDetails?.partnerName;
 
   // Add console log to verify screen loads
-  console.log('ImportExpensesScreen loaded', { user: user?.uid, partnerId, coupleId });
+  console.log('ImportExpensesScreen loaded', { user: user?.uid, partnerId, coupleId, isPremium });
+
+  // Redirect to paywall if not premium (after subscription status is loaded)
+  useEffect(() => {
+    if (!subscriptionLoading && !isPremium) {
+      console.log('User is not premium, redirecting to paywall from ImportExpensesScreen');
+      navigation.replace('Paywall', { feature: 'import_expenses' });
+    }
+  }, [isPremium, subscriptionLoading, navigation]);
 
   // File state
   const [selectedFile, setSelectedFile] = useState(null);

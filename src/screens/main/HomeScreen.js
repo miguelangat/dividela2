@@ -28,6 +28,7 @@ import { collection, query, where, onSnapshot, orderBy, addDoc, serverTimestamp,
 import { db } from '../../config/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBudget } from '../../contexts/BudgetContext';
+import { useSubscription } from '../../contexts/SubscriptionContext';
 import { useTranslation } from 'react-i18next';
 import { COLORS, FONTS, SPACING, COMMON_STYLES } from '../../constants/theme';
 import {
@@ -48,6 +49,7 @@ import { getPrimaryCurrency } from '../../services/coupleSettingsService';
 export default function HomeScreen({ navigation }) {
   const { user, userDetails, getPartnerDetails } = useAuth();
   const { categories, currentBudget } = useBudget();
+  const { isPremium } = useSubscription();
   const { t } = useTranslation();
   const [expenses, setExpenses] = useState([]);
   const [settlements, setSettlements] = useState([]); // Track settlements for balance calculation
@@ -646,6 +648,13 @@ export default function HomeScreen({ navigation }) {
               style={styles.importButton}
               onPress={() => {
                 try {
+                  console.log('Import button pressed, isPremium:', isPremium);
+                  // Check if user has premium access
+                  if (!isPremium) {
+                    console.log('User is not premium, redirecting to paywall');
+                    navigation.navigate('Paywall', { feature: 'import_expenses' });
+                    return;
+                  }
                   console.log('Navigating to ImportExpenses screen');
                   navigation.navigate('ImportExpenses');
                 } catch (error) {
@@ -657,6 +666,9 @@ export default function HomeScreen({ navigation }) {
             >
               <Ionicons name="cloud-upload-outline" size={18} color={COLORS.primary} />
               <Text style={styles.importButtonText}>{t('home.import') || 'Import'}</Text>
+              {!isPremium && (
+                <Ionicons name="lock-closed" size={14} color={COLORS.warning} style={{ marginLeft: 4 }} />
+              )}
             </TouchableOpacity>
           </View>
 

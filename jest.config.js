@@ -1,6 +1,7 @@
 module.exports = {
-  // Don't use jest-expo preset to avoid React 19 compatibility issues
-  testEnvironment: 'jsdom',
+  // Use react-native preset for proper React Native testing
+  preset: 'react-native',
+  testEnvironment: 'node',
 
   // Transform patterns - tell Jest which node_modules to transform
   transformIgnorePatterns: [
@@ -30,8 +31,18 @@ module.exports = {
 
   // Test match patterns
   testMatch: [
-    '**/__tests__/**/*.[jt]s?(x)',
+    '**/__tests__/**/*.(spec|test).[jt]s?(x)',
     '**/?(*.)+(spec|test).[jt]s?(x)',
+  ],
+
+  // Ignore mock and fixture files
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/__tests__/mocks/',
+    '/__tests__/fixtures/',
+    '/__mocks__/',
+    'jest.config.js',
+    'jest.setup.js',
   ],
 
   // Global setup to prevent React 19 errors
