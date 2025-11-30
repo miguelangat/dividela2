@@ -15,15 +15,19 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  Pressable,
   TextInput,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
   Alert,
+  Modal,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import { updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../config/firebase';
@@ -46,6 +50,8 @@ import { scanReceiptDirect, recordOCRFeedback } from '../../services/ocrService'
 import { createMerchantAlias } from '../../services/merchantAliasService';
 import OCRSuggestionCard from '../../components/OCRSuggestionCard';
 import OCRProcessingBanner from '../../components/OCRProcessingBanner';
+import FieldLabel from '../../components/FieldLabel';
+import SplitPreviewCard from '../../components/SplitPreviewCard';
 
 export default function AddExpenseScreen({ navigation, route }) {
   const { user, userDetails } = useAuth();
@@ -78,6 +84,16 @@ export default function AddExpenseScreen({ navigation, route }) {
     error: null,
   });
 
+  // Date picker state
+  const [expenseDate, setExpenseDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // Focus state management
+  const [focusStates, setFocusStates] = useState({
+    amount: false,
+    description: false,
+  });
+
   // Fetch primary currency on mount and when screen comes into focus
   // This ensures currency updates when changed in Settings
   useFocusEffect(
@@ -108,6 +124,11 @@ export default function AddExpenseScreen({ navigation, route }) {
       setSelectedCategory(editingExpense.categoryKey || editingExpense.category || 'food');
       setPaidBy(editingExpense.paidBy);
 
+      // Set date if available
+      if (editingExpense.date) {
+        setExpenseDate(new Date(editingExpense.date));
+      }
+
       // Set currency fields if available
       if (editingExpense.currency) {
         setExpenseCurrency(editingExpense.currency);
@@ -123,6 +144,8 @@ export default function AddExpenseScreen({ navigation, route }) {
       const userPercentage = editingExpense.splitDetails?.user1Percentage || 50;
       if (userPercentage === 50) {
         setSplitType('equal');
+      } else if (userPercentage === 100 || userPercentage === 0) {
+        setSplitType('full');
       } else {
         setSplitType('custom');
         setUserSplitPercentage(userPercentage.toString());
@@ -131,13 +154,36 @@ export default function AddExpenseScreen({ navigation, route }) {
   }, [editingExpense]);
 
   const handleAmountChange = (text) => {
-    // Only allow numbers and one decimal point
+    // Remove all non-numeric characters except decimal point
     const cleaned = text.replace(/[^0-9.]/g, '');
+
+    // Handle multiple decimal points - only allow one
     const parts = cleaned.split('.');
     if (parts.length > 2) return;
+
+    // Limit decimal places to 2
     if (parts[1] && parts[1].length > 2) return;
+
+    // Store the raw value (without formatting)
     setAmount(cleaned);
     setError('');
+  };
+
+  // Format number with thousands separator for display
+  const formatAmountForDisplay = (value) => {
+    if (!value) return '';
+
+    const parts = value.split('.');
+    const integerPart = parts[0];
+    const decimalPart = parts[1];
+
+    // Add thousands separator
+    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+    // Return with decimal part if it exists
+    return decimalPart !== undefined
+      ? `${formattedInteger}.${decimalPart}`
+      : formattedInteger;
   };
 
   const handleSplitPercentageChange = (text) => {
@@ -304,6 +350,37 @@ export default function AddExpenseScreen({ navigation, route }) {
 
   // Note: OCR processing is now direct/immediate, no subscription needed
 
+  // Handle cancel with confirmation if form has data
+  const handleCancel = () => {
+    const hasData = amount || description || selectedCategory !== 'food' || splitType !== 'equal';
+
+    if (hasData) {
+      Alert.alert(
+        'Discard Changes?',
+        'You have unsaved changes. Are you sure you want to cancel?',
+        [
+          { text: 'Keep Editing', style: 'cancel' },
+          {
+            text: 'Discard',
+            style: 'destructive',
+            onPress: () => navigation.goBack()
+          },
+        ]
+      );
+    } else {
+      navigation.goBack();
+    }
+  };
+
+  // Format date for display
+  const formatDate = (date) => {
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
   const handleSubmit = async () => {
     // Validation
     if (!amount || parseFloat(amount) <= 0 || isNaN(parseFloat(amount))) {
@@ -354,6 +431,23 @@ export default function AddExpenseScreen({ navigation, route }) {
       let splitDetails;
       if (splitType === 'equal') {
         splitDetails = calculateEqualSplit(expenseAmount);
+      } else if (splitType === 'full') {
+        // NEW: Paid in Full - "All Mine" / "All Theirs"
+        if (paidBy === user.uid) {
+          splitDetails = {
+            user1Amount: expenseAmount,
+            user2Amount: 0,
+            user1Percentage: 100,
+            user2Percentage: 0,
+          };
+        } else {
+          splitDetails = {
+            user1Amount: 0,
+            user2Amount: expenseAmount,
+            user1Percentage: 0,
+            user2Percentage: 100,
+          };
+        }
       } else {
         const parsedPercentage = parseInt(userSplitPercentage);
         const userPercentage = !isNaN(parsedPercentage) ? parsedPercentage : 50;
@@ -367,6 +461,23 @@ export default function AddExpenseScreen({ navigation, route }) {
       // Recalculate split with the amount in primary currency
       if (splitType === 'equal') {
         splitDetails = calculateEqualSplit(amountForSplit);
+      } else if (splitType === 'full') {
+        // Paid in Full with converted amount
+        if (paidBy === user.uid) {
+          splitDetails = {
+            user1Amount: amountForSplit,
+            user2Amount: 0,
+            user1Percentage: 100,
+            user2Percentage: 0,
+          };
+        } else {
+          splitDetails = {
+            user1Amount: 0,
+            user2Amount: amountForSplit,
+            user1Percentage: 0,
+            user2Percentage: 100,
+          };
+        }
       } else {
         const parsedPercentage = parseInt(userSplitPercentage);
         const userPercentage = !isNaN(parsedPercentage) ? parsedPercentage : 50;
@@ -410,7 +521,7 @@ export default function AddExpenseScreen({ navigation, route }) {
           categoryKey: selectedCategory, // New field for budget tracking
           paidBy: paidBy,
           coupleId: userDetails.coupleId,
-          date: new Date().toISOString(),
+          date: expenseDate.toISOString(), // Use selected date
           splitDetails: {
             user1Amount: roundCurrency(paidBy === user.uid ? splitDetails.user1Amount : splitDetails.user2Amount),
             user2Amount: roundCurrency(paidBy === user.uid ? splitDetails.user2Amount : splitDetails.user1Amount),
@@ -483,17 +594,53 @@ export default function AddExpenseScreen({ navigation, route }) {
     >
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={COLORS.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{isEditMode ? 'Edit Expense' : 'Add Expense'}</Text>
-          <View style={{ width: 24 }} />
+        <LinearGradient
+          colors={[COLORS.gradientStart, COLORS.gradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerGradient}
+        >
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+              <Ionicons name="arrow-back" size={24} color={COLORS.textWhite} />
+            </TouchableOpacity>
+            <View style={styles.headerContent}>
+              <Text style={styles.headerTitle}>{isEditMode ? 'Edit Expense' : 'Add Expense'}</Text>
+              <Text style={styles.headerSubtitle}>Track your shared spending</Text>
+            </View>
+            <View style={{ width: 24 }} />
+          </View>
+        </LinearGradient>
+
+        {/* Amount Input */}
+        <View style={[
+          styles.amountSection,
+          focusStates.amount && styles.amountSectionFocused
+        ]}>
+          <Text style={styles.currencySymbol}>{getCurrencySymbol(expenseCurrency)}</Text>
+          <TextInput
+            style={styles.amountInput}
+            value={formatAmountForDisplay(amount)}
+            onChangeText={handleAmountChange}
+            placeholder="0.00"
+            placeholderTextColor={COLORS.textSecondary}
+            keyboardType="decimal-pad"
+            autoFocus
+            onFocus={() => setFocusStates(s => ({ ...s, amount: true }))}
+            onBlur={() => setFocusStates(s => ({ ...s, amount: false }))}
+          />
         </View>
 
-        {/* OCR Section - Only show in add mode */}
+        {/* Scan Receipt Section - MOVED from top to below amount */}
         {!isEditMode && (
-          <>
+          <View style={styles.scanSection}>
+            {/* Divider */}
+            <View style={styles.dividerContainer}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or scan a receipt</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
             {/* Scan Receipt Button */}
             <TouchableOpacity
               style={styles.scanButton}
@@ -535,29 +682,8 @@ export default function AddExpenseScreen({ navigation, route }) {
                 <Text style={styles.errorText}>{ocrState.error}</Text>
               </View>
             )}
-
-            {/* Divider */}
-            <View style={styles.dividerContainer}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or</Text>
-              <View style={styles.dividerLine} />
-            </View>
-          </>
+          </View>
         )}
-
-        {/* Amount Input */}
-        <View style={styles.amountSection}>
-          <Text style={styles.currencySymbol}>{getCurrencySymbol(expenseCurrency)}</Text>
-          <TextInput
-            style={styles.amountInput}
-            value={amount}
-            onChangeText={handleAmountChange}
-            placeholder="0.00"
-            placeholderTextColor={COLORS.textSecondary}
-            keyboardType="decimal-pad"
-            autoFocus
-          />
-        </View>
 
         {/* Currency Selection */}
         <View style={styles.section}>
@@ -583,20 +709,30 @@ export default function AddExpenseScreen({ navigation, route }) {
 
         {/* Description */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Description</Text>
+          <FieldLabel label="Add a note" optional />
+          <Text style={styles.helperText}>
+            Help remember what this was for (e.g., "Dinner at Luigi's")
+          </Text>
           <TextInput
-            style={styles.descriptionInput}
+            style={[
+              styles.descriptionInput,
+              focusStates.description && styles.descriptionInputFocused
+            ]}
             value={description}
             onChangeText={setDescription}
-            placeholder="What did you pay for?"
-            placeholderTextColor={COLORS.textSecondary}
-            maxLength={100}
+            placeholder="Add details here..."
+            placeholderTextColor={COLORS.textTertiary}
+            multiline
+            numberOfLines={3}
+            maxLength={200}
+            onFocus={() => setFocusStates(s => ({ ...s, description: true }))}
+            onBlur={() => setFocusStates(s => ({ ...s, description: false }))}
           />
         </View>
 
         {/* Category Selection */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Category</Text>
+          <FieldLabel label="What's this for?" required />
           <View style={styles.categoriesGrid}>
             {Object.entries(budgetCategories).map(([key, category]) => {
               const progress = budgetProgress?.categoryProgress[key];
@@ -627,73 +763,159 @@ export default function AddExpenseScreen({ navigation, route }) {
           </View>
         </View>
 
+        {/* Date Selection */}
+        <View style={styles.section}>
+          <FieldLabel label="When was this?" required />
+          <TouchableOpacity
+            style={styles.dateInput}
+            onPress={() => setShowDatePicker(true)}
+          >
+            <Ionicons name="calendar-outline" size={20} color={COLORS.textSecondary} />
+            <Text style={styles.dateText}>
+              {formatDate(expenseDate)}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Date Picker - Platform specific */}
+        {Platform.OS === 'ios' && showDatePicker && (
+          <Modal visible={showDatePicker} transparent animationType="slide">
+            <View style={styles.datePickerModal}>
+              <View style={styles.datePickerContainer}>
+                <View style={styles.datePickerHeader}>
+                  <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                    <Text style={styles.datePickerButton}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  value={expenseDate}
+                  mode="date"
+                  display="spinner"
+                  onChange={(event, selectedDate) => {
+                    if (selectedDate) setExpenseDate(selectedDate);
+                  }}
+                />
+              </View>
+            </View>
+          </Modal>
+        )}
+
+        {Platform.OS === 'android' && showDatePicker && (
+          <DateTimePicker
+            value={expenseDate}
+            mode="date"
+            display="default"
+            onChange={(event, selectedDate) => {
+              setShowDatePicker(false);
+              if (selectedDate) setExpenseDate(selectedDate);
+            }}
+          />
+        )}
+
         {/* Paid By */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Paid by</Text>
+          <FieldLabel label="Who paid for this?" required />
           <View style={styles.paidByContainer}>
-            <TouchableOpacity
-              style={[
-                styles.paidByButton,
-                paidBy === user.uid && styles.paidByButtonSelected,
+            <Pressable
+              style={({ pressed }) => [
+                styles.paidByCard,
+                paidBy === user.uid && styles.paidByCardSelected,
+                pressed && paidBy !== user.uid && styles.paidByCardPressed,
               ]}
               onPress={() => setPaidBy(user.uid)}
             >
+              <Ionicons
+                name="person"
+                size={32}
+                color={paidBy === user.uid ? COLORS.background : COLORS.primary}
+              />
               <Text style={[
                 styles.paidByText,
                 paidBy === user.uid && styles.paidByTextSelected,
               ]}>
                 You
               </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.paidByButton,
-                paidBy === userDetails.partnerId && styles.paidByButtonSelected,
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [
+                styles.paidByCard,
+                paidBy === userDetails.partnerId && styles.paidByCardSelected,
+                pressed && paidBy !== userDetails.partnerId && styles.paidByCardPressed,
               ]}
               onPress={() => setPaidBy(userDetails.partnerId)}
             >
+              <Ionicons
+                name="person"
+                size={32}
+                color={paidBy === userDetails.partnerId ? COLORS.background : COLORS.primary}
+              />
               <Text style={[
                 styles.paidByText,
                 paidBy === userDetails.partnerId && styles.paidByTextSelected,
               ]}>
                 Partner
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
 
         {/* Split Options */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Split</Text>
+          <FieldLabel label="How to split this?" required />
           <View style={styles.splitTypeContainer}>
-            <TouchableOpacity
-              style={[
+            <Pressable
+              style={({ pressed }) => [
                 styles.splitTypeButton,
                 splitType === 'equal' && styles.splitTypeButtonSelected,
+                pressed && splitType !== 'equal' && styles.splitTypeButtonPressed,
               ]}
               onPress={() => setSplitType('equal')}
             >
+              <Text style={styles.splitIcon}>⚖️</Text>
               <Text style={[
                 styles.splitTypeText,
                 splitType === 'equal' && styles.splitTypeTextSelected,
               ]}>
                 50/50
               </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
+              <Text style={styles.splitDescription}>Split equally</Text>
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.splitTypeButton,
+                splitType === 'full' && styles.splitTypeButtonSelected,
+                pressed && splitType !== 'full' && styles.splitTypeButtonPressed,
+              ]}
+              onPress={() => setSplitType('full')}
+            >
+              <Text style={styles.splitIcon}>💯</Text>
+              <Text style={[
+                styles.splitTypeText,
+                splitType === 'full' && styles.splitTypeTextSelected,
+              ]}>
+                {paidBy === user.uid ? 'All Mine' : 'All Theirs'}
+              </Text>
+              <Text style={styles.splitDescription}>Payer covers all</Text>
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [
                 styles.splitTypeButton,
                 splitType === 'custom' && styles.splitTypeButtonSelected,
+                pressed && splitType !== 'custom' && styles.splitTypeButtonPressed,
               ]}
               onPress={() => setSplitType('custom')}
             >
+              <Text style={styles.splitIcon}>🎯</Text>
               <Text style={[
                 styles.splitTypeText,
                 splitType === 'custom' && styles.splitTypeTextSelected,
               ]}>
                 Custom
               </Text>
-            </TouchableOpacity>
+              <Text style={styles.splitDescription}>Choose %</Text>
+            </Pressable>
           </View>
 
           {splitType === 'custom' && (
@@ -717,6 +939,20 @@ export default function AddExpenseScreen({ navigation, route }) {
               </View>
             </View>
           )}
+
+          {/* Split Preview - only show AFTER split type is selected */}
+          {amount && parseFloat(amount) > 0 && paidBy && splitType && (
+            <SplitPreviewCard
+              amount={parseFloat(amount)}
+              currency={expenseCurrency}
+              splitType={splitType}
+              userPercentage={splitType === 'custom' ? parseInt(userSplitPercentage) || 50 : 50}
+              paidBy={paidBy}
+              userId={user.uid}
+              userName="You"
+              partnerName={userDetails.partnerName || "Partner"}
+            />
+          )}
         </View>
 
         {/* Error Message */}
@@ -727,23 +963,36 @@ export default function AddExpenseScreen({ navigation, route }) {
           </View>
         ) : null}
 
-        {/* Submit Button */}
-        <TouchableOpacity
-          style={[
-            COMMON_STYLES.primaryButton,
-            loading && styles.buttonDisabled,
-          ]}
-          onPress={handleSubmit}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color={COLORS.background} />
-          ) : (
-            <Text style={COMMON_STYLES.primaryButtonText}>
-              {isEditMode ? 'Save Changes' : 'Add Expense'}
-            </Text>
-          )}
-        </TouchableOpacity>
+        {/* Action Buttons */}
+        <View style={styles.actionButtons}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.cancelButton,
+              pressed && styles.cancelButtonPressed,
+            ]}
+            onPress={handleCancel}
+          >
+            <Text style={styles.cancelButtonText}>Cancel</Text>
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.submitButton,
+              pressed && !loading && styles.submitButtonPressed,
+              loading && styles.buttonDisabled,
+            ]}
+            onPress={handleSubmit}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color={COLORS.background} />
+            ) : (
+              <Text style={styles.submitButtonText}>
+                {isEditMode ? 'Save Changes' : 'Add Expense'}
+              </Text>
+            )}
+          </Pressable>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -761,40 +1010,71 @@ const styles = StyleSheet.create({
     padding: SPACING.screenPadding,
     flexGrow: 1,
   },
+  headerGradient: {
+    marginHorizontal: -SPACING.screenPadding,
+    marginTop: -SPACING.screenPadding,
+    marginBottom: SPACING.large,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 40,
-    marginBottom: SPACING.large,
+    paddingTop: Platform.OS === 'ios' ? 50 : 40,
+    paddingBottom: SPACING.xlarge,
+    paddingHorizontal: SPACING.screenPadding,
+  },
+  headerContent: {
+    flex: 1,
+    alignItems: 'center',
   },
   backButton: {
     padding: SPACING.small,
   },
   headerTitle: {
-    ...FONTS.heading,
-    fontSize: 20,
-    color: COLORS.text,
+    fontSize: 24,
+    fontWeight: '600',
+    color: COLORS.textWhite,
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: COLORS.textWhite,
+    opacity: 0.9,
   },
   amountSection: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: SPACING.xl,
+    backgroundColor: COLORS.background,
+    borderRadius: 16,
+    paddingVertical: SPACING.large,
+    paddingHorizontal: SPACING.base,
+  },
+  amountSectionFocused: {
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 4,
+    borderWidth: 2,
+    borderColor: COLORS.primary + '20',
   },
   currencySymbol: {
     ...FONTS.heading,
-    fontSize: 48,
-    color: COLORS.textSecondary,
+    fontSize: 56,
+    color: COLORS.primary,
     marginRight: SPACING.small,
+    fontWeight: '600',
   },
   amountInput: {
     ...FONTS.heading,
-    fontSize: 48,
+    fontSize: 56,
     color: COLORS.text,
     fontWeight: 'bold',
-    minWidth: 120,
+    minWidth: 150,
     textAlign: 'left',
+    letterSpacing: -1,
   },
   section: {
     marginBottom: SPACING.large,
@@ -810,11 +1090,27 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   descriptionInput: {
-    backgroundColor: COLORS.backgroundSecondary,
+    backgroundColor: COLORS.descriptionBackground,
     borderRadius: 12,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    borderStyle: 'dashed',
     padding: SPACING.base,
     ...FONTS.body,
     color: COLORS.text,
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  descriptionInputFocused: {
+    borderStyle: 'solid',
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.background,
+  },
+  helperText: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.small,
+    fontStyle: 'italic',
   },
   categoriesGrid: {
     flexDirection: 'row',
@@ -857,25 +1153,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: SPACING.base,
   },
-  paidByButton: {
+  paidByCard: {
     flex: 1,
     backgroundColor: COLORS.backgroundSecondary,
     borderRadius: 12,
-    padding: SPACING.base,
+    padding: SPACING.large,
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'transparent',
+    gap: SPACING.small,
   },
-  paidByButtonSelected: {
-    backgroundColor: COLORS.primary + '20',
+  paidByCardSelected: {
+    backgroundColor: COLORS.primary,
     borderColor: COLORS.primary,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  paidByCardPressed: {
+    backgroundColor: COLORS.backgroundLight,
+    transform: [{ scale: 0.98 }],
   },
   paidByText: {
     ...FONTS.body,
     color: COLORS.text,
   },
   paidByTextSelected: {
-    color: COLORS.primary,
+    color: COLORS.background,
     fontWeight: '600',
   },
   splitTypeContainer: {
@@ -891,10 +1197,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'transparent',
+    gap: SPACING.tiny,
   },
   splitTypeButtonSelected: {
     backgroundColor: COLORS.primary + '20',
     borderColor: COLORS.primary,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  splitTypeButtonPressed: {
+    backgroundColor: COLORS.backgroundLight,
+    transform: [{ scale: 0.98 }],
+  },
+  splitIcon: {
+    fontSize: 20,
+  },
+  splitDescription: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    opacity: 0.8,
   },
   splitTypeText: {
     ...FONTS.body,
@@ -946,7 +1271,7 @@ const styles = StyleSheet.create({
   errorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.errorLight,
+    backgroundColor: COLORS.errorBackground,
     paddingVertical: SPACING.small,
     paddingHorizontal: SPACING.base,
     borderRadius: 8,
@@ -1001,5 +1326,100 @@ const styles = StyleSheet.create({
     marginHorizontal: SPACING.base,
     textTransform: 'uppercase',
     fontSize: 12,
+  },
+  // Scan section styles
+  scanSection: {
+    marginBottom: SPACING.xlarge,
+  },
+  // Date picker styles
+  dateInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.backgroundSecondary,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    padding: SPACING.base,
+    gap: SPACING.small,
+  },
+  dateText: {
+    ...FONTS.body,
+    color: COLORS.text,
+  },
+  datePickerModal: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  datePickerContainer: {
+    backgroundColor: COLORS.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: SPACING.xlarge,
+  },
+  datePickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    padding: SPACING.base,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  datePickerButton: {
+    ...FONTS.body,
+    color: COLORS.primary,
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  // Action button styles
+  actionButtons: {
+    flexDirection: 'row',
+    gap: SPACING.base,
+    marginTop: SPACING.xlarge,
+    paddingTop: SPACING.large,
+    borderTopWidth: 2,
+    borderTopColor: COLORS.border,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: COLORS.backgroundSecondary,
+    borderRadius: 12,
+    padding: SPACING.base,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 56,
+  },
+  cancelButtonPressed: {
+    backgroundColor: COLORS.backgroundLight,
+    transform: [{ scale: 0.98 }],
+  },
+  cancelButtonText: {
+    ...FONTS.body,
+    color: COLORS.textSecondary,
+    fontWeight: '600',
+  },
+  submitButton: {
+    flex: 1,
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
+    padding: SPACING.base,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 56,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  submitButtonPressed: {
+    shadowOpacity: 0.6,
+    shadowRadius: 16,
+    transform: [{ scale: 0.98 }],
+  },
+  submitButtonText: {
+    ...FONTS.body,
+    color: COLORS.background,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
 });

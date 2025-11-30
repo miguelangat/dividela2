@@ -33,6 +33,7 @@
   "homepage": "https://github.com/miguelangat/dividela2#readme",
   "dependencies": {
     "@react-native-async-storage/async-storage": "^1.24.0",
+    "@react-native-community/datetimepicker": "^8.5.1",
     "@react-native-community/slider": "^5.1.1",
     "@react-navigation/bottom-tabs": "^7.7.3",
     "@react-navigation/native": "^7.1.19",
