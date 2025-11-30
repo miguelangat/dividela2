@@ -22,6 +22,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { updateDoc, doc, serverTimestamp } from 'firebase/firestore';
@@ -77,21 +78,27 @@ export default function AddExpenseScreen({ navigation, route }) {
     error: null,
   });
 
-  // Fetch primary currency on mount
-  useEffect(() => {
-    const fetchPrimaryCurrency = async () => {
-      if (userDetails?.coupleId) {
-        try {
-          const currency = await getPrimaryCurrency(userDetails.coupleId);
-          setPrimaryCurrency(currency.code);
-          setExpenseCurrency(currency.code); // Default to primary currency
-        } catch (error) {
-          console.error('Error fetching primary currency:', error);
+  // Fetch primary currency on mount and when screen comes into focus
+  // This ensures currency updates when changed in Settings
+  useFocusEffect(
+    React.useCallback(() => {
+      const fetchPrimaryCurrency = async () => {
+        if (userDetails?.coupleId) {
+          try {
+            const currency = await getPrimaryCurrency(userDetails.coupleId);
+            setPrimaryCurrency(currency.code);
+            // Only update expense currency if not editing and not already set
+            if (!isEditMode && expenseCurrency === primaryCurrency) {
+              setExpenseCurrency(currency.code);
+            }
+          } catch (error) {
+            console.error('Error fetching primary currency:', error);
+          }
         }
-      }
-    };
-    fetchPrimaryCurrency();
-  }, [userDetails?.coupleId]);
+      };
+      fetchPrimaryCurrency();
+    }, [userDetails?.coupleId, isEditMode, expenseCurrency, primaryCurrency])
+  );
 
   // Pre-populate form when editing
   useEffect(() => {

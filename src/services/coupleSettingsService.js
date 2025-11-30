@@ -155,20 +155,32 @@ export const updateFiscalYearSettings = async (coupleId, fiscalYearSettings) => 
  * @returns {Object} Success status
  */
 export const updateBudgetPreferences = async (coupleId, budgetPreferences) => {
+  console.log('🔄 updateBudgetPreferences START');
+  console.log('📦 coupleId:', coupleId);
+  console.log('📦 budgetPreferences:', budgetPreferences);
+
   try {
     const settingsRef = doc(db, 'coupleSettings', coupleId);
+    console.log('🔄 Getting settingsRef for:', coupleId);
 
     // Check if document exists
     const settingsDoc = await getDoc(settingsRef);
+    console.log('📦 settingsDoc exists:', settingsDoc.exists());
 
     if (settingsDoc.exists()) {
       // Update existing document
+      console.log('🔄 Document exists, updating...');
+      console.log('📦 Current document data:', settingsDoc.data());
+
       await updateDoc(settingsRef, {
         budgetPreferences,
         updatedAt: serverTimestamp(),
       });
+
+      console.log('✅ Document updated successfully');
     } else {
       // Create new document with defaults and provided budget preferences
+      console.log('🔄 Document does not exist, creating with setDoc...');
       await setDoc(settingsRef, {
         ...DEFAULT_COUPLE_SETTINGS,
         budgetPreferences,
@@ -176,12 +188,15 @@ export const updateBudgetPreferences = async (coupleId, budgetPreferences) => {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
+      console.log('✅ Document created successfully');
     }
 
     console.log('✅ Budget preferences updated:', coupleId);
     return { success: true };
   } catch (error) {
-    console.error('Error updating budget preferences:', error);
+    console.error('❌ Error updating budget preferences:', error);
+    console.error('❌ Error code:', error.code);
+    console.error('❌ Error message:', error.message);
     throw error;
   }
 };
@@ -527,8 +542,14 @@ const getMonthName = (month) => {
  * @returns {Object} Success status
  */
 export const updatePrimaryCurrency = async (coupleId, currencyCode, currencySymbol, currencyLocale) => {
+  console.log('🔄 updatePrimaryCurrency START');
+  console.log('📦 Params:', { coupleId, currencyCode, currencySymbol, currencyLocale });
+
   try {
+    console.log('🔄 Fetching current settings...');
     const settings = await getCoupleSettings(coupleId);
+    console.log('📦 Current settings:', settings);
+    console.log('📦 Current budgetPreferences:', settings.budgetPreferences);
 
     const budgetPreferences = {
       ...settings.budgetPreferences,
@@ -537,12 +558,17 @@ export const updatePrimaryCurrency = async (coupleId, currencyCode, currencySymb
       currencyLocale,
     };
 
+    console.log('📦 New budgetPreferences:', budgetPreferences);
+    console.log('🔄 Calling updateBudgetPreferences...');
+
     const result = await updateBudgetPreferences(coupleId, budgetPreferences);
 
     console.log('✅ Primary currency updated:', currencyCode);
+    console.log('📦 Update result:', result);
     return result;
   } catch (error) {
-    console.error('Error updating primary currency:', error);
+    console.error('❌ Error in updatePrimaryCurrency:', error);
+    console.error('❌ Error details:', error.message, error.code);
     throw error;
   }
 };

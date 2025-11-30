@@ -23,6 +23,7 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { collection, query, where, onSnapshot, orderBy, addDoc, serverTimestamp, writeBatch, doc, runTransaction } from 'firebase/firestore';
 import { db } from '../../config/firebase';
@@ -90,20 +91,23 @@ export default function HomeScreen({ navigation }) {
     fetchPartnerName();
   }, [userDetails?.partnerId]);
 
-  // Fetch primary currency
-  useEffect(() => {
-    const fetchCurrency = async () => {
-      if (userDetails?.coupleId) {
-        try {
-          const currency = await getPrimaryCurrency(userDetails.coupleId);
-          setPrimaryCurrency(currency.code);
-        } catch (error) {
-          console.error('Error fetching primary currency:', error);
+  // Fetch primary currency on mount and when screen comes into focus
+  // This ensures currency updates when changed in Settings
+  useFocusEffect(
+    React.useCallback(() => {
+      const fetchCurrency = async () => {
+        if (userDetails?.coupleId) {
+          try {
+            const currency = await getPrimaryCurrency(userDetails.coupleId);
+            setPrimaryCurrency(currency.code);
+          } catch (error) {
+            console.error('Error fetching primary currency:', error);
+          }
         }
-      }
-    };
-    fetchCurrency();
-  }, [userDetails?.coupleId]);
+      };
+      fetchCurrency();
+    }, [userDetails?.coupleId])
+  );
 
   // Real-time expenses listener
   useEffect(() => {

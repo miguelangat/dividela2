@@ -62,6 +62,8 @@ export default function SettingsScreen({ navigation }) {
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
   const [restartOnboardingModalVisible, setRestartOnboardingModalVisible] = useState(false);
   const [showAliasManager, setShowAliasManager] = useState(false);
+  const [currencyChangeModalVisible, setCurrencyChangeModalVisible] = useState(false);
+  const [pendingCurrency, setPendingCurrency] = useState(null);
 
   // Fetch partner details
   useEffect(() => {
@@ -136,40 +138,63 @@ export default function SettingsScreen({ navigation }) {
   };
 
   const handleCurrencyChange = async (newCurrency) => {
-    if (!userDetails?.coupleId) return;
+    console.log('🔍 handleCurrencyChange called with:', newCurrency);
+    console.log('🔍 Current primaryCurrency:', primaryCurrency);
+    console.log('🔍 userDetails?.coupleId:', userDetails?.coupleId);
+
+    if (!userDetails?.coupleId) {
+      console.log('❌ No coupleId, returning early');
+      return;
+    }
+
+    console.log('🔍 Comparing currencies:', newCurrency, '!==', primaryCurrency, '=', newCurrency !== primaryCurrency);
 
     // Show warning if changing from current currency
     if (newCurrency !== primaryCurrency) {
-      Alert.alert(
-        'Change Primary Currency',
-        `Change from ${primaryCurrency} to ${newCurrency}?\n\nNote: Future expenses will default to ${newCurrency}. Past expenses will keep their original currency.`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Change',
-            onPress: async () => {
-              setCurrencyLoading(true);
-              try {
-                const currencyInfo = getCurrencyInfo(newCurrency);
-                await updatePrimaryCurrency(
-                  userDetails.coupleId,
-                  newCurrency,
-                  currencyInfo.symbol,
-                  currencyInfo.locale
-                );
-                setPrimaryCurrency(newCurrency);
-                Alert.alert('Success', `Primary currency changed to ${newCurrency}`);
-              } catch (error) {
-                console.error('Error updating currency:', error);
-                Alert.alert('Error', 'Failed to update currency. Please try again.');
-              } finally {
-                setCurrencyLoading(false);
-              }
-            },
-          },
-        ]
-      );
+      console.log('✅ Showing confirmation modal');
+      setPendingCurrency(newCurrency);
+      setCurrencyChangeModalVisible(true);
+    } else {
+      console.log('ℹ️ Same currency selected, no change needed');
     }
+  };
+
+  const confirmCurrencyChange = async () => {
+    console.log('✅ User confirmed currency change');
+    setCurrencyChangeModalVisible(false);
+    setCurrencyLoading(true);
+
+    try {
+      console.log('🔄 Fetching currency info for:', pendingCurrency);
+      const currencyInfo = getCurrencyInfo(pendingCurrency);
+      console.log('📦 Currency info:', currencyInfo);
+
+      console.log('🔄 Calling updatePrimaryCurrency...');
+      await updatePrimaryCurrency(
+        userDetails.coupleId,
+        pendingCurrency,
+        currencyInfo.symbol,
+        currencyInfo.locale
+      );
+      console.log('✅ updatePrimaryCurrency completed');
+
+      setPrimaryCurrency(pendingCurrency);
+      console.log(`✅ Primary currency successfully changed to ${pendingCurrency}`);
+    } catch (error) {
+      console.error('❌ Error updating currency:', error);
+      console.error('❌ Error stack:', error.stack);
+      console.error('❌ Failed to update currency. Please try again.');
+    } finally {
+      console.log('🔄 Setting currencyLoading to false');
+      setCurrencyLoading(false);
+      setPendingCurrency(null);
+    }
+  };
+
+  const cancelCurrencyChange = () => {
+    console.log('❌ User cancelled currency change');
+    setCurrencyChangeModalVisible(false);
+    setPendingCurrency(null);
   };
 
   const confirmSignOut = async () => {
@@ -710,6 +735,50 @@ export default function SettingsScreen({ navigation }) {
                 onPress={confirmRestartOnboarding}
               >
                 <Text style={styles.modalButtonTextPrimary}>{t('settings.restart')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Currency Change Confirmation Modal */}
+      <Modal
+        visible={currencyChangeModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={cancelCurrencyChange}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="cash" size={32} color={COLORS.primary} />
+            </View>
+
+            <Text style={styles.modalTitle}>Change Primary Currency</Text>
+            <Text style={styles.modalMessage}>
+              Change from {primaryCurrency} to {pendingCurrency}?
+              {'\n\n'}
+              Note: Future expenses will default to {pendingCurrency}. Past expenses will keep their original currency.
+            </Text>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonSecondary]}
+                onPress={cancelCurrencyChange}
+              >
+                <Text style={styles.modalButtonTextSecondary}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonPrimary]}
+                onPress={confirmCurrencyChange}
+                disabled={currencyLoading}
+              >
+                {currencyLoading ? (
+                  <ActivityIndicator size="small" color={COLORS.background} />
+                ) : (
+                  <Text style={styles.modalButtonTextPrimary}>Change</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>

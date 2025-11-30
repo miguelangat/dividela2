@@ -1,5 +1,6 @@
 import React, { useState, useLayoutEffect, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, TouchableOpacity, Platform, Modal, ActivityIndicator } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Text, Button, Card } from 'react-native-paper';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -57,22 +58,25 @@ export default function ImportExpensesScreen({ navigation }) {
     currency: 'USD', // Will be updated to primary currency
   });
 
-  // Fetch primary currency on mount
-  React.useEffect(() => {
-    const fetchPrimaryCurrency = async () => {
-      if (coupleId) {
-        try {
-          const primaryCurrency = await getPrimaryCurrency(coupleId);
-          setConfig(prev => ({ ...prev, currency: primaryCurrency.code }));
-          console.log('💰 Primary currency loaded:', primaryCurrency.code);
-        } catch (error) {
-          console.error('Error fetching primary currency:', error);
-          // Keep default USD if fetch fails
+  // Fetch primary currency on mount and when screen comes into focus
+  // This ensures currency updates when changed in Settings
+  useFocusEffect(
+    React.useCallback(() => {
+      const fetchPrimaryCurrency = async () => {
+        if (coupleId) {
+          try {
+            const primaryCurrency = await getPrimaryCurrency(coupleId);
+            setConfig(prev => ({ ...prev, currency: primaryCurrency.code }));
+            console.log('💰 Primary currency loaded:', primaryCurrency.code);
+          } catch (error) {
+            console.error('Error fetching primary currency:', error);
+            // Keep default USD if fetch fails
+          }
         }
-      }
-    };
-    fetchPrimaryCurrency();
-  }, [coupleId]);
+      };
+      fetchPrimaryCurrency();
+    }, [coupleId])
+  );
 
   // Preview state
   const [previewData, setPreviewData] = useState(null);

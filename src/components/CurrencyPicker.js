@@ -44,7 +44,11 @@ export default function CurrencyPicker({
   });
 
   const handleSelect = (currencyCode) => {
+    console.log('🔍 CurrencyPicker: handleSelect called with:', currencyCode);
+    console.log('🔍 CurrencyPicker: onSelect function:', onSelect);
+    console.log('🔍 CurrencyPicker: Calling onSelect callback');
     onSelect(currencyCode);
+    console.log('🔍 CurrencyPicker: onSelect callback completed');
     setModalVisible(false);
     setSearchQuery('');
   };
