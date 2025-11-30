@@ -32,6 +32,12 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { onboardingStorage } from '../../utils/storage';
 import { COLORS, FONTS, SPACING } from '../../constants/theme';
 import { formatCurrency, calculateBalance } from '../../utils/calculations';
+import CurrencyPicker from '../../components/CurrencyPicker';
+import { getCurrencyInfo } from '../../constants/currencies';
+import {
+  updatePrimaryCurrency,
+  getPrimaryCurrency,
+} from '../../services/coupleSettingsService';
 import MerchantAliasManager from '../../components/MerchantAliasManager';
 import { useTranslation } from 'react-i18next';
 
@@ -51,9 +57,13 @@ export default function SettingsScreen({ navigation }) {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
   const [signOutModalVisible, setSignOutModalVisible] = useState(false);
+  const [primaryCurrency, setPrimaryCurrency] = useState('USD');
+  const [currencyLoading, setCurrencyLoading] = useState(false);
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
   const [restartOnboardingModalVisible, setRestartOnboardingModalVisible] = useState(false);
   const [showAliasManager, setShowAliasManager] = useState(false);
+  const [currencyChangeModalVisible, setCurrencyChangeModalVisible] = useState(false);
+  const [pendingCurrency, setPendingCurrency] = useState(null);
 
   // Fetch partner details
   useEffect(() => {
@@ -78,6 +88,21 @@ export default function SettingsScreen({ navigation }) {
       setDisplayName(userDetails.displayName);
     }
   }, [userDetails?.displayName]);
+
+  // Fetch primary currency
+  useEffect(() => {
+    const fetchCurrency = async () => {
+      if (userDetails?.coupleId) {
+        try {
+          const currency = await getPrimaryCurrency(userDetails.coupleId);
+          setPrimaryCurrency(currency.code);
+        } catch (error) {
+          console.error('Error fetching primary currency:', error);
+        }
+      }
+    };
+    fetchCurrency();
+  }, [userDetails?.coupleId]);
 
   const handleSaveName = async () => {
     if (!displayName.trim()) {
@@ -110,6 +135,66 @@ export default function SettingsScreen({ navigation }) {
   const handleSignOut = () => {
     console.log('Sign out button pressed');
     setSignOutModalVisible(true);
+  };
+
+  const handleCurrencyChange = async (newCurrency) => {
+    console.log('🔍 handleCurrencyChange called with:', newCurrency);
+    console.log('🔍 Current primaryCurrency:', primaryCurrency);
+    console.log('🔍 userDetails?.coupleId:', userDetails?.coupleId);
+
+    if (!userDetails?.coupleId) {
+      console.log('❌ No coupleId, returning early');
+      return;
+    }
+
+    console.log('🔍 Comparing currencies:', newCurrency, '!==', primaryCurrency, '=', newCurrency !== primaryCurrency);
+
+    // Show warning if changing from current currency
+    if (newCurrency !== primaryCurrency) {
+      console.log('✅ Showing confirmation modal');
+      setPendingCurrency(newCurrency);
+      setCurrencyChangeModalVisible(true);
+    } else {
+      console.log('ℹ️ Same currency selected, no change needed');
+    }
+  };
+
+  const confirmCurrencyChange = async () => {
+    console.log('✅ User confirmed currency change');
+    setCurrencyChangeModalVisible(false);
+    setCurrencyLoading(true);
+
+    try {
+      console.log('🔄 Fetching currency info for:', pendingCurrency);
+      const currencyInfo = getCurrencyInfo(pendingCurrency);
+      console.log('📦 Currency info:', currencyInfo);
+
+      console.log('🔄 Calling updatePrimaryCurrency...');
+      await updatePrimaryCurrency(
+        userDetails.coupleId,
+        pendingCurrency,
+        currencyInfo.symbol,
+        currencyInfo.locale
+      );
+      console.log('✅ updatePrimaryCurrency completed');
+
+      setPrimaryCurrency(pendingCurrency);
+      console.log(`✅ Primary currency successfully changed to ${pendingCurrency}`);
+    } catch (error) {
+      console.error('❌ Error updating currency:', error);
+      console.error('❌ Error stack:', error.stack);
+      console.error('❌ Failed to update currency. Please try again.');
+    } finally {
+      console.log('🔄 Setting currencyLoading to false');
+      setCurrencyLoading(false);
+      setPendingCurrency(null);
+    }
+  };
+
+  const cancelCurrencyChange = () => {
+    console.log('❌ User cancelled currency change');
+    setCurrencyChangeModalVisible(false);
+    setPendingCurrency(null);
   };
 
   const confirmSignOut = async () => {
@@ -379,13 +464,18 @@ export default function SettingsScreen({ navigation }) {
           <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
         </TouchableOpacity>
 
-        <View style={styles.settingRow}>
+        <View style={[styles.settingRow, styles.currencyPickerRow]}>
           <View style={styles.settingIcon}>
             <Ionicons name="cash" size={20} color={COLORS.primary} />
           </View>
           <View style={styles.settingContent}>
-            <Text style={styles.settingLabel}>{t('settings.currency')}</Text>
-            <Text style={styles.settingValue}>USD ($)</Text>
+            <CurrencyPicker
+              selectedCurrency={primaryCurrency}
+              onSelect={handleCurrencyChange}
+              label="Primary Currency"
+              disabled={currencyLoading}
+              style={styles.currencyPicker}
+            />
           </View>
         </View>
 
@@ -651,6 +741,50 @@ export default function SettingsScreen({ navigation }) {
         </View>
       </Modal>
 
+      {/* Currency Change Confirmation Modal */}
+      <Modal
+        visible={currencyChangeModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={cancelCurrencyChange}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="cash" size={32} color={COLORS.primary} />
+            </View>
+
+            <Text style={styles.modalTitle}>Change Primary Currency</Text>
+            <Text style={styles.modalMessage}>
+              Change from {primaryCurrency} to {pendingCurrency}?
+              {'\n\n'}
+              Note: Future expenses will default to {pendingCurrency}. Past expenses will keep their original currency.
+            </Text>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonSecondary]}
+                onPress={cancelCurrencyChange}
+              >
+                <Text style={styles.modalButtonTextSecondary}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonPrimary]}
+                onPress={confirmCurrencyChange}
+                disabled={currencyLoading}
+              >
+                {currencyLoading ? (
+                  <ActivityIndicator size="small" color={COLORS.background} />
+                ) : (
+                  <Text style={styles.modalButtonTextPrimary}>Change</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Merchant Alias Manager Modal */}
       <Modal
         visible={showAliasManager}
@@ -731,6 +865,13 @@ const styles = StyleSheet.create({
   },
   settingContent: {
     flex: 1,
+  },
+  currencyPickerRow: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+  },
+  currencyPicker: {
+    marginVertical: 0,
   },
   settingLabel: {
     ...FONTS.small,

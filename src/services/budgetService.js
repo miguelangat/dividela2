@@ -38,7 +38,7 @@ const getBudgetDocId = (coupleId, month, year) => {
  * @param {object} categories - Categories object
  * @param {number} month - Month (1-12)
  * @param {number} year - Year
- * @param {object} options - Additional options (complexity, autoCalculated, etc.)
+ * @param {object} options - Additional options (complexity, autoCalculated, currency, etc.)
  */
 export const initializeBudgetForMonth = async (coupleId, categories, month, year, options = {}) => {
   try {
@@ -56,6 +56,7 @@ export const initializeBudgetForMonth = async (coupleId, categories, month, year
       month,
       year,
       categoryBudgets,
+      currency: options.currency || 'USD', // Budget currency (primary currency)
       enabled: options.enabled !== undefined ? options.enabled : true,
       includeSavings: options.includeSavings !== undefined ? options.includeSavings : true,
       complexity: options.complexity || COMPLEXITY_MODES.SIMPLE,
@@ -67,7 +68,7 @@ export const initializeBudgetForMonth = async (coupleId, categories, month, year
 
     await setDoc(doc(budgetsRef, docId), budgetDoc);
 
-    console.log(`✅ Budget initialized for ${month}/${year} with complexity: ${budgetDoc.complexity}`);
+    console.log(`✅ Budget initialized for ${month}/${year} with complexity: ${budgetDoc.complexity}, currency: ${budgetDoc.currency}`);
     return budgetDoc;
   } catch (error) {
     console.error('Error initializing budget:', error);
@@ -196,6 +197,7 @@ export const subscribeToCurrentMonthBudget = (coupleId, callback) => {
 
 /**
  * Calculate spending by category for a month
+ * Uses primaryCurrencyAmount for multi-currency support
  */
 export const calculateSpendingByCategory = (expenses, month, year) => {
   const spending = {};
@@ -208,7 +210,9 @@ export const calculateSpendingByCategory = (expenses, month, year) => {
     // Only include expenses from the specified month/year
     if (expenseMonth === month && expenseYear === year) {
       const categoryKey = expense.categoryKey || expense.category || 'other';
-      spending[categoryKey] = (spending[categoryKey] || 0) + expense.amount;
+      // Use primaryCurrencyAmount for multi-currency support, fallback to amount
+      const amountToAdd = expense.primaryCurrencyAmount || expense.amount;
+      spending[categoryKey] = (spending[categoryKey] || 0) + amountToAdd;
     }
   });
 

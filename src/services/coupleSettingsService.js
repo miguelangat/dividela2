@@ -28,6 +28,8 @@ export const DEFAULT_COUPLE_SETTINGS = {
     enableSavingsTargets: true,
     enableAnnualSettlements: true,
     budgetCurrency: 'USD',
+    currencySymbol: '$',
+    currencyLocale: 'en-US',
   },
   notifications: {
     monthlyBudgetAlert: true,
@@ -40,6 +42,10 @@ export const DEFAULT_COUPLE_SETTINGS = {
     defaultView: 'monthly', // 'monthly' or 'annual'
     showFiscalYearProgress: true,
     showSavingsOnHome: true,
+  },
+  recentExchangeRates: {
+    // Store recent exchange rates for quick reuse
+    // Format: 'FROM-TO': { rate: number, lastUsed: timestamp }
   },
   importPreferences: {
     dateFormat: 'auto', // 'auto', 'MM/DD/YYYY', 'DD/MM/YYYY'
@@ -149,20 +155,32 @@ export const updateFiscalYearSettings = async (coupleId, fiscalYearSettings) => 
  * @returns {Object} Success status
  */
 export const updateBudgetPreferences = async (coupleId, budgetPreferences) => {
+  console.log('🔄 updateBudgetPreferences START');
+  console.log('📦 coupleId:', coupleId);
+  console.log('📦 budgetPreferences:', budgetPreferences);
+
   try {
     const settingsRef = doc(db, 'coupleSettings', coupleId);
+    console.log('🔄 Getting settingsRef for:', coupleId);
 
     // Check if document exists
     const settingsDoc = await getDoc(settingsRef);
+    console.log('📦 settingsDoc exists:', settingsDoc.exists());
 
     if (settingsDoc.exists()) {
       // Update existing document
+      console.log('🔄 Document exists, updating...');
+      console.log('📦 Current document data:', settingsDoc.data());
+
       await updateDoc(settingsRef, {
         budgetPreferences,
         updatedAt: serverTimestamp(),
       });
+
+      console.log('✅ Document updated successfully');
     } else {
       // Create new document with defaults and provided budget preferences
+      console.log('🔄 Document does not exist, creating with setDoc...');
       await setDoc(settingsRef, {
         ...DEFAULT_COUPLE_SETTINGS,
         budgetPreferences,
@@ -170,12 +188,15 @@ export const updateBudgetPreferences = async (coupleId, budgetPreferences) => {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
+      console.log('✅ Document created successfully');
     }
 
     console.log('✅ Budget preferences updated:', coupleId);
     return { success: true };
   } catch (error) {
-    console.error('Error updating budget preferences:', error);
+    console.error('❌ Error updating budget preferences:', error);
+    console.error('❌ Error code:', error.code);
+    console.error('❌ Error message:', error.message);
     throw error;
   }
 };
@@ -509,4 +530,133 @@ const getMonthName = (month) => {
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
   return months[month - 1] || 'Unknown';
+};
+
+/**
+ * Update primary currency for couple
+ *
+ * @param {string} coupleId - The couple ID
+ * @param {string} currencyCode - Currency code (e.g., 'USD')
+ * @param {string} currencySymbol - Currency symbol (e.g., '$')
+ * @param {string} currencyLocale - Currency locale (e.g., 'en-US')
+ * @returns {Object} Success status
+ */
+export const updatePrimaryCurrency = async (coupleId, currencyCode, currencySymbol, currencyLocale) => {
+  console.log('🔄 updatePrimaryCurrency START');
+  console.log('📦 Params:', { coupleId, currencyCode, currencySymbol, currencyLocale });
+
+  try {
+    console.log('🔄 Fetching current settings...');
+    const settings = await getCoupleSettings(coupleId);
+    console.log('📦 Current settings:', settings);
+    console.log('📦 Current budgetPreferences:', settings.budgetPreferences);
+
+    const budgetPreferences = {
+      ...settings.budgetPreferences,
+      budgetCurrency: currencyCode,
+      currencySymbol,
+      currencyLocale,
+    };
+
+    console.log('📦 New budgetPreferences:', budgetPreferences);
+    console.log('🔄 Calling updateBudgetPreferences...');
+
+    const result = await updateBudgetPreferences(coupleId, budgetPreferences);
+
+    console.log('✅ Primary currency updated:', currencyCode);
+    console.log('📦 Update result:', result);
+    return result;
+  } catch (error) {
+    console.error('❌ Error in updatePrimaryCurrency:', error);
+    console.error('❌ Error details:', error.message, error.code);
+    throw error;
+  }
+};
+
+/**
+ * Get primary currency for couple
+ *
+ * @param {string} coupleId - The couple ID
+ * @returns {Object} Currency info { code, symbol, locale }
+ */
+export const getPrimaryCurrency = async (coupleId) => {
+  try {
+    const settings = await getCoupleSettings(coupleId);
+    return {
+      code: settings.budgetPreferences?.budgetCurrency || 'USD',
+      symbol: settings.budgetPreferences?.currencySymbol || '$',
+      locale: settings.budgetPreferences?.currencyLocale || 'en-US',
+    };
+  } catch (error) {
+    console.error('Error getting primary currency:', error);
+    return { code: 'USD', symbol: '$', locale: 'en-US' };
+  }
+};
+
+/**
+ * Save recent exchange rate for quick reuse
+ *
+ * @param {string} coupleId - The couple ID
+ * @param {string} fromCurrency - Source currency code
+ * @param {string} toCurrency - Target currency code
+ * @param {number} rate - Exchange rate
+ * @returns {Object} Success status
+ */
+export const saveRecentExchangeRate = async (coupleId, fromCurrency, toCurrency, rate) => {
+  try {
+    const settingsRef = doc(db, 'coupleSettings', coupleId);
+    const settingsDoc = await getDoc(settingsRef);
+
+    if (!settingsDoc.exists()) {
+      console.warn('Couple settings not found, cannot save exchange rate');
+      return { success: false };
+    }
+
+    const currentSettings = settingsDoc.data();
+    const recentRates = currentSettings.recentExchangeRates || {};
+
+    // Create key for rate pair
+    const rateKey = `${fromCurrency}-${toCurrency}`;
+
+    // Update rates
+    const updatedRates = {
+      ...recentRates,
+      [rateKey]: {
+        rate,
+        lastUsed: serverTimestamp(),
+      },
+    };
+
+    await updateDoc(settingsRef, {
+      recentExchangeRates: updatedRates,
+      updatedAt: serverTimestamp(),
+    });
+
+    console.log(`✅ Saved exchange rate: ${rateKey} = ${rate}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Error saving exchange rate:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get recent exchange rate for currency pair
+ *
+ * @param {string} coupleId - The couple ID
+ * @param {string} fromCurrency - Source currency code
+ * @param {string} toCurrency - Target currency code
+ * @returns {Object|null} Rate info or null if not found
+ */
+export const getRecentExchangeRate = async (coupleId, fromCurrency, toCurrency) => {
+  try {
+    const settings = await getCoupleSettings(coupleId);
+    const recentRates = settings.recentExchangeRates || {};
+    const rateKey = `${fromCurrency}-${toCurrency}`;
+
+    return recentRates[rateKey] || null;
+  } catch (error) {
+    console.error('Error getting recent exchange rate:', error);
+    return null;
+  }
 };

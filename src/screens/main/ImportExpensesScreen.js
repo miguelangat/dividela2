@@ -1,5 +1,6 @@
 import React, { useState, useLayoutEffect, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, TouchableOpacity, Platform, Modal, ActivityIndicator } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Text, Button, Card } from 'react-native-paper';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,6 +16,7 @@ import ImportSummary from '../../components/import/ImportSummary';
 import DebugPanel from '../../components/import/DebugPanel';
 import { previewImport, importFromFile } from '../../services/importService';
 import { markDuplicatesForReview } from '../../utils/duplicateDetector';
+import { getPrimaryCurrency } from '../../services/coupleSettingsService';
 
 /**
  * Screen for importing expenses from bank statements
@@ -53,7 +55,28 @@ export default function ImportExpensesScreen({ navigation }) {
     defaultCategoryKey: 'other',
     availableCategories: ['food', 'groceries', 'transport', 'home', 'fun', 'other'],
     detectDuplicates: false, // Disabled by default to improve browser performance
+    currency: 'USD', // Will be updated to primary currency
   });
+
+  // Fetch primary currency on mount and when screen comes into focus
+  // This ensures currency updates when changed in Settings
+  useFocusEffect(
+    React.useCallback(() => {
+      const fetchPrimaryCurrency = async () => {
+        if (coupleId) {
+          try {
+            const primaryCurrency = await getPrimaryCurrency(coupleId);
+            setConfig(prev => ({ ...prev, currency: primaryCurrency.code }));
+            console.log('💰 Primary currency loaded:', primaryCurrency.code);
+          } catch (error) {
+            console.error('Error fetching primary currency:', error);
+            // Keep default USD if fetch fails
+          }
+        }
+      };
+      fetchPrimaryCurrency();
+    }, [coupleId])
+  );
 
   // Preview state
   const [previewData, setPreviewData] = useState(null);

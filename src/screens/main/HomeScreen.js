@@ -23,6 +23,7 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { collection, query, where, onSnapshot, orderBy, addDoc, serverTimestamp, writeBatch, doc, runTransaction } from 'firebase/firestore';
 import { db } from '../../config/firebase';
@@ -40,8 +41,11 @@ import {
   sortExpensesByDate,
   validateSettlement,
 } from '../../utils/calculations';
+import { getExpenseDualDisplay, formatCurrency as formatCurrencyNew } from '../../utils/currencyUtils';
+import { getCurrencyFlag } from '../../constants/currencies';
 import ExpenseDetailModal from '../../components/ExpenseDetailModal';
 import * as settlementService from '../../services/settlementService';
+import { getPrimaryCurrency } from '../../services/coupleSettingsService';
 
 export default function HomeScreen({ navigation }) {
   const { user, userDetails, getPartnerDetails } = useAuth();
@@ -52,6 +56,7 @@ export default function HomeScreen({ navigation }) {
   const [settlements, setSettlements] = useState([]); // Track settlements for balance calculation
   const [balance, setBalance] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [primaryCurrency, setPrimaryCurrency] = useState('USD');
   const [refreshing, setRefreshing] = useState(false);
   const [partnerName, setPartnerName] = useState('Partner');
   const [error, setError] = useState(null); // Track errors for UI display
@@ -85,6 +90,24 @@ export default function HomeScreen({ navigation }) {
     };
     fetchPartnerName();
   }, [userDetails?.partnerId]);
+
+  // Fetch primary currency on mount and when screen comes into focus
+  // This ensures currency updates when changed in Settings
+  useFocusEffect(
+    React.useCallback(() => {
+      const fetchCurrency = async () => {
+        if (userDetails?.coupleId) {
+          try {
+            const currency = await getPrimaryCurrency(userDetails.coupleId);
+            setPrimaryCurrency(currency.code);
+          } catch (error) {
+            console.error('Error fetching primary currency:', error);
+          }
+        }
+      };
+      fetchCurrency();
+    }, [userDetails?.coupleId])
+  );
 
   // Real-time expenses listener
   useEffect(() => {
@@ -490,12 +513,19 @@ export default function HomeScreen({ navigation }) {
         </View>
 
         <View style={styles.expenseAmountContainer}>
-          <Text style={[styles.expenseAmount, isSettled && styles.expenseAmountSettled]}>
-            {formatCurrency(item.amount)}
-          </Text>
+          <View style={styles.expenseAmountRow}>
+            {item.currency && item.currency !== primaryCurrency && (
+              <Text style={styles.currencyFlag}>{getCurrencyFlag(item.currency)}</Text>
+            )}
+            <Text style={[styles.expenseAmount, isSettled && styles.expenseAmountSettled]}>
+              {item.currency && item.primaryCurrencyAmount
+                ? getExpenseDualDisplay(item)
+                : formatCurrency(item.amount)}
+            </Text>
+          </View>
           {item.splitDetails && item.splitDetails.user1Amount !== undefined && item.splitDetails.user2Amount !== undefined && (
             <Text style={[styles.expenseYourShare, isSettled && styles.expenseMetaSettled]}>
-              Your share: {formatCurrency(isPaidByUser ? item.splitDetails.user1Amount : item.splitDetails.user2Amount)}
+              Your share: {formatCurrencyNew(isPaidByUser ? item.splitDetails.user1Amount : item.splitDetails.user2Amount, primaryCurrency)}
             </Text>
           )}
         </View>
@@ -972,6 +1002,14 @@ const styles = StyleSheet.create({
   },
   expenseAmountContainer: {
     alignItems: 'flex-end',
+  },
+  expenseAmountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  currencyFlag: {
+    fontSize: 16,
   },
   expenseAmount: {
     ...FONTS.body,
