@@ -187,6 +187,45 @@ export const parseCurrencyInput = (input) => {
 };
 
 /**
+ * Parse currency input with comprehensive safety checks
+ * Handles copy/paste, multiple decimals, whitespace, etc.
+ * @param {string} input - User input string
+ * @returns {string} Cleaned numeric string
+ */
+export const parseCurrencyInputSafe = (input) => {
+  if (typeof input === 'number') return input.toString();
+  if (!input) return '';
+
+  // Trim whitespace
+  let cleaned = String(input).trim();
+
+  // Remove currency symbols, commas, spaces - keep numbers, decimal, minus
+  cleaned = cleaned.replace(/[^0-9.-]/g, '');
+
+  // Handle multiple decimal points - keep only first
+  const firstDecimal = cleaned.indexOf('.');
+  if (firstDecimal !== -1) {
+    const before = cleaned.substring(0, firstDecimal);
+    const after = cleaned.substring(firstDecimal + 1).replace(/\./g, '');
+    cleaned = before + '.' + after;
+  }
+
+  // Remove extra minus signs (keep only leading one)
+  if (cleaned.startsWith('-')) {
+    cleaned = '-' + cleaned.substring(1).replace(/-/g, '');
+  } else {
+    cleaned = cleaned.replace(/-/g, '');
+  }
+
+  // Remove leading zeros (except "0." cases)
+  if (cleaned.length > 1 && cleaned.startsWith('0') && !cleaned.startsWith('0.')) {
+    cleaned = cleaned.replace(/^0+/, '');
+  }
+
+  return cleaned;
+};
+
+/**
  * Round to currency decimals (typically 2)
  * @param {number} amount - Amount to round
  * @param {string} currencyCode - Currency code
@@ -334,6 +373,7 @@ export default {
   formatExchangeRate,
   formatExchangeRateWithSymbols,
   parseCurrencyInput,
+  parseCurrencyInputSafe,
   roundCurrency,
   validateAmount,
   validateExchangeRate,
