@@ -30,7 +30,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import { updateDoc, doc, serverTimestamp } from 'firebase/firestore';
-import { useTranslation } from 'react-i18next';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBudget } from '../../contexts/BudgetContext';
@@ -53,10 +52,8 @@ import OCRSuggestionCard from '../../components/OCRSuggestionCard';
 import OCRProcessingBanner from '../../components/OCRProcessingBanner';
 import FieldLabel from '../../components/FieldLabel';
 import SplitPreviewCard from '../../components/SplitPreviewCard';
-import FormattedCurrencyInput from '../../components/FormattedCurrencyInput';
 
 export default function AddExpenseScreen({ navigation, route }) {
-  const { t } = useTranslation();
   const { user, userDetails } = useAuth();
   const { categories: budgetCategories, budgetProgress, isBudgetEnabled } = useBudget();
   const { isPremium } = useSubscription();
@@ -65,7 +62,7 @@ export default function AddExpenseScreen({ navigation, route }) {
   const editingExpense = route.params?.expense;
   const isEditMode = !!editingExpense;
 
-  const [amount, setAmount] = useState(0);
+  const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('food');
   const [paidBy, setPaidBy] = useState(user.uid); // Who paid
@@ -122,7 +119,7 @@ export default function AddExpenseScreen({ navigation, route }) {
   // Pre-populate form when editing
   useEffect(() => {
     if (editingExpense) {
-      setAmount(editingExpense.amount);
+      setAmount(editingExpense.amount.toString());
       setDescription(editingExpense.description);
       setSelectedCategory(editingExpense.categoryKey || editingExpense.category || 'food');
       setPaidBy(editingExpense.paidBy);
@@ -156,9 +153,37 @@ export default function AddExpenseScreen({ navigation, route }) {
     }
   }, [editingExpense]);
 
-  const handleAmountChange = (numericValue) => {
-    setAmount(numericValue);
+  const handleAmountChange = (text) => {
+    // Remove all non-numeric characters except decimal point
+    const cleaned = text.replace(/[^0-9.]/g, '');
+
+    // Handle multiple decimal points - only allow one
+    const parts = cleaned.split('.');
+    if (parts.length > 2) return;
+
+    // Limit decimal places to 2
+    if (parts[1] && parts[1].length > 2) return;
+
+    // Store the raw value (without formatting)
+    setAmount(cleaned);
     setError('');
+  };
+
+  // Format number with thousands separator for display
+  const formatAmountForDisplay = (value) => {
+    if (!value) return '';
+
+    const parts = value.split('.');
+    const integerPart = parts[0];
+    const decimalPart = parts[1];
+
+    // Add thousands separator
+    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+    // Return with decimal part if it exists
+    return decimalPart !== undefined
+      ? `${formattedInteger}.${decimalPart}`
+      : formattedInteger;
   };
 
   const handleSplitPercentageChange = (text) => {
@@ -191,9 +216,9 @@ export default function AddExpenseScreen({ navigation, route }) {
 
       if (status !== 'granted') {
         Alert.alert(
-          t('addExpense.ocr.permissionTitle'),
-          t('addExpense.ocr.permissionMessage'),
-          [{ text: t('common.ok') }]
+          'Permission Required',
+          'Camera permission is required to scan receipts. Please enable it in your device settings.',
+          [{ text: 'OK' }]
         );
         return;
       }
@@ -261,9 +286,9 @@ export default function AddExpenseScreen({ navigation, route }) {
 
       // Show success message
       Alert.alert(
-        t('addExpense.ocr.successTitle'),
-        t('addExpense.ocr.successMessage'),
-        [{ text: t('common.ok') }]
+        'Receipt Scanned',
+        'Receipt information extracted. Please review and edit as needed.',
+        [{ text: 'OK' }]
       );
     } catch (err) {
       console.error('❌ Error processing image receipt:', err);
@@ -274,9 +299,9 @@ export default function AddExpenseScreen({ navigation, route }) {
       });
 
       Alert.alert(
-        t('addExpense.ocr.failedTitle'),
-        err.message || t('addExpense.ocr.failedMessage'),
-        [{ text: t('common.ok') }]
+        'Processing Failed',
+        err.message || 'Failed to process receipt. Please try again.',
+        [{ text: 'OK' }]
       );
     }
   };
@@ -284,7 +309,7 @@ export default function AddExpenseScreen({ navigation, route }) {
   const handleAcceptSuggestions = (suggestions) => {
     // Pre-fill form fields
     if (suggestions.amount) {
-      setAmount(suggestions.amount);
+      setAmount(suggestions.amount.toString());
     }
     if (suggestions.merchant) {
       setDescription(suggestions.merchant);
@@ -316,10 +341,10 @@ export default function AddExpenseScreen({ navigation, route }) {
   const handleCreateAlias = async (ocrMerchant, userAlias) => {
     try {
       await createMerchantAlias(ocrMerchant, userAlias, userDetails.coupleId);
-      Alert.alert(t('common.success'), t('addExpense.ocr.aliasSuccess'));
+      Alert.alert('Success', 'Merchant alias created successfully');
     } catch (err) {
       console.error('Error creating alias:', err);
-      Alert.alert(t('common.error'), err.message || t('addExpense.ocr.aliasError'));
+      Alert.alert('Error', err.message || 'Failed to create merchant alias');
     }
   };
 
@@ -331,12 +356,12 @@ export default function AddExpenseScreen({ navigation, route }) {
 
     if (hasData) {
       Alert.alert(
-        t('addExpense.discard.title'),
-        t('addExpense.discard.message'),
+        'Discard Changes?',
+        'You have unsaved changes. Are you sure you want to cancel?',
         [
-          { text: t('addExpense.discard.keepEditing'), style: 'cancel' },
+          { text: 'Keep Editing', style: 'cancel' },
           {
-            text: t('addExpense.discard.discard'),
+            text: 'Discard',
             style: 'destructive',
             onPress: () => navigation.goBack()
           },
@@ -358,34 +383,34 @@ export default function AddExpenseScreen({ navigation, route }) {
 
   const handleSubmit = async () => {
     // Validation
-    if (!amount || amount <= 0) {
-      setError(t('addExpense.errors.invalidAmount'));
+    if (!amount || parseFloat(amount) <= 0 || isNaN(parseFloat(amount))) {
+      setError('Please enter a valid amount');
       return;
     }
 
     if (!description.trim()) {
-      setError(t('addExpense.errors.noDescription'));
+      setError('Please enter a description');
       return;
     }
 
     // Critical null checks
     if (!user || !user.uid) {
-      setError(t('addExpense.errors.authError'));
+      setError('Authentication error. Please sign in again.');
       return;
     }
 
     if (!userDetails || !userDetails.coupleId) {
-      setError(t('addExpense.errors.noCouple'));
+      setError('You must be paired with a partner to add expenses.');
       return;
     }
 
     if (!userDetails.partnerId) {
-      setError(t('addExpense.errors.noPartnerInfo'));
+      setError('Partner information missing. Please reconnect with your partner.');
       return;
     }
 
     if (!paidBy) {
-      setError(t('addExpense.errors.noPayer'));
+      setError('Please select who paid for this expense.');
       return;
     }
 
@@ -393,11 +418,11 @@ export default function AddExpenseScreen({ navigation, route }) {
     setError('');
 
     try {
-      const expenseAmount = amount;
+      const expenseAmount = parseFloat(amount);
 
       // Additional validation: ensure amount is reasonable
       if (expenseAmount > 1000000) {
-        setError(t('addExpense.errors.amountTooLarge'));
+        setError('Amount seems too large. Please check and try again.');
         setLoading(false);
         return;
       }
@@ -551,7 +576,7 @@ export default function AddExpenseScreen({ navigation, route }) {
       navigation.goBack();
     } catch (err) {
       console.error(`Error ${isEditMode ? 'updating' : 'creating'} expense:`, err);
-      setError(err.message || t(isEditMode ? 'addExpense.errors.updateFailed' : 'addExpense.errors.createFailed'));
+      setError(err.message || `Failed to ${isEditMode ? 'update' : 'create'} expense. Please try again.`);
     } finally {
       setLoading(false);
     }
@@ -580,8 +605,8 @@ export default function AddExpenseScreen({ navigation, route }) {
               <Ionicons name="arrow-back" size={24} color={COLORS.textWhite} />
             </TouchableOpacity>
             <View style={styles.headerContent}>
-              <Text style={styles.headerTitle}>{t(isEditMode ? 'addExpense.editTitle' : 'addExpense.title')}</Text>
-              <Text style={styles.headerSubtitle}>{t('addExpense.subtitle')}</Text>
+              <Text style={styles.headerTitle}>{isEditMode ? 'Edit Expense' : 'Add Expense'}</Text>
+              <Text style={styles.headerSubtitle}>Track your shared spending</Text>
             </View>
             <View style={{ width: 24 }} />
           </View>
@@ -592,16 +617,17 @@ export default function AddExpenseScreen({ navigation, route }) {
           styles.amountSection,
           focusStates.amount && styles.amountSectionFocused
         ]}>
-          <FormattedCurrencyInput
-            value={amount}
-            onChangeValue={handleAmountChange}
-            currency={expenseCurrency}
-            placeholder={t('addExpense.amountPlaceholder')}
+          <Text style={styles.currencySymbol}>{getCurrencySymbol(expenseCurrency)}</Text>
+          <TextInput
+            style={styles.amountInput}
+            value={formatAmountForDisplay(amount)}
+            onChangeText={handleAmountChange}
+            placeholder="0.00"
             placeholderTextColor={COLORS.textSecondary}
+            keyboardType="decimal-pad"
             autoFocus
             onFocus={() => setFocusStates(s => ({ ...s, amount: true }))}
             onBlur={() => setFocusStates(s => ({ ...s, amount: false }))}
-            style={styles.amountInput}
           />
         </View>
 
@@ -611,7 +637,7 @@ export default function AddExpenseScreen({ navigation, route }) {
             {/* Divider */}
             <View style={styles.dividerContainer}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>{t('addExpense.scanDivider')}</Text>
+              <Text style={styles.dividerText}>or scan a receipt</Text>
               <View style={styles.dividerLine} />
             </View>
 
@@ -623,7 +649,7 @@ export default function AddExpenseScreen({ navigation, route }) {
               disabled={ocrState.status === 'processing'}
             >
               <Ionicons name="camera" size={24} color={COLORS.primary} />
-              <Text style={styles.scanButtonText}>{t('addExpense.scanReceipt')}</Text>
+              <Text style={styles.scanButtonText}>Scan Receipt</Text>
               {!isPremium && (
                 <Ionicons name="lock-closed" size={16} color={COLORS.warning} style={{ marginLeft: 4 }} />
               )}
@@ -642,7 +668,6 @@ export default function AddExpenseScreen({ navigation, route }) {
               <OCRSuggestionCard
                 receiptUrl={ocrState.receiptUrl}
                 suggestions={ocrState.suggestions}
-                currency={expenseCurrency}
                 onAccept={handleAcceptSuggestions}
                 onDismiss={handleDismissSuggestions}
                 onCreateAlias={handleCreateAlias}
@@ -665,14 +690,14 @@ export default function AddExpenseScreen({ navigation, route }) {
           <CurrencyPicker
             selectedCurrency={expenseCurrency}
             onSelect={setExpenseCurrency}
-            label={t('addExpense.expenseCurrency')}
+            label="Expense Currency"
           />
         </View>
 
         {/* Exchange Rate Input (only if different from primary) */}
-        {expenseCurrency !== primaryCurrency && amount > 0 && (
+        {expenseCurrency !== primaryCurrency && parseFloat(amount) > 0 && (
           <ExchangeRateInput
-            fromAmount={amount}
+            fromAmount={parseFloat(amount) || 0}
             fromCurrency={expenseCurrency}
             toCurrency={primaryCurrency}
             onRateChange={setExchangeRate}
@@ -684,9 +709,9 @@ export default function AddExpenseScreen({ navigation, route }) {
 
         {/* Description */}
         <View style={styles.section}>
-          <FieldLabel label={t('addExpense.addNoteLabel')} optional />
+          <FieldLabel label="Add a note" optional />
           <Text style={styles.helperText}>
-            {t('addExpense.noteHelper')}
+            Help remember what this was for (e.g., "Dinner at Luigi's")
           </Text>
           <TextInput
             style={[
@@ -695,7 +720,7 @@ export default function AddExpenseScreen({ navigation, route }) {
             ]}
             value={description}
             onChangeText={setDescription}
-            placeholder={t('addExpense.notePlaceholder')}
+            placeholder="Add details here..."
             placeholderTextColor={COLORS.textTertiary}
             multiline
             numberOfLines={3}
@@ -707,7 +732,7 @@ export default function AddExpenseScreen({ navigation, route }) {
 
         {/* Category Selection */}
         <View style={styles.section}>
-          <FieldLabel label={t('addExpense.categoryLabel')} required />
+          <FieldLabel label="What's this for?" required />
           <View style={styles.categoriesGrid}>
             {Object.entries(budgetCategories).map(([key, category]) => {
               const progress = budgetProgress?.categoryProgress[key];
@@ -740,7 +765,7 @@ export default function AddExpenseScreen({ navigation, route }) {
 
         {/* Date Selection */}
         <View style={styles.section}>
-          <FieldLabel label={t('addExpense.dateLabel')} required />
+          <FieldLabel label="When was this?" required />
           <TouchableOpacity
             style={styles.dateInput}
             onPress={() => setShowDatePicker(true)}
@@ -759,7 +784,7 @@ export default function AddExpenseScreen({ navigation, route }) {
               <View style={styles.datePickerContainer}>
                 <View style={styles.datePickerHeader}>
                   <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                    <Text style={styles.datePickerButton}>{t('addExpense.dateDone')}</Text>
+                    <Text style={styles.datePickerButton}>Done</Text>
                   </TouchableOpacity>
                 </View>
                 <DateTimePicker
@@ -789,7 +814,7 @@ export default function AddExpenseScreen({ navigation, route }) {
 
         {/* Paid By */}
         <View style={styles.section}>
-          <FieldLabel label={t('addExpense.whoPaid')} required />
+          <FieldLabel label="Who paid for this?" required />
           <View style={styles.paidByContainer}>
             <Pressable
               style={({ pressed }) => [
@@ -808,7 +833,7 @@ export default function AddExpenseScreen({ navigation, route }) {
                 styles.paidByText,
                 paidBy === user.uid && styles.paidByTextSelected,
               ]}>
-                {t('addExpense.you')}
+                You
               </Text>
             </Pressable>
             <Pressable
@@ -828,7 +853,7 @@ export default function AddExpenseScreen({ navigation, route }) {
                 styles.paidByText,
                 paidBy === userDetails.partnerId && styles.paidByTextSelected,
               ]}>
-                {t('addExpense.partner')}
+                Partner
               </Text>
             </Pressable>
           </View>
@@ -836,7 +861,7 @@ export default function AddExpenseScreen({ navigation, route }) {
 
         {/* Split Options */}
         <View style={styles.section}>
-          <FieldLabel label={t('addExpense.splitMethod')} required />
+          <FieldLabel label="How to split this?" required />
           <View style={styles.splitTypeContainer}>
             <Pressable
               style={({ pressed }) => [
@@ -851,9 +876,9 @@ export default function AddExpenseScreen({ navigation, route }) {
                 styles.splitTypeText,
                 splitType === 'equal' && styles.splitTypeTextSelected,
               ]}>
-                {t('addExpense.splitEqual')}
+                50/50
               </Text>
-              <Text style={styles.splitDescription}>{t('addExpense.splitEqually')}</Text>
+              <Text style={styles.splitDescription}>Split equally</Text>
             </Pressable>
 
             <Pressable
@@ -869,9 +894,9 @@ export default function AddExpenseScreen({ navigation, route }) {
                 styles.splitTypeText,
                 splitType === 'full' && styles.splitTypeTextSelected,
               ]}>
-                {t(paidBy === user.uid ? 'addExpense.splitFull' : 'addExpense.splitFullTheirs')}
+                {paidBy === user.uid ? 'All Mine' : 'All Theirs'}
               </Text>
-              <Text style={styles.splitDescription}>{t('addExpense.splitFullDescription')}</Text>
+              <Text style={styles.splitDescription}>Payer covers all</Text>
             </Pressable>
 
             <Pressable
@@ -887,16 +912,16 @@ export default function AddExpenseScreen({ navigation, route }) {
                 styles.splitTypeText,
                 splitType === 'custom' && styles.splitTypeTextSelected,
               ]}>
-                {t('addExpense.custom')}
+                Custom
               </Text>
-              <Text style={styles.splitDescription}>{t('addExpense.customDescription')}</Text>
+              <Text style={styles.splitDescription}>Choose %</Text>
             </Pressable>
           </View>
 
           {splitType === 'custom' && (
             <View style={styles.customSplitContainer}>
               <View style={styles.splitInputRow}>
-                <Text style={styles.splitLabel}>{t('addExpense.yourShare')}</Text>
+                <Text style={styles.splitLabel}>Your share:</Text>
                 <View style={styles.splitInputContainer}>
                   <TextInput
                     style={styles.splitInput}
@@ -909,23 +934,23 @@ export default function AddExpenseScreen({ navigation, route }) {
                 </View>
               </View>
               <View style={styles.splitInputRow}>
-                <Text style={styles.splitLabel}>{t('addExpense.partnerShare')}</Text>
+                <Text style={styles.splitLabel}>Partner's share:</Text>
                 <Text style={styles.splitValue}>{partnerPercentage}%</Text>
               </View>
             </View>
           )}
 
           {/* Split Preview - only show AFTER split type is selected */}
-          {amount && amount > 0 && paidBy && splitType && (
+          {amount && parseFloat(amount) > 0 && paidBy && splitType && (
             <SplitPreviewCard
-              amount={amount}
+              amount={parseFloat(amount)}
               currency={expenseCurrency}
               splitType={splitType}
               userPercentage={splitType === 'custom' ? parseInt(userSplitPercentage) || 50 : 50}
               paidBy={paidBy}
               userId={user.uid}
-              userName={t('addExpense.you')}
-              partnerName={userDetails.partnerName || t('addExpense.partner')}
+              userName="You"
+              partnerName={userDetails.partnerName || "Partner"}
             />
           )}
         </View>
@@ -947,7 +972,7 @@ export default function AddExpenseScreen({ navigation, route }) {
             ]}
             onPress={handleCancel}
           >
-            <Text style={styles.cancelButtonText}>{t('addExpense.cancel')}</Text>
+            <Text style={styles.cancelButtonText}>Cancel</Text>
           </Pressable>
 
           <Pressable
@@ -963,7 +988,7 @@ export default function AddExpenseScreen({ navigation, route }) {
               <ActivityIndicator color={COLORS.background} />
             ) : (
               <Text style={styles.submitButtonText}>
-                {t(isEditMode ? 'addExpense.saveChanges' : 'addExpense.create')}
+                {isEditMode ? 'Save Changes' : 'Add Expense'}
               </Text>
             )}
           </Pressable>
