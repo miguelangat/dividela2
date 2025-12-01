@@ -45,12 +45,40 @@
     "youPaid": "You paid",
     "partnerPaid": "{{partnerName}} paid",
     "settled": "Settled",
+    "settledDate": "Settled {{date}}",
     "active": "Active",
     "all": "All",
     "yourShare": "Your share: {{amount}}",
     "errorPermission": "Permission denied. Please check your connection with your partner.",
     "errorNetwork": "Network error. Please check your internet connection.",
-    "errorGeneric": "Failed to load expenses. Pull down to retry."
+    "errorGeneric": "Failed to load expenses. Pull down to retry.",
+    "errors": {
+      "permissionDenied": "Permission denied. Please check your connection with your partner.",
+      "networkError": "Network error. Please check your internet connection.",
+      "loadFailed": "Failed to load expenses. Pull down to retry."
+    },
+    "list": {
+      "youPaid": "You paid",
+      "partnerPaid": "{{partner}} paid",
+      "settled": "Settled {{date}}"
+    },
+    "modal": {
+      "recordPayment": "Record that {{payer}} {{action}}:",
+      "you": "you",
+      "settled": "are all settled",
+      "paid": "paid"
+    },
+    "alerts": {
+      "settleUpError": "Unable to settle up. Please try again.",
+      "alreadySettledTitle": "Already Settled",
+      "alreadySettledMessage": "Your balance is already at zero. No need to settle up!",
+      "settledTitle": "Settled Up! 💰",
+      "settlementFailedTitle": "Settlement Failed",
+      "settlementFailed": "Failed to settle up. Please try again.",
+      "permissionDenied": "Permission denied. Please check your account settings.",
+      "navigationErrorTitle": "Navigation Error",
+      "navigationErrorMessage": "Could not open import screen. Please try again."
+    }
   },
   "settleUpModal": {
     "title": "Settle Up",
@@ -79,16 +107,45 @@
     "subtitle": "Manage your profile and preferences",
     "profile": "Profile",
     "displayName": "Display Name",
+    "namePlaceholder": "Enter your name",
     "email": "Email",
     "partner": "Partner",
     "partnerName": "Partner Name",
     "coupleId": "Couple ID",
     "preferences": "Preferences",
     "language": "Language",
+    "languageChangeFailed": "Failed to change language. Please try again.",
     "currency": "Currency",
+    "currencyLabel": "Primary Currency",
+    "primaryCurrency": "Primary Currency",
     "defaultSplit": "Default Split",
+    "defaultSplitValue": "50 / 50",
     "budgetSetup": "Budget Setup",
     "restartOnboarding": "Restart onboarding",
+    "subscription": {
+      "title": "Subscription",
+      "plan": "Plan",
+      "planPremium": "Premium",
+      "planFree": "Free",
+      "active": "ACTIVE",
+      "manage": "Manage Subscription",
+      "upgrade": "Upgrade to Premium",
+      "description": "Unlock unlimited budgets, analytics, and more",
+      "partnerHasPremium": "Your partner also has premium access!",
+      "bothGetPremium": "When you upgrade, both you and your partner get premium features."
+    },
+    "receiptScanning": {
+      "title": "Receipt Scanning",
+      "merchantAliases": "Merchant Aliases",
+      "merchantAliasesDescription": "Manage merchant name variations"
+    },
+    "currencyChange": {
+      "title": "Change Primary Currency",
+      "message": "Change from {{from}} to {{to}}?",
+      "note": "Note: Future expenses will default to {{currency}}. Past expenses will keep their original currency.",
+      "change": "Change",
+      "changeError": "Failed to change currency. Please try again."
+    },
     "about": "About",
     "appVersion": "App Version",
     "appName": "Dividela",
@@ -116,15 +173,66 @@
   "addExpense": {
     "title": "Add Expense",
     "editTitle": "Edit Expense",
-    "description": "Description",
+    "subtitle": "Track your shared spending",
     "amount": "Amount",
+    "amountPlaceholder": "0.00",
+    "description": "Description",
+    "addNoteLabel": "Add a note",
+    "noteHelper": "Help remember what this was for (e.g., \"Dinner at Luigi's\")",
+    "notePlaceholder": "Add details here...",
     "category": "Category",
-    "whoPaid": "Who Paid?",
-    "splitMethod": "Split Method",
+    "categoryLabel": "What's this for?",
+    "whoPaid": "Who paid for this?",
+    "you": "You",
+    "partner": "Partner",
+    "splitMethod": "How to split this?",
     "equal": "Equal (50/50)",
-    "custom": "Custom Split",
+    "splitEqual": "50/50",
+    "splitEqually": "Split equally",
+    "splitFull": "All Mine",
+    "splitFullTheirs": "All Theirs",
+    "splitFullDescription": "Payer covers all",
+    "custom": "Custom",
+    "customDescription": "Choose %",
+    "yourShare": "Your share:",
+    "partnerShare": "Partner's share:",
     "save": "Save Expense",
-    "delete": "Delete Expense"
+    "saveChanges": "Save Changes",
+    "create": "Add Expense",
+    "cancel": "Cancel",
+    "delete": "Delete Expense",
+    "expenseCurrency": "Expense Currency",
+    "dateLabel": "When was this?",
+    "dateDone": "Done",
+    "scanReceipt": "Scan Receipt",
+    "scanDivider": "or scan a receipt",
+    "errors": {
+      "invalidAmount": "Please enter a valid amount",
+      "noDescription": "Please enter a description",
+      "authError": "Authentication error. Please sign in again.",
+      "noCouple": "You must be paired with a partner to add expenses.",
+      "noPartnerInfo": "Partner information missing. Please reconnect with your partner.",
+      "noPayer": "Please select who paid for this expense.",
+      "amountTooLarge": "Amount seems too large. Please check and try again.",
+      "updateFailed": "Failed to update expense. Please try again.",
+      "createFailed": "Failed to create expense. Please try again."
+    },
+    "ocr": {
+      "permissionTitle": "Permission Required",
+      "permissionMessage": "Camera permission is required to scan receipts. Please enable it in your device settings.",
+      "successTitle": "Receipt Scanned",
+      "successMessage": "Receipt information extracted. Please review and edit as needed.",
+      "failedTitle": "Processing Failed",
+      "failedMessage": "Failed to process receipt. Please try again.",
+      "aliasSuccess": "Merchant alias created successfully",
+      "aliasError": "Failed to create merchant alias"
+    },
+    "discard": {
+      "title": "Discard Changes?",
+      "message": "You have unsaved changes. Are you sure you want to cancel?",
+      "keepEditing": "Keep Editing",
+      "discard": "Discard"
+    }
   },
   "import": {
     "title": "Import from Bank Statement",
@@ -348,6 +456,151 @@
     "permission": "Permission denied.",
     "notFound": "Not found.",
     "timeout": "Request timed out. Please try again."
+  },
+  "components": {
+    "fieldLabel": {
+      "required": "REQUIRED",
+      "optional": "OPTIONAL"
+    },
+    "splitPreview": {
+      "title": "Split Preview"
+    },
+    "merchantAlias": {
+      "searchPlaceholder": "Search aliases...",
+      "ocrMerchantPlaceholder": "OCR Merchant Name",
+      "aliasPlaceholder": "Your Alias",
+      "validationError": "Please fill in both fields",
+      "loadError": "Failed to load merchant aliases. Please try again.",
+      "deleteError": "Failed to delete alias. Please try again.",
+      "saveError": "Failed to save alias. Please try again."
+    },
+    "exchangeRate": {
+      "amountPlaceholder": "0.00",
+      "ratePlaceholder": "0.0000"
+    },
+    "currencyPicker": {
+      "searchPlaceholder": "Search currencies..."
+    },
+    "categoryModal": {
+      "namePlaceholder": "e.g., Health & Fitness"
+    },
+    "amountRange": {
+      "minPlaceholder": "Min",
+      "maxPlaceholder": "Max"
+    },
+    "expenseDetail": {
+      "deleteError": "Failed to delete expense"
+    },
+    "exportButton": {
+      "userDetailsError": "User details not available"
+    }
+  },
+  "stats": {
+    "title": "Statistics",
+    "subtitle": "Track your spending patterns",
+    "loading": "Loading statistics...",
+    "errorMessage": "Failed to load statistics. Pull down to retry.",
+    "sorting": {
+      "sortBy": "Sort by:",
+      "latest": "Latest",
+      "highest": "Highest",
+      "category": "Category"
+    },
+    "grouping": {
+      "groupBy": "Group by:",
+      "none": "None",
+      "month": "Month",
+      "status": "Status"
+    },
+    "summary": {
+      "totalExpenses": "Total Expenses",
+      "expenseCount": "{{count}} expenses",
+      "yourShare": "Your Share",
+      "partnerShare": "Partner's Share"
+    },
+    "expenseList": {
+      "title": "Expense Details ({{count}})",
+      "noDescription": "No description",
+      "youPaid": "You paid",
+      "partnerPaid": "{{partnerName}} paid"
+    },
+    "categoryBreakdown": {
+      "title": "Category Breakdown",
+      "percentage": "{{percentage}}% of total",
+      "noCategories": "No categories to display"
+    },
+    "settlementHistory": {
+      "title": "Settlement History",
+      "subtitle": "Record of when balances were settled"
+    },
+    "empty": {
+      "title": "No Expenses Yet",
+      "message": "Start adding expenses to see your spending statistics"
+    },
+    "emptyFiltered": {
+      "title": "No Matching Expenses",
+      "message": "Try adjusting your filters to see more results"
+    }
+  },
+  "categoryManager": {
+    "deleteSuccess": "Category deleted successfully!",
+    "deleteError": "Failed to delete category",
+    "updateSuccess": "Category updated successfully!",
+    "addSuccess": "Category added successfully!",
+    "resetSuccess": "Categories reset successfully",
+    "resetError": "Failed to reset categories"
+  },
+  "paywall": {
+    "selectPlanError": "Please select a subscription plan",
+    "purchaseFailed": "Purchase Failed",
+    "purchaseError": "Something went wrong. Please try again.",
+    "processingError": "Failed to process purchase. Please try again.",
+    "noPurchasesTitle": "No Purchases Found",
+    "noPurchasesMessage": "No previous purchases were found to restore.",
+    "restoreFailed": "Restore Failed",
+    "restoreError": "Failed to restore purchases."
+  },
+  "settlementHistory": {
+    "loadError": "Failed to load settlements. Please try again."
+  },
+  "join": {
+    "codePlaceholder": "ABC 123",
+    "codeError": "Please enter a valid 6-character code"
+  },
+  "invite": {
+    "copiedTitle": "Copied!",
+    "copiedMessage": "Invite code copied to clipboard",
+    "copyError": "Failed to copy code",
+    "shareError": "Failed to share invite code",
+    "authError": "You must be signed in to generate an invite code.",
+    "permissionError": "Permission denied. Please check your Firestore security rules.",
+    "networkError": "Network error. Please check your internet connection."
+  },
+  "contexts": {
+    "auth": {
+      "noUser": "No user logged in",
+      "googleErrors": {
+        "notEnabled": "Google sign-in is not enabled. Please enable it in Firebase Console → Authentication → Sign-in method → Google",
+        "popupBlocked": "Popup was blocked. Please allow popups for this site.",
+        "cancelled": "Sign-in cancelled",
+        "accountExists": "An account already exists with the same email. Try a different sign-in method.",
+        "domainNotAuthorized": "This domain is not authorized. Add it in Firebase Console → Authentication → Settings → Authorized domains"
+      },
+      "appleErrors": {
+        "notEnabled": "Apple sign-in is not enabled. Please enable it in Firebase Console → Authentication → Sign-in method → Apple (requires Apple Developer account)",
+        "popupBlocked": "Popup was blocked. Please allow popups for this site.",
+        "cancelled": "Sign-in cancelled",
+        "accountExists": "An account already exists with the same email. Try a different sign-in method.",
+        "domainNotAuthorized": "This domain is not authorized. Add it in Firebase Console → Authentication → Settings → Authorized domains"
+      }
+    },
+    "onboarding": {
+      "noCoupleId": "No couple ID found",
+      "storageFull": "Storage full - please free up space and try again",
+      "storagePermission": "Storage permission denied - please check app permissions",
+      "saveFailed": "Failed to save completion status",
+      "networkError": "Network error - please check your connection and try again"
+    }
   },
   "budget": {
     "dashboard": {

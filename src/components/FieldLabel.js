@@ -3,20 +3,23 @@
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { COLORS, FONTS, SPACING } from '../constants/theme';
 
 export default function FieldLabel({ label, required = false, optional = false, style }) {
+  const { t } = useTranslation();
+
   return (
     <View style={[styles.container, style]}>
       <Text style={styles.label}>{label}</Text>
       {required && (
         <View style={styles.requiredBadge}>
-          <Text style={styles.requiredText}>REQUIRED</Text>
+          <Text style={styles.requiredText}>{t('components.fieldLabel.required')}</Text>
         </View>
       )}
       {optional && (
         <View style={styles.optionalBadge}>
-          <Text style={styles.optionalText}>OPTIONAL</Text>
+          <Text style={styles.optionalText}>{t('components.fieldLabel.optional')}</Text>
         </View>
       )}
     </View>

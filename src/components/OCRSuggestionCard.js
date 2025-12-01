@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, SIZES, SHADOWS } from '../constants/theme';
+import { formatCurrency } from '../utils/currencyUtils';
 
 /**
  * PropTypes definition for OCRSuggestionCard
@@ -33,6 +34,7 @@ import { COLORS, FONTS, SPACING, SIZES, SHADOWS } from '../constants/theme';
  * @param {string} suggestions.category.reasoning - Explanation for prediction
  * @param {array} suggestions.category.alternatives - Alternative category suggestions
  * @param {boolean} suggestions.category.belowThreshold - If confidence is below 55%
+ * @param {string} currency - Currency code for formatting (e.g., 'USD', 'EUR')
  * @param {function} onAccept - Callback when user accepts suggestions
  * @param {function} onDismiss - Callback when user dismisses suggestions
  * @param {function} onCreateAlias - Optional callback for creating merchant alias
@@ -40,6 +42,7 @@ import { COLORS, FONTS, SPACING, SIZES, SHADOWS } from '../constants/theme';
 export default function OCRSuggestionCard({
   receiptUrl,
   suggestions,
+  currency = 'USD',
   onAccept,
   onDismiss,
   onCreateAlias,
@@ -133,10 +136,18 @@ export default function OCRSuggestionCard({
           <Text style={styles.headerTitle}>AI Detected Details</Text>
         </View>
 
-        {/* Amount */}
+        {/* Amount with Currency */}
         <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Amount</Text>
-          <Text style={styles.amountValue}>${amount.toFixed(2)}</Text>
+          <Text style={styles.amountValue}>{formatCurrency(amount, currency)}</Text>
+        </View>
+
+        {/* Currency Note */}
+        <View style={styles.noteRow}>
+          <Ionicons name="information-circle-outline" size={14} color={COLORS.textSecondary} />
+          <Text style={styles.noteText}>
+            Using {currency} • You can change currency and edit all fields after accepting
+          </Text>
         </View>
 
         {/* Merchant with alias button */}
@@ -359,6 +370,21 @@ const styles = StyleSheet.create({
     fontSize: FONTS.sizes.small,
     color: COLORS.textSecondary,
     fontWeight: FONTS.weights.medium,
+  },
+  noteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.backgroundSecondary,
+    padding: SPACING.small,
+    borderRadius: SIZES.borderRadius.small,
+    marginBottom: SPACING.medium,
+    gap: SPACING.tiny,
+  },
+  noteText: {
+    flex: 1,
+    fontSize: FONTS.sizes.tiny,
+    color: COLORS.textSecondary,
+    lineHeight: 16,
   },
   detailValue: {
     fontSize: FONTS.sizes.body,

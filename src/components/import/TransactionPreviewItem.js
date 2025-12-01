@@ -3,6 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { Card, Text, Checkbox, IconButton, Menu, Chip } from 'react-native-paper';
 import { COLORS, FONTS, SPACING, SIZES, SHADOWS } from '../../constants/theme';
 import { CATEGORIES, getCategoryById } from '../../constants/categories';
+import { formatCurrency } from '../../utils/currencyUtils';
 import CategorySuggestion from './CategorySuggestion';
 import DuplicateWarning from './DuplicateWarning';
 
@@ -16,6 +17,7 @@ export default function TransactionPreviewItem({
   duplicateStatus,
   selected = true,
   selectedCategory,
+  primaryCurrency = 'USD',
   onToggleSelect,
   onCategoryChange,
 }) {
@@ -50,7 +52,9 @@ export default function TransactionPreviewItem({
             <Text style={styles.description} numberOfLines={2}>
               {transaction.description}
             </Text>
-            <Text style={styles.amount}>${transaction.amount.toFixed(2)}</Text>
+            <Text style={styles.amount}>
+              {formatCurrency(transaction.amount, transaction.currency || primaryCurrency)}
+            </Text>
           </View>
 
           <Text style={styles.date}>{formattedDate}</Text>

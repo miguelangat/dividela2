@@ -229,7 +229,7 @@ export default function SettingsScreen({ navigation }) {
                 style={styles.input}
                 value={displayName}
                 onChangeText={setDisplayName}
-                placeholder="Enter your name"
+                placeholder={t('settings.namePlaceholder')}
                 autoFocus
                 maxLength={50}
               />
@@ -319,7 +319,7 @@ export default function SettingsScreen({ navigation }) {
 
   const renderSubscriptionSection = () => (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Subscription</Text>
+      <Text style={styles.sectionTitle}>{t('settings.subscription.title')}</Text>
 
       <View style={styles.card}>
         {/* Subscription Status */}
@@ -332,14 +332,14 @@ export default function SettingsScreen({ navigation }) {
             />
           </View>
           <View style={styles.settingContent}>
-            <Text style={styles.settingLabel}>Plan</Text>
+            <Text style={styles.settingLabel}>{t('settings.subscription.plan')}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Text style={[styles.settingValue, isPremium && { color: COLORS.primary, fontWeight: '600' }]}>
-                {isPremium ? 'Premium' : 'Free'}
+                {isPremium ? t('settings.subscription.planPremium') : t('settings.subscription.planFree')}
               </Text>
               {isPremium && (
                 <View style={styles.premiumBadge}>
-                  <Text style={styles.premiumBadgeText}>ACTIVE</Text>
+                  <Text style={styles.premiumBadgeText}>{t('settings.subscription.active')}</Text>
                 </View>
               )}
             </View>
@@ -361,11 +361,11 @@ export default function SettingsScreen({ navigation }) {
           </View>
           <View style={styles.settingContent}>
             <Text style={styles.settingLabel}>
-              {isPremium ? 'Manage Subscription' : 'Upgrade to Premium'}
+              {isPremium ? t('settings.subscription.manage') : t('settings.subscription.upgrade')}
             </Text>
             {!isPremium && (
               <Text style={styles.settingDescription}>
-                Unlock unlimited budgets, analytics, and more
+                {t('settings.subscription.description')}
               </Text>
             )}
           </View>
@@ -379,8 +379,8 @@ export default function SettingsScreen({ navigation }) {
           <Ionicons name="heart" size={16} color={COLORS.primary} />
           <Text style={styles.infoCardText}>
             {isPremium
-              ? 'Your partner also has premium access!'
-              : 'When you upgrade, both you and your partner get premium features.'}
+              ? t('settings.subscription.partnerHasPremium')
+              : t('settings.subscription.bothGetPremium')}
           </Text>
         </View>
       )}
@@ -393,7 +393,7 @@ export default function SettingsScreen({ navigation }) {
       setLanguageModalVisible(false);
     } catch (error) {
       console.error('Error changing language:', error);
-      Alert.alert(t('common.error'), 'Failed to change language. Please try again.');
+      Alert.alert(t('common.error'), t('settings.languageChangeFailed'));
     }
   };
 
@@ -472,7 +472,7 @@ export default function SettingsScreen({ navigation }) {
             <CurrencyPicker
               selectedCurrency={primaryCurrency}
               onSelect={handleCurrencyChange}
-              label="Primary Currency"
+              label={t('settings.currencyLabel')}
               disabled={currencyLoading}
               style={styles.currencyPicker}
             />
@@ -485,7 +485,7 @@ export default function SettingsScreen({ navigation }) {
           </View>
           <View style={styles.settingContent}>
             <Text style={styles.settingLabel}>{t('settings.defaultSplit')}</Text>
-            <Text style={styles.settingValue}>50 / 50</Text>
+            <Text style={styles.settingValue}>{t('settings.defaultSplitValue')}</Text>
           </View>
         </View>
 
@@ -509,7 +509,7 @@ export default function SettingsScreen({ navigation }) {
 
   const renderReceiptScanningSection = () => (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Receipt Scanning</Text>
+      <Text style={styles.sectionTitle}>{t('settings.receiptScanning.title')}</Text>
 
       <View style={styles.card}>
         <TouchableOpacity
@@ -521,8 +521,8 @@ export default function SettingsScreen({ navigation }) {
             <Ionicons name="storefront" size={20} color={COLORS.primary} />
           </View>
           <View style={styles.settingContent}>
-            <Text style={styles.settingLabel}>Merchant Aliases</Text>
-            <Text style={styles.settingValue}>Manage merchant name variations</Text>
+            <Text style={styles.settingLabel}>{t('settings.receiptScanning.merchantAliases')}</Text>
+            <Text style={styles.settingValue}>{t('settings.receiptScanning.merchantAliasesDescription')}</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
         </TouchableOpacity>
@@ -754,11 +754,11 @@ export default function SettingsScreen({ navigation }) {
               <Ionicons name="cash" size={32} color={COLORS.primary} />
             </View>
 
-            <Text style={styles.modalTitle}>Change Primary Currency</Text>
+            <Text style={styles.modalTitle}>{t('settings.currencyChange.title')}</Text>
             <Text style={styles.modalMessage}>
-              Change from {primaryCurrency} to {pendingCurrency}?
+              {t('settings.currencyChange.message', { from: primaryCurrency, to: pendingCurrency })}
               {'\n\n'}
-              Note: Future expenses will default to {pendingCurrency}. Past expenses will keep their original currency.
+              {t('settings.currencyChange.note', { currency: pendingCurrency })}
             </Text>
 
             <View style={styles.modalButtons}>
@@ -766,7 +766,7 @@ export default function SettingsScreen({ navigation }) {
                 style={[styles.modalButton, styles.modalButtonSecondary]}
                 onPress={cancelCurrencyChange}
               >
-                <Text style={styles.modalButtonTextSecondary}>Cancel</Text>
+                <Text style={styles.modalButtonTextSecondary}>{t('common.cancel')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -777,7 +777,7 @@ export default function SettingsScreen({ navigation }) {
                 {currencyLoading ? (
                   <ActivityIndicator size="small" color={COLORS.background} />
                 ) : (
-                  <Text style={styles.modalButtonTextPrimary}>Change</Text>
+                  <Text style={styles.modalButtonTextPrimary}>{t('settings.currencyChange.change')}</Text>
                 )}
               </TouchableOpacity>
             </View>

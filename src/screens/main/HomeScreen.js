@@ -144,11 +144,11 @@ export default function HomeScreen({ navigation }) {
 
         // Set user-friendly error message
         if (error.code === 'permission-denied') {
-          setError('Permission denied. Please check your connection with your partner.');
+          setError(t('home.errors.permissionDenied'));
         } else if (error.code === 'unavailable') {
-          setError('Network error. Please check your internet connection.');
+          setError(t('home.errors.networkError'));
         } else {
-          setError('Failed to load expenses. Pull down to retry.');
+          setError(t('home.errors.loadFailed'));
         }
 
         setLoading(false);
@@ -250,13 +250,13 @@ export default function HomeScreen({ navigation }) {
 
   const handleSettleUp = async () => {
     if (!user || !userDetails || !userDetails.coupleId) {
-      Alert.alert('Error', 'Unable to settle up. Please try again.');
+      Alert.alert(t('common.error'), t('home.alerts.settleUpError'));
       return;
     }
 
     // Check if balance is already zero
     if (balance === 0) {
-      Alert.alert('Already Settled', 'Your balance is already at zero. No need to settle up!');
+      Alert.alert(t('home.alerts.alreadySettledTitle'), t('home.alerts.alreadySettledMessage'));
       setSettleUpModalVisible(false);
       return;
     }
@@ -291,19 +291,19 @@ export default function HomeScreen({ navigation }) {
         message += `\n\nTop category: ${topCategory.icon} ${topCategory.categoryName} (${formatCurrency(topCategory.amount)})`;
       }
 
-      Alert.alert('Settled Up! 💰', message, [{ text: 'OK' }]);
+      Alert.alert(t('home.alerts.settledTitle'), message, [{ text: t('common.ok') }]);
     } catch (error) {
       console.error('Error settling up:', error);
 
       // Provide more specific error messages
-      let errorMessage = 'Failed to settle up. Please try again.';
+      let errorMessage = t('home.alerts.settlementFailed');
       if (error.code === 'permission-denied') {
-        errorMessage = 'Permission denied. Please check your account settings.';
+        errorMessage = t('home.alerts.permissionDenied');
       } else if (error.message && error.message.includes('settlement')) {
         errorMessage = error.message;
       }
 
-      Alert.alert('Settlement Failed', errorMessage);
+      Alert.alert(t('home.alerts.settlementFailedTitle'), errorMessage);
     } finally {
       setSettling(false);
     }
@@ -348,7 +348,10 @@ export default function HomeScreen({ navigation }) {
               contentContainerStyle={styles.modalScrollContent}
             >
               <Text style={styles.modalDescription}>
-                Record that {balanceInfo.status === 'positive' ? partnerName : 'you'} {balanceInfo.status === 'settled' ? 'are all settled' : 'paid'}:
+                {t('home.modal.recordPayment', {
+                  payer: balanceInfo.status === 'positive' ? partnerName : t('home.modal.you'),
+                  action: balanceInfo.status === 'settled' ? t('home.modal.settled') : t('home.modal.paid')
+                })}
               </Text>
 
               <View style={styles.modalAmountContainer}>
@@ -501,12 +504,12 @@ export default function HomeScreen({ navigation }) {
             <Text style={[styles.expenseDate, isSettled && styles.expenseMetaSettled]}>{dateStr}</Text>
             <Text style={[styles.expenseSeparator, isSettled && styles.expenseMetaSettled]}>•</Text>
             <Text style={[styles.expensePaidBy, isSettled && styles.expenseMetaSettled]}>
-              {isPaidByUser ? 'You paid' : `${partnerName} paid`}
+              {isPaidByUser ? t('home.list.youPaid') : t('home.list.partnerPaid', { partner: partnerName })}
             </Text>
             {isSettled && settledDateStr && (
               <>
                 <Text style={[styles.expenseSeparator, styles.expenseMetaSettled]}>•</Text>
-                <Text style={styles.settledText}>Settled {settledDateStr}</Text>
+                <Text style={styles.settledText}>{t('home.list.settled', { date: settledDateStr })}</Text>
               </>
             )}
           </View>
@@ -663,7 +666,7 @@ export default function HomeScreen({ navigation }) {
                   navigation.navigate('ImportExpenses');
                 } catch (error) {
                   console.error('Error navigating to ImportExpenses:', error);
-                  Alert.alert('Navigation Error', 'Could not open import screen. Please try again.');
+                  Alert.alert(t('home.alerts.navigationErrorTitle'), t('home.alerts.navigationErrorMessage'));
                 }
               }}
               activeOpacity={0.7}

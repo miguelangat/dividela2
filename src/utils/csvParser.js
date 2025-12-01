@@ -157,14 +157,58 @@ function parseDate(dateString, preferredFormat = 'auto') {
 }
 
 /**
+ * Currency symbol mappings for detection
+ */
+const CURRENCY_SYMBOLS = {
+  '$': 'USD',
+  'US$': 'USD',
+  'USD': 'USD',
+  'MX$': 'MXN',
+  'MXN': 'MXN',
+  'COL$': 'COP',
+  'COP': 'COP',
+  'S/': 'PEN',
+  'PEN': 'PEN',
+  '€': 'EUR',
+  'EUR': 'EUR',
+  '£': 'GBP',
+  'GBP': 'GBP',
+  '¥': 'CNY',
+  'CNY': 'CNY',
+  'R$': 'BRL',
+  'BRL': 'BRL',
+};
+
+/**
+ * Detect currency from amount string
+ */
+function detectCurrency(amountString) {
+  if (!amountString) return null;
+
+  const str = String(amountString).trim();
+
+  // Check for currency symbols/codes
+  for (const [symbol, currency] of Object.entries(CURRENCY_SYMBOLS)) {
+    if (str.includes(symbol)) {
+      return currency;
+    }
+  }
+
+  return null;
+}
+
+/**
  * Parse amount string to number
  * Handles: commas, parentheses for negatives, currency symbols
- * Returns object with value and error flag for better validation
+ * Returns object with value, currency, and error flag for better validation
  */
 function parseAmount(amountString) {
   if (!amountString || String(amountString).trim() === '') {
-    return { value: 0, isValid: false, error: 'Empty amount' };
+    return { value: 0, isValid: false, error: 'Empty amount', currency: null };
   }
+
+  // Detect currency before cleaning
+  const currency = detectCurrency(amountString);
 
   const cleaned = String(amountString)
     .replace(/[$€£¥,\s]/g, '') // Remove currency symbols, commas, spaces
@@ -174,17 +218,17 @@ function parseAmount(amountString) {
   if (cleaned.startsWith('(') && cleaned.endsWith(')')) {
     const value = parseFloat(cleaned.slice(1, -1));
     if (isNaN(value)) {
-      return { value: 0, isValid: false, error: 'Invalid amount format' };
+      return { value: 0, isValid: false, error: 'Invalid amount format', currency };
     }
-    return { value: -Math.abs(value), isValid: true };
+    return { value: -Math.abs(value), isValid: true, currency };
   }
 
   const value = parseFloat(cleaned);
   if (isNaN(value)) {
-    return { value: 0, isValid: false, error: 'Invalid number' };
+    return { value: 0, isValid: false, error: 'Invalid number', currency };
   }
 
-  return { value, isValid: true };
+  return { value, isValid: true, currency };
 }
 
 /**
@@ -508,6 +552,7 @@ function processCSVData(rows, dateFormat = 'auto') {
       let amount = 0;
       let type = 'debit';
       let amountParseError = null;
+      let detectedCurrency = null;
 
       if (amountIndex !== -1) {
         // Single amount column
@@ -518,18 +563,21 @@ function processCSVData(rows, dateFormat = 'auto') {
           amount = amountResult.value;
           type = amount < 0 ? 'credit' : 'debit';
           amount = Math.abs(amount);
+          detectedCurrency = amountResult.currency;
         }
       } else {
         // Separate debit/credit columns
-        const debitResult = debitIndex !== -1 ? parseAmount(row[debitIndex]) : { value: 0, isValid: true };
-        const creditResult = creditIndex !== -1 ? parseAmount(row[creditIndex]) : { value: 0, isValid: true };
+        const debitResult = debitIndex !== -1 ? parseAmount(row[debitIndex]) : { value: 0, isValid: true, currency: null };
+        const creditResult = creditIndex !== -1 ? parseAmount(row[creditIndex]) : { value: 0, isValid: true, currency: null };
 
         if (debitResult.value > 0) {
           amount = debitResult.value;
           type = 'debit';
+          detectedCurrency = debitResult.currency;
         } else if (creditResult.value > 0) {
           amount = creditResult.value;
           type = 'credit';
+          detectedCurrency = creditResult.currency;
         }
       }
 
@@ -561,6 +609,7 @@ function processCSVData(rows, dateFormat = 'auto') {
         description,
         amount,
         type,
+        currency: detectedCurrency, // Add detected currency to transaction
         balance,
         rawData: {
           rowIndex: index + headerIndex + 2,
@@ -619,8 +668,13 @@ function processCSVData(rows, dateFormat = 'auto') {
   };
 }
 
+// Named exports for direct imports (parseCSV is already exported above)
+export { parseDate, parseAmount, detectCurrency };
+
+// Default export for backward compatibility
 export default {
   parseCSV,
   parseDate,
   parseAmount,
+  detectCurrency,
 };

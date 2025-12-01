@@ -20,6 +20,7 @@ Dividela uses a modern, gradient-based design system with a focus on visual hier
 **Pattern**: All authentication screens use a consistent gradient header pattern.
 
 **Implementation**:
+
 ```javascript
 <LinearGradient
   colors={[COLORS.gradientStart, COLORS.gradientEnd]}
@@ -32,6 +33,7 @@ Dividela uses a modern, gradient-based design system with a focus on visual hier
 ```
 
 **Style Guidelines**:
+
 ```javascript
 gradientHeader: {
   paddingTop: Platform.OS === 'ios' ? 50 : 30,
@@ -43,10 +45,12 @@ gradientHeader: {
 ```
 
 **Colors**:
+
 - Start: `#667eea` (COLORS.gradientStart)
 - End: `#764ba2` (COLORS.gradientEnd)
 
 **Used In**:
+
 - SignInScreen (src/screens/auth/SignInScreen.js:122)
 - SignUpScreen (src/screens/auth/SignUpScreen.js:124)
 - WelcomeScreen - full background (src/screens/auth/WelcomeScreen.js:29)
@@ -58,13 +62,13 @@ gradientHeader: {
 **Pattern**: Elevated white card that overlaps the gradient header, creating depth.
 
 **Implementation**:
+
 ```javascript
-<View style={styles.formCard}>
-  {/* Form inputs and buttons */}
-</View>
+<View style={styles.formCard}>{/* Form inputs and buttons */}</View>
 ```
 
 **Style Guidelines**:
+
 ```javascript
 formCard: {
   backgroundColor: COLORS.background,
@@ -77,12 +81,14 @@ formCard: {
 ```
 
 **Key Features**:
+
 - White background (#ffffff)
 - Large border radius (20px)
 - Negative top margin creates overlap with gradient header
 - Large shadow for depth
 
 **Used In**:
+
 - SignInScreen (src/screens/auth/SignInScreen.js:157)
 - SignUpScreen (src/screens/auth/SignUpScreen.js:155)
 - WelcomeScreen - features card (src/screens/auth/WelcomeScreen.js:61)
@@ -94,6 +100,7 @@ formCard: {
 **Pattern**: Input fields with left-aligned icons for visual clarity.
 
 **Implementation**:
+
 ```javascript
 <View style={[styles.inputContainer, error && styles.inputError]}>
   <MaterialCommunityIcons
@@ -112,6 +119,7 @@ formCard: {
 ```
 
 **Style Guidelines**:
+
 ```javascript
 inputContainer: {
   flexDirection: 'row',
@@ -135,16 +143,19 @@ input: {
 ```
 
 **Icon Mappings**:
+
 - Name field: `account-outline`
 - Email field: `email-outline`
 - Password field: `lock-outline`
 
 **Error State**:
+
 - Changes border color to red
 - Changes icon color to red
 - Adds subtle red background tint
 
 **Used In**:
+
 - SignInScreen - email & password (src/screens/auth/SignInScreen.js:169-213)
 - SignUpScreen - name, email & password (src/screens/auth/SignUpScreen.js:165-233)
 
@@ -155,11 +166,9 @@ input: {
 **Pattern**: Social sign-on buttons with branded colors and logos from `@expo/vector-icons`.
 
 **Implementation**:
+
 ```javascript
-<TouchableOpacity
-  style={[styles.socialButton, styles.googleButton]}
-  onPress={handleGoogleSignIn}
->
+<TouchableOpacity style={[styles.socialButton, styles.googleButton]} onPress={handleGoogleSignIn}>
   <View style={styles.socialIconContainer}>
     <AntDesign name="google" size={20} color="#DB4437" />
   </View>
@@ -168,6 +177,7 @@ input: {
 ```
 
 **Style Guidelines**:
+
 ```javascript
 socialButton: {
   flexDirection: 'row',
@@ -194,20 +204,24 @@ appleButton: {
 ```
 
 **Brand Colors**:
+
 - Google: `#DB4437` (Google Red)
 - Apple: `#000000` (Black)
 
 **Icon Library**: `@expo/vector-icons/AntDesign`
+
 - Google: `name="google"`
 - Apple: `name="apple1"`
 
 **Design Notes**:
+
 - White background with subtle brand-colored tint
 - Border with brand color at 30% opacity
 - Brand logo on left, text on right
 - Small shadow for depth
 
 **Used In**:
+
 - SignInScreen (src/screens/auth/SignInScreen.js:254-288)
 - SignUpScreen (src/screens/auth/SignUpScreen.js:219-253)
 
@@ -218,12 +232,9 @@ appleButton: {
 **Pattern**: Primary action buttons with gradient background.
 
 **Implementation**:
+
 ```javascript
-<TouchableOpacity
-  style={styles.submitButton}
-  onPress={handleSubmit}
-  disabled={loading}
->
+<TouchableOpacity style={styles.submitButton} onPress={handleSubmit} disabled={loading}>
   <LinearGradient
     colors={[COLORS.gradientStart, COLORS.gradientEnd]}
     start={{ x: 0, y: 0 }}
@@ -240,6 +251,7 @@ appleButton: {
 ```
 
 **Style Guidelines**:
+
 ```javascript
 submitButton: {
   marginBottom: SPACING.large,
@@ -263,12 +275,14 @@ submitButtonText: {
 ```
 
 **Key Features**:
+
 - Gradient from purple to violet
 - White text with bold weight
 - Medium shadow for depth
 - Loading state shows ActivityIndicator
 
 **Used In**:
+
 - SignInScreen (src/screens/auth/SignInScreen.js:226-244)
 - SignUpScreen (src/screens/auth/SignUpScreen.js:254-272)
 
@@ -279,16 +293,20 @@ submitButtonText: {
 **Pattern**: Error messages with left border accent and icon.
 
 **Implementation**:
+
 ```javascript
-{errors.general && (
-  <View style={styles.generalErrorContainer}>
-    <MaterialCommunityIcons name="alert-circle" size={20} color={COLORS.error} />
-    <Text style={styles.generalErrorText}>{errors.general}</Text>
-  </View>
-)}
+{
+  errors.general && (
+    <View style={styles.generalErrorContainer}>
+      <MaterialCommunityIcons name="alert-circle" size={20} color={COLORS.error} />
+      <Text style={styles.generalErrorText}>{errors.general}</Text>
+    </View>
+  );
+}
 ```
 
 **Style Guidelines**:
+
 ```javascript
 generalErrorContainer: {
   flexDirection: 'row',
@@ -309,12 +327,14 @@ generalErrorText: {
 ```
 
 **Visual Features**:
+
 - Subtle red background (10% opacity)
 - Bold left border (4px) in error red
 - Alert circle icon
 - Small text size
 
 **Used In**:
+
 - SignInScreen (src/screens/auth/SignInScreen.js:159-164)
 - SignUpScreen (src/screens/auth/SignUpScreen.js:156-161)
 
@@ -325,6 +345,7 @@ generalErrorText: {
 **Pattern**: White card showcasing app features with icons.
 
 **Implementation**:
+
 ```javascript
 <View style={styles.featuresCard}>
   <View style={styles.featureItem}>
@@ -336,6 +357,7 @@ generalErrorText: {
 ```
 
 **Style Guidelines**:
+
 ```javascript
 featuresCard: {
   backgroundColor: COLORS.background,
@@ -358,6 +380,7 @@ featureText: {
 ```
 
 **Icon Suggestions**:
+
 - Privacy: `shield-check`
 - Couples: `account-group`
 - Tracking: `chart-line`
@@ -365,6 +388,7 @@ featureText: {
 - Notifications: `bell-ring`
 
 **Used In**:
+
 - WelcomeScreen (src/screens/auth/WelcomeScreen.js:61-74)
 
 ---
@@ -372,6 +396,7 @@ featureText: {
 ## Color System
 
 ### Brand Colors
+
 ```javascript
 primary: '#667eea',        // Main purple
 primaryDark: '#5568d3',    // Darker purple
@@ -384,6 +409,7 @@ gradientEnd: '#764ba2',
 ```
 
 ### Text Colors
+
 ```javascript
 text: '#333333',           // Primary text
 textSecondary: '#666666',  // Secondary text
@@ -392,6 +418,7 @@ textWhite: '#ffffff',      // White text on dark backgrounds
 ```
 
 ### Background Colors
+
 ```javascript
 background: '#ffffff',           // Main background
 backgroundSecondary: '#f8f9fa',  // Secondary background
@@ -399,6 +426,7 @@ backgroundLight: '#f0f1f3',      // Light background (inputs)
 ```
 
 ### Status Colors
+
 ```javascript
 success: '#4caf50',  // Green
 error: '#f44336',    // Red
@@ -407,6 +435,7 @@ info: '#2196f3',     // Blue
 ```
 
 ### SSO Brand Colors
+
 ```javascript
 googleRed: '#DB4437',
 appleBlack: '#000000',
@@ -417,6 +446,7 @@ appleBlack: '#000000',
 ## Typography System
 
 ### Font Sizes
+
 ```javascript
 tiny: 11,
 small: 13,
@@ -430,6 +460,7 @@ xxlarge: 48,
 ```
 
 ### Font Weights
+
 ```javascript
 regular: '400',
 medium: '500',
@@ -438,6 +469,7 @@ bold: '700',
 ```
 
 ### Usage Guidelines
+
 - **Labels**: small (13px), semibold, uppercase, letter-spacing: 0.5
 - **Body text**: body (15px), regular
 - **Headings**: heading (22px) to xxlarge (48px), bold
@@ -448,6 +480,7 @@ bold: '700',
 ## Spacing System
 
 ### Base Units
+
 ```javascript
 tiny: 4,
 small: 8,
@@ -460,6 +493,7 @@ huge: 40,
 ```
 
 ### Specific Use Cases
+
 ```javascript
 screenPadding: 20,    // Page margins
 cardPadding: 16,      // Card internal padding
@@ -474,6 +508,7 @@ inputPadding: 14,     // Input vertical padding
 ### Depth Levels
 
 **Small** (subtle elevation):
+
 ```javascript
 shadowColor: '#000',
 shadowOffset: { width: 0, height: 2 },
@@ -483,6 +518,7 @@ elevation: 2,
 ```
 
 **Medium** (normal elevation):
+
 ```javascript
 shadowColor: '#000',
 shadowOffset: { width: 0, height: 4 },
@@ -492,6 +528,7 @@ elevation: 4,
 ```
 
 **Large** (high elevation):
+
 ```javascript
 shadowColor: '#000',
 shadowOffset: { width: 0, height: 8 },
@@ -501,6 +538,7 @@ elevation: 8,
 ```
 
 ### Usage
+
 - **Small**: SSO buttons, subtle cards
 - **Medium**: Primary buttons, modals
 - **Large**: Form cards, important elevated elements
@@ -518,9 +556,10 @@ round: 999,   // Fully rounded (pills)
 ```
 
 ### Usage
+
 - **Inputs & buttons**: medium (12px)
 - **Cards**: xlarge (20px)
-- **Headers**: xlarge * 2 (40px) for bottom corners
+- **Headers**: xlarge \* 2 (40px) for bottom corners
 - **Avatars**: round (999px)
 
 ---
@@ -528,40 +567,43 @@ round: 999,   // Fully rounded (pills)
 ## Icon Guidelines
 
 ### Icon Library
+
 Primary: `@expo/vector-icons/MaterialCommunityIcons`
 Secondary (SSO): `@expo/vector-icons/AntDesign`
 
 ### Common Icons
+
 ```javascript
 // Navigation
-'arrow-left'      // Back button
-'arrow-right'     // Forward/next
+'arrow-left'; // Back button
+'arrow-right'; // Forward/next
 
 // Actions
-'account-plus'    // Sign up
-'login'           // Sign in
-'finance'         // App logo/branding
+'account-plus'; // Sign up
+'login'; // Sign in
+'finance'; // App logo/branding
 
 // Forms
-'account-outline' // Name field
-'email-outline'   // Email field
-'lock-outline'    // Password field
+'account-outline'; // Name field
+'email-outline'; // Email field
+'lock-outline'; // Password field
 
 // Features
-'shield-check'    // Privacy/security
-'account-group'   // Multiple users/couples
-'chart-line'      // Analytics/tracking
+'shield-check'; // Privacy/security
+'account-group'; // Multiple users/couples
+'chart-line'; // Analytics/tracking
 
 // Feedback
-'alert-circle'    // Error message
-'check-circle'    // Success message
+'alert-circle'; // Error message
+'check-circle'; // Success message
 
 // SSO (AntDesign)
-'google'          // Google sign-in
-'apple1'          // Apple sign-in
+'google'; // Google sign-in
+'apple1'; // Apple sign-in
 ```
 
 ### Size Guidelines
+
 - Small icons (input fields): 20px
 - Medium icons (headers): 60-80px
 - Large icons (welcome screen): 80px
@@ -571,18 +613,21 @@ Secondary (SSO): `@expo/vector-icons/AntDesign`
 ## Animation & Interaction
 
 ### Opacity Values
+
 ```javascript
 activeOpacity={0.7}  // Standard touch feedback
 activeOpacity={0.8}  // Buttons with gradient
 ```
 
 ### Loading States
+
 - Use `ActivityIndicator` in place of button text
 - Color: white on gradient buttons, brand color on white buttons
 
 ### Disabled States
+
 ```javascript
-opacity: 0.6  // Disabled buttons and inputs
+opacity: 0.6; // Disabled buttons and inputs
 ```
 
 ---
@@ -590,18 +635,21 @@ opacity: 0.6  // Disabled buttons and inputs
 ## Testing Guidelines
 
 ### Visual Consistency Tests
+
 - Verify gradient colors match across screens
 - Check shadow depth consistency
 - Validate icon sizes and colors
 - Test responsive spacing
 
 ### Interaction Tests
+
 - Test form validation
 - Verify SSO button functionality
 - Check navigation flows
 - Test error state displays
 
 ### Accessibility Tests
+
 - Verify text contrast ratios
 - Check touch target sizes (min 44x44)
 - Test screen reader compatibility
@@ -629,14 +677,17 @@ When creating new auth-related screens:
 ## File Locations
 
 ### Screens
+
 - `src/screens/auth/WelcomeScreen.js` - Landing page
 - `src/screens/auth/SignInScreen.js` - Login page
 - `src/screens/auth/SignUpScreen.js` - Registration page
 
 ### Theme
+
 - `src/constants/theme.js` - Design tokens
 
 ### Tests
+
 - `src/__tests__/auth/AuthScreens.test.js` - Comprehensive tests
 
 ---
@@ -644,6 +695,7 @@ When creating new auth-related screens:
 ## Recent Updates
 
 ### 2025-11-19 - Modern UI Redesign
+
 - Redesigned all authentication screens with modern gradient UI
 - Added SSO buttons with Google and Apple logos
 - Implemented icon-enhanced input fields
@@ -655,6 +707,7 @@ When creating new auth-related screens:
 ## Future Enhancements
 
 ### Planned Improvements
+
 - [ ] Add subtle animations on screen transitions
 - [ ] Implement dark mode support
 - [ ] Add biometric authentication
@@ -675,3 +728,14 @@ When working on this project:
 5. **Consider accessibility** - Maintain contrast ratios and touch targets
 6. **Update this document** - When adding new patterns or components
 
+## Notes for missing work
+
+1. Format all numbers when there is currency involvedd using currency format in both input and display
+2. List categories as a dropdown
+3. adding a record should display confirmation (e.g add categories, expenses, etc...
+4. Delete category is not working
+5. Emojis for categories are not vertically scrollable
+6. Use Custom categories for budget onboarding
+7. Navigation when onboarding review
+8. When scanning receipts use default currency or ask customer to clarify it. Also let edit all details read from AI OCR.
+9. Delete account and change password functionality

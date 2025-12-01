@@ -3,24 +3,25 @@ import { parseCSV, parseDate, parseAmount } from '../csvParser';
 describe('CSV Parser', () => {
   describe('parseAmount', () => {
     test('parses regular numbers', () => {
-      expect(parseAmount('100.50')).toBe(100.50);
-      expect(parseAmount('1,234.56')).toBe(1234.56);
+      expect(parseAmount('100.50')).toEqual({ value: 100.50, isValid: true, currency: null });
+      expect(parseAmount('1,234.56')).toEqual({ value: 1234.56, isValid: true, currency: null });
     });
 
     test('handles negative numbers with parentheses', () => {
-      expect(parseAmount('(100.00)')).toBe(-100);
-      expect(parseAmount('(50.25)')).toBe(-50.25);
+      expect(parseAmount('(100.00)')).toEqual({ value: -100, isValid: true, currency: null });
+      expect(parseAmount('(50.25)')).toEqual({ value: -50.25, isValid: true, currency: null });
     });
 
-    test('removes currency symbols', () => {
-      expect(parseAmount('$100.00')).toBe(100);
-      expect(parseAmount('€50.50')).toBe(50.50);
+    test('removes currency symbols and detects currency', () => {
+      expect(parseAmount('$100.00')).toEqual({ value: 100, isValid: true, currency: 'USD' });
+      expect(parseAmount('€50.50')).toEqual({ value: 50.50, isValid: true, currency: 'EUR' });
+      expect(parseAmount('£75.00')).toEqual({ value: 75.00, isValid: true, currency: 'GBP' });
     });
 
     test('handles empty or invalid values', () => {
-      expect(parseAmount('')).toBe(0);
-      expect(parseAmount(null)).toBe(0);
-      expect(parseAmount('abc')).toBe(0);
+      expect(parseAmount('')).toEqual({ value: 0, isValid: false, error: 'Empty amount', currency: null });
+      expect(parseAmount(null)).toEqual({ value: 0, isValid: false, error: 'Empty amount', currency: null });
+      expect(parseAmount('abc')).toEqual({ value: 0, isValid: false, error: 'Invalid number', currency: null });
     });
   });
 

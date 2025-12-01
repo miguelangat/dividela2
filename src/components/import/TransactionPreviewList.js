@@ -3,6 +3,7 @@ import { View, FlatList, StyleSheet } from 'react-native';
 import { Text, Card, Button, Chip, Divider } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { COLORS, FONTS, SPACING, SIZES, SHADOWS } from '../../constants/theme';
+import { formatCurrency } from '../../utils/currencyUtils';
 import TransactionPreviewItem from './TransactionPreviewItem';
 
 /**
@@ -14,6 +15,7 @@ export default function TransactionPreviewList({
   duplicateResults,
   selectedTransactions,
   categoryOverrides,
+  primaryCurrency = 'USD',
   onToggleTransaction,
   onCategoryChange,
   onSelectAll,
@@ -27,9 +29,14 @@ export default function TransactionPreviewList({
   const duplicateCount = duplicateResults?.filter(r => r.hasDuplicates).length || 0;
   const autoSkippedCount = duplicateResults?.filter(r => r.highConfidenceDuplicate?.confidence >= 0.95).length || 0;
 
-  const totalAmount = transactions
+  // Calculate totals grouped by currency
+  const totalsByCurrency = transactions
     .filter((_, index) => selectedTransactions[index])
-    .reduce((sum, t) => sum + t.amount, 0);
+    .reduce((acc, t) => {
+      const curr = t.currency || primaryCurrency;
+      acc[curr] = (acc[curr] || 0) + t.amount;
+      return acc;
+    }, {});
 
   const renderItem = ({ item, index }) => {
     const suggestion = suggestions?.[index]?.suggestion;
@@ -44,6 +51,7 @@ export default function TransactionPreviewList({
         duplicateStatus={duplicateStatus}
         selected={selected}
         selectedCategory={selectedCategory}
+        primaryCurrency={primaryCurrency}
         onToggleSelect={(value) => onToggleTransaction(index, value)}
         onCategoryChange={(categoryKey) => onCategoryChange(index, categoryKey)}
       />
@@ -66,9 +74,14 @@ export default function TransactionPreviewList({
 
           <Divider style={styles.divider} />
 
-          <View style={styles.amountRow}>
+          <View style={styles.amountSection}>
             <Text style={styles.amountLabel}>{t('import.preview.totalToImport')}</Text>
-            <Text style={styles.amountValue}>${totalAmount.toFixed(2)}</Text>
+            {Object.entries(totalsByCurrency).map(([curr, amount]) => (
+              <View key={curr} style={styles.amountRow}>
+                <Text style={styles.currencyLabel}>{curr}</Text>
+                <Text style={styles.amountValue}>{formatCurrency(amount, curr)}</Text>
+              </View>
+            ))}
           </View>
 
           {autoSkippedCount > 0 && (
@@ -159,16 +172,25 @@ const styles = StyleSheet.create({
     marginVertical: SPACING.medium,
     backgroundColor: COLORS.border,
   },
+  amountSection: {
+    marginBottom: SPACING.medium,
+  },
   amountRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: SPACING.medium,
+    marginTop: SPACING.small,
   },
   amountLabel: {
     fontSize: FONTS.sizes.subtitle,
     fontWeight: FONTS.weights.semibold,
     color: COLORS.text,
+    marginBottom: SPACING.tiny,
+  },
+  currencyLabel: {
+    fontSize: FONTS.sizes.small,
+    fontWeight: FONTS.weights.medium,
+    color: COLORS.textSecondary,
   },
   amountValue: {
     fontSize: FONTS.sizes.heading,
