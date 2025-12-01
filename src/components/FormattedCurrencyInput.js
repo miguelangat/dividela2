@@ -1,5 +1,5 @@
 // src/components/FormattedCurrencyInput.js
-// Real-time currency input with automatic formatting
+// Currency input component with format-on-blur approach
 
 import React, { useState, useEffect, useRef } from 'react';
 import { TextInput } from 'react-native';
@@ -58,6 +58,11 @@ export default function FormattedCurrencyInput({
     const parsed = parseFloat(cleaned || '0');
     const finalValue = isNaN(parsed) ? 0 : Math.abs(parsed);
 
+    // Debug logging (can be removed in production)
+    if (__DEV__) {
+      console.log('[FormattedCurrencyInput] Input:', text, '→ Cleaned:', cleaned, '→ Parsed:', parsed, '→ Final:', finalValue);
+    }
+
     // Update parent with raw number
     onChangeValue(finalValue);
 
@@ -83,7 +88,12 @@ export default function FormattedCurrencyInput({
     setIsFocused(false);
     // Apply full formatting with currency symbol on blur
     if (value > 0) {
-      setDisplayValue(formatCurrency(value, currency));
+      const formatted = formatCurrency(value, currency);
+      // Debug logging (can be removed in production)
+      if (__DEV__) {
+        console.log('[FormattedCurrencyInput] Blur - Value:', value, '→ Currency:', currency, '→ Formatted:', formatted);
+      }
+      setDisplayValue(formatted);
     } else {
       setDisplayValue('');
     }
