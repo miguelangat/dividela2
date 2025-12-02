@@ -188,8 +188,39 @@ export const AuthProvider = ({ children }) => {
       return firebaseUser;
     } catch (err) {
       console.error('Sign in error:', err);
-      setError(err.message);
-      throw err;
+
+      // Map Firebase error codes to user-friendly messages
+      let userMessage = 'An error occurred. Please try again.';
+
+      switch (err.code) {
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+        case 'auth/invalid-credential':
+          // Generic message for security - don't reveal if email exists
+          userMessage = 'Invalid email or password. Please check your credentials and try again.';
+          break;
+        case 'auth/invalid-email':
+          userMessage = 'Invalid email address format.';
+          break;
+        case 'auth/user-disabled':
+          userMessage = 'This account has been disabled. Please contact support.';
+          break;
+        case 'auth/too-many-requests':
+          userMessage = 'Too many failed login attempts. Please try again later or reset your password.';
+          break;
+        case 'auth/network-request-failed':
+          userMessage = 'Network error. Please check your internet connection and try again.';
+          break;
+        default:
+          userMessage = err.message || 'Failed to sign in. Please try again.';
+      }
+
+      setError(userMessage);
+
+      // Create a new error with the user-friendly message
+      const userError = new Error(userMessage);
+      userError.code = err.code;
+      throw userError;
     } finally {
       setLoading(false);
     }

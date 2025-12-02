@@ -57,7 +57,8 @@ export default function SignInScreen({ navigation }) {
       // User will be redirected based on whether they have a partner
     } catch (error) {
       console.error('Sign in error:', error);
-      setErrors({ general: t('auth.signIn.invalidCredentials') });
+      // Error message is already user-friendly from AuthContext
+      setErrors({ general: error.message });
     } finally {
       setLoading(false);
     }
@@ -119,193 +120,193 @@ export default function SignInScreen({ navigation }) {
       >
         <View style={styles.contentWrapper}>
           {/* Gradient Header */}
-        <LinearGradient
-          colors={[COLORS.gradientStart, COLORS.gradientEnd]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gradientHeader}
-        >
-          {/* Language Selector */}
-          <View style={styles.languageSelectorContainer}>
-            <LanguageSelectorButton variant="icon" />
-          </View>
-
-          {/* Back Button */}
-          <TouchableOpacity
-            onPress={handleBackPress}
-            style={styles.backButton}
-            activeOpacity={0.7}
+          <LinearGradient
+            colors={[COLORS.gradientStart, COLORS.gradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.gradientHeader}
           >
-            <MaterialCommunityIcons name="arrow-left" size={24} color={COLORS.textWhite} />
-            <Text style={styles.backButtonText}>{t('navigation.back')}</Text>
-          </TouchableOpacity>
-
-          {/* Header Content */}
-          <View style={styles.headerContent}>
-            <MaterialCommunityIcons
-              name="finance"
-              size={60}
-              color={COLORS.textWhite}
-              style={styles.headerIcon}
-            />
-            <Text style={styles.headerTitle}>{t('auth.signIn.title')}</Text>
-            <Text style={styles.headerSubtitle}>{t('auth.signIn.subtitle')}</Text>
-          </View>
-        </LinearGradient>
-
-        {/* Form Card */}
-        <View style={styles.formCard}>
-          <ScrollView
-            style={styles.formCardScroll}
-            contentContainerStyle={styles.formCardContent}
-            showsVerticalScrollIndicator={false}
-            bounces={false}
-          >
-          {/* General Error */}
-          {errors.general && (
-            <View style={styles.generalErrorContainer}>
-              <MaterialCommunityIcons name="alert-circle" size={20} color={COLORS.error} />
-              <Text style={styles.generalErrorText}>{errors.general}</Text>
+            {/* Language Selector */}
+            <View style={styles.languageSelectorContainer}>
+              <LanguageSelectorButton variant="icon" />
             </View>
-          )}
 
-          {/* Email Input */}
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>{t('auth.signIn.email')}</Text>
-            <View style={[styles.inputContainer, errors.email && styles.inputError]}>
-              <MaterialCommunityIcons
-                name="email-outline"
-                size={20}
-                color={errors.email ? COLORS.error : COLORS.textSecondary}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder={t('auth.signIn.emailPlaceholder')}
-                placeholderTextColor={COLORS.textTertiary}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                autoComplete="email"
-              />
-            </View>
-            {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
-          </View>
-
-          {/* Password Input */}
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>{t('auth.signIn.password')}</Text>
-            <View style={[styles.inputContainer, errors.password && styles.inputError]}>
-              <MaterialCommunityIcons
-                name="lock-outline"
-                size={20}
-                color={errors.password ? COLORS.error : COLORS.textSecondary}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder={t('auth.signIn.passwordPlaceholder')}
-                placeholderTextColor={COLORS.textTertiary}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                autoCapitalize="none"
-                autoCorrect={false}
-                autoComplete="password"
-              />
-            </View>
-            {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
-          </View>
-
-          {/* Forgot Password Link */}
-          <TouchableOpacity
-            style={styles.forgotPassword}
-            onPress={handleForgotPassword}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.forgotPasswordText}>{t('auth.signIn.forgotPassword')}</Text>
-          </TouchableOpacity>
-
-          {/* Submit Button */}
-          <TouchableOpacity
-            style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-            onPress={handleSignIn}
-            disabled={loading}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={[COLORS.gradientStart, COLORS.gradientEnd]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.submitButtonGradient}
+            {/* Back Button */}
+            <TouchableOpacity
+              onPress={handleBackPress}
+              style={styles.backButton}
+              activeOpacity={0.7}
             >
-              {loading ? (
-                <ActivityIndicator color={COLORS.textWhite} />
-              ) : (
-                <Text style={styles.submitButtonText}>{t('auth.signIn.signInButton')}</Text>
+              <MaterialCommunityIcons name="arrow-left" size={24} color={COLORS.textWhite} />
+              <Text style={styles.backButtonText}>{t('navigation.back')}</Text>
+            </TouchableOpacity>
+
+            {/* Header Content */}
+            <View style={styles.headerContent}>
+              <MaterialCommunityIcons
+                name="finance"
+                size={60}
+                color={COLORS.textWhite}
+                style={styles.headerIcon}
+              />
+              <Text style={styles.headerTitle}>{t('auth.signIn.title')}</Text>
+              <Text style={styles.headerSubtitle}>{t('auth.signIn.subtitle')}</Text>
+            </View>
+          </LinearGradient>
+
+          {/* Form Card */}
+          <View style={styles.formCard}>
+            <ScrollView
+              style={styles.formCardScroll}
+              contentContainerStyle={styles.formCardContent}
+              showsVerticalScrollIndicator={false}
+              bounces={false}
+            >
+              {/* General Error */}
+              {errors.general && (
+                <View style={styles.generalErrorContainer}>
+                  <MaterialCommunityIcons name="alert-circle" size={20} color={COLORS.error} />
+                  <Text style={styles.generalErrorText}>{errors.general}</Text>
+                </View>
               )}
-            </LinearGradient>
-          </TouchableOpacity>
 
-          {/* Divider */}
-          <View style={styles.dividerContainer}>
-            <View style={styles.divider} />
-            <Text style={styles.dividerText}>{t('auth.signIn.orDivider')}</Text>
-            <View style={styles.divider} />
+              {/* Email Input */}
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>{t('auth.signIn.email')}</Text>
+                <View style={[styles.inputContainer, errors.email && styles.inputError]}>
+                  <MaterialCommunityIcons
+                    name="email-outline"
+                    size={20}
+                    color={errors.email ? COLORS.error : COLORS.textSecondary}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder={t('auth.signIn.emailPlaceholder')}
+                    placeholderTextColor={COLORS.textTertiary}
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    autoComplete="email"
+                  />
+                </View>
+                {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+              </View>
+
+              {/* Password Input */}
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>{t('auth.signIn.password')}</Text>
+                <View style={[styles.inputContainer, errors.password && styles.inputError]}>
+                  <MaterialCommunityIcons
+                    name="lock-outline"
+                    size={20}
+                    color={errors.password ? COLORS.error : COLORS.textSecondary}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder={t('auth.signIn.passwordPlaceholder')}
+                    placeholderTextColor={COLORS.textTertiary}
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    autoComplete="password"
+                  />
+                </View>
+                {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+              </View>
+
+              {/* Forgot Password Link */}
+              <TouchableOpacity
+                style={styles.forgotPassword}
+                onPress={handleForgotPassword}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.forgotPasswordText}>{t('auth.signIn.forgotPassword')}</Text>
+              </TouchableOpacity>
+
+              {/* Submit Button */}
+              <TouchableOpacity
+                style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+                onPress={handleSignIn}
+                disabled={loading}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={[COLORS.gradientStart, COLORS.gradientEnd]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.submitButtonGradient}
+                >
+                  {loading ? (
+                    <ActivityIndicator color={COLORS.textWhite} />
+                  ) : (
+                    <Text style={styles.submitButtonText}>{t('auth.signIn.signInButton')}</Text>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+
+              {/* Divider */}
+              <View style={styles.dividerContainer}>
+                <View style={styles.divider} />
+                <Text style={styles.dividerText}>{t('auth.signIn.orDivider')}</Text>
+                <View style={styles.divider} />
+              </View>
+
+              {/* Social Sign In Buttons */}
+              <TouchableOpacity
+                style={[styles.socialButton, styles.googleButton, socialLoading === 'google' && styles.submitButtonDisabled]}
+                activeOpacity={0.8}
+                onPress={handleGoogleSignIn}
+                disabled={socialLoading !== null}
+              >
+                {socialLoading === 'google' ? (
+                  <ActivityIndicator color="#DB4437" />
+                ) : (
+                  <>
+                    <View style={styles.socialIconContainer}>
+                      <AntDesign name="google" size={20} color="#DB4437" />
+                    </View>
+                    <Text style={styles.socialButtonText}>{t('auth.signIn.continueWithGoogle')}</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.socialButton, styles.appleButton, socialLoading === 'apple' && styles.submitButtonDisabled]}
+                activeOpacity={0.8}
+                onPress={handleAppleSignIn}
+                disabled={socialLoading !== null}
+              >
+                {socialLoading === 'apple' ? (
+                  <ActivityIndicator color="#000000" />
+                ) : (
+                  <>
+                    <View style={styles.socialIconContainer}>
+                      <Ionicons name="logo-apple" size={20} color="#000000" />
+                    </View>
+                    <Text style={styles.socialButtonText}>{t('auth.signIn.continueWithApple')}</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              {/* Sign Up Link */}
+              <TouchableOpacity
+                style={styles.signUpLink}
+                onPress={() => navigation.navigate('SignUp')}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.signUpLinkText}>
+                  {t('auth.signIn.dontHaveAccount')}{' '}
+                  <Text style={styles.signUpLinkBold}>{t('auth.signIn.signUp')}</Text>
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
           </View>
-
-          {/* Social Sign In Buttons */}
-          <TouchableOpacity
-            style={[styles.socialButton, styles.googleButton, socialLoading === 'google' && styles.submitButtonDisabled]}
-            activeOpacity={0.8}
-            onPress={handleGoogleSignIn}
-            disabled={socialLoading !== null}
-          >
-            {socialLoading === 'google' ? (
-              <ActivityIndicator color="#DB4437" />
-            ) : (
-              <>
-                <View style={styles.socialIconContainer}>
-                  <AntDesign name="google" size={20} color="#DB4437" />
-                </View>
-                <Text style={styles.socialButtonText}>{t('auth.signIn.continueWithGoogle')}</Text>
-              </>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.socialButton, styles.appleButton, socialLoading === 'apple' && styles.submitButtonDisabled]}
-            activeOpacity={0.8}
-            onPress={handleAppleSignIn}
-            disabled={socialLoading !== null}
-          >
-            {socialLoading === 'apple' ? (
-              <ActivityIndicator color="#000000" />
-            ) : (
-              <>
-                <View style={styles.socialIconContainer}>
-                  <Ionicons name="logo-apple" size={20} color="#000000" />
-                </View>
-                <Text style={styles.socialButtonText}>{t('auth.signIn.continueWithApple')}</Text>
-              </>
-            )}
-          </TouchableOpacity>
-
-          {/* Sign Up Link */}
-          <TouchableOpacity
-            style={styles.signUpLink}
-            onPress={() => navigation.navigate('SignUp')}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.signUpLinkText}>
-              {t('auth.signIn.dontHaveAccount')}{' '}
-              <Text style={styles.signUpLinkBold}>{t('auth.signIn.signUp')}</Text>
-            </Text>
-          </TouchableOpacity>
-          </ScrollView>
-        </View>
         </View>
 
         {/* Made in Colombia Footer - Fixed at bottom */}
