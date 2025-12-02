@@ -18,6 +18,7 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Create the context
 const AuthContext = createContext({});
@@ -37,6 +38,14 @@ export const AuthProvider = ({ children }) => {
   const [userDetails, setUserDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [hasSkippedConnect, setHasSkippedConnect] = useState(false);
+
+  // Load skipped state
+  useEffect(() => {
+    AsyncStorage.getItem('hasSkippedConnect').then(value => {
+      if (value === 'true') setHasSkippedConnect(true);
+    });
+  }, []);
 
   // Listen for auth state changes
   useEffect(() => {
@@ -62,6 +71,9 @@ export const AuthProvider = ({ children }) => {
                   manuallyGranted: userData.manuallyGranted,
                   subscriptionExpiresAt: userData.subscriptionExpiresAt,
                 });
+
+
+
                 setUserDetails(userData);
               } else {
                 // User document doesn't exist - create a minimal one
@@ -89,7 +101,9 @@ export const AuthProvider = ({ children }) => {
               // Fallback to one-time fetch on error
               getDoc(userRef).then(doc => {
                 if (doc.exists()) {
-                  setUserDetails(doc.data());
+                  const data = doc.data();
+
+                  setUserDetails(data);
                 }
                 setLoading(false);
               }).catch(err => {
@@ -124,7 +138,7 @@ export const AuthProvider = ({ children }) => {
   const signUp = async (email, password, displayName) => {
     try {
       setError(null);
-      setLoading(true);
+      // setLoading(true); // Removed to prevent navigation stack reset
 
       // Create user in Firebase Auth
       console.log('Creating Firebase Auth user...');
@@ -166,7 +180,7 @@ export const AuthProvider = ({ children }) => {
       setError(err.message);
       throw err;
     } finally {
-      setLoading(false);
+      // setLoading(false);
     }
   };
 
@@ -174,7 +188,7 @@ export const AuthProvider = ({ children }) => {
   const signIn = async (email, password) => {
     try {
       setError(null);
-      setLoading(true);
+      // setLoading(true); // Removed to prevent navigation stack reset
 
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const { user: firebaseUser } = userCredential;
@@ -222,7 +236,7 @@ export const AuthProvider = ({ children }) => {
       userError.code = err.code;
       throw userError;
     } finally {
-      setLoading(false);
+      // setLoading(false);
     }
   };
 
@@ -466,6 +480,57 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Unpair from partner
+  const unpair = async () => {
+    try {
+      if (!user) throw new Error('No user logged in');
+      if (!userDetails?.partnerId) throw new Error('No partner to unpair from');
+
+      setError(null);
+      setLoading(true);
+
+      const partnerId = userDetails.partnerId;
+      const currentUserId = user.uid;
+
+      console.log(`Unpairing users: ${currentUserId} and ${partnerId}`);
+
+      // Update current user document - keep coupleId, store previous partner
+      const currentUserRef = doc(db, 'users', currentUserId);
+      await updateDoc(currentUserRef, {
+        partnerId: null,
+        previousPartnerId: partnerId, // Store for easy reconnection
+        // coupleId is kept to maintain access to shared data
+        unpairedAt: new Date().toISOString()
+      });
+
+      // Update partner document - keep coupleId, store previous partner
+      const partnerRef = doc(db, 'users', partnerId);
+      await updateDoc(partnerRef, {
+        partnerId: null,
+        previousPartnerId: currentUserId, // Store for easy reconnection
+        // coupleId is kept to maintain access to shared data
+        unpairedAt: new Date().toISOString()
+      });
+
+      console.log('✓ Users unpaired successfully (coupleId preserved)');
+
+      // Update local state - keep coupleId
+      setUserDetails(prev => ({
+        ...prev,
+        partnerId: null,
+        previousPartnerId: partnerId
+      }));
+
+      return true;
+    } catch (err) {
+      console.error('Unpair error:', err);
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Delete account (requires recent authentication)
   const deleteAccount = async (password = null) => {
     try {
@@ -536,6 +601,15 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const skipConnection = async () => {
+    try {
+      await AsyncStorage.setItem('hasSkippedConnect', 'true');
+      setHasSkippedConnect(true);
+    } catch (error) {
+      console.error('Error saving skip state:', error);
+    }
+  };
+
   // Value provided to consumers
   const value = {
     user,
@@ -553,6 +627,9 @@ export const AuthProvider = ({ children }) => {
     hasPartner,
     changePassword,
     deleteAccount,
+    unpair,
+    hasSkippedConnect,
+    skipConnection,
   };
 
   return (

@@ -78,6 +78,13 @@
       "permissionDenied": "Permission denied. Please check your account settings.",
       "navigationErrorTitle": "Navigation Error",
       "navigationErrorMessage": "Could not open import screen. Please try again."
+    },
+    "unpaired": {
+      "title": "You're Currently Unpaired",
+      "message": "Your data is safe, but you're not sharing expenses with anyone right now.",
+      "findPartner": "Find a Partner",
+      "reconnect": "Reconnect with {{partner}}",
+      "readOnlyMode": "You can view your expenses but cannot add new ones while unpaired."
     }
   },
   "settleUpModal": {
@@ -111,6 +118,7 @@
     "email": "Email",
     "partner": "Partner",
     "partnerName": "Partner Name",
+    "noPartner": "No partner connected",
     "coupleId": "Couple ID",
     "preferences": "Preferences",
     "language": "Language",
@@ -218,6 +226,14 @@
       "error": "Failed to delete account",
       "confirmationMismatch": "Please type DELETE to confirm",
       "passwordEmpty": "Please enter your password"
+    },
+    "unpair": "Unpair",
+    "unpairModal": {
+      "title": "Unpair from Partner",
+      "message": "Are you sure you want to unpair? You will no longer share expenses or budget with your partner.",
+      "confirm": "Unpair",
+      "success": "Successfully unpaired",
+      "error": "Failed to unpair"
     }
   },
   "languages": {

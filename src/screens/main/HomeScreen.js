@@ -608,6 +608,26 @@ export default function HomeScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
+        {/* Unpaired User Banner */}
+        {!userDetails?.partnerId && (
+          <View style={styles.unpairedBanner}>
+            <View style={styles.unpairedBannerHeader}>
+              <Ionicons name="alert-circle-outline" size={24} color={COLORS.warning} />
+              <Text style={styles.unpairedBannerTitle}>{t('home.unpaired.title')}</Text>
+            </View>
+            <Text style={styles.unpairedBannerMessage}>{t('home.unpaired.message')}</Text>
+            <Text style={styles.unpairedBannerNote}>{t('home.unpaired.readOnlyMode')}</Text>
+            <TouchableOpacity
+              style={styles.unpairedBannerButton}
+              onPress={() => navigation.navigate('Connect')}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="people-outline" size={18} color={COLORS.primary} />
+              <Text style={styles.unpairedBannerButtonText}>{t('home.unpaired.findPartner')}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Balance Card */}
         <View style={[
           styles.balanceCard,
@@ -698,7 +718,31 @@ export default function HomeScreen({ navigation }) {
         </View>
 
         {/* Floating Add Button */}
-        <TouchableOpacity style={styles.fab} onPress={handleAddExpense}>
+        <TouchableOpacity
+          style={[
+            styles.fab,
+            !userDetails?.partnerId && styles.fabDisabled
+          ]}
+          onPress={() => {
+            // Check if user is unpaired
+            if (!userDetails?.partnerId) {
+              Alert.alert(
+                t('home.unpaired.title'),
+                t('home.unpaired.readOnlyMode'),
+                [
+                  { text: t('common.cancel'), style: 'cancel' },
+                  {
+                    text: t('home.unpaired.findPartner'),
+                    onPress: () => navigation.navigate('Connect')
+                  }
+                ]
+              );
+              return;
+            }
+            handleAddExpense();
+          }}
+          disabled={!userDetails?.partnerId}
+        >
           <Ionicons name="add" size={32} color={COLORS.background} />
         </TouchableOpacity>
 
@@ -1268,5 +1312,55 @@ const styles = StyleSheet.create({
     ...FONTS.body,
     color: COLORS.background,
     fontWeight: '600',
+  },
+  unpairedBanner: {
+    backgroundColor: COLORS.warning + '15',
+    marginHorizontal: SPACING.screenPadding,
+    borderRadius: 12,
+    padding: SPACING.base,
+    marginBottom: SPACING.base,
+    borderWidth: 1,
+    borderColor: COLORS.warning + '30',
+  },
+  unpairedBannerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.small,
+    gap: SPACING.small,
+  },
+  unpairedBannerTitle: {
+    ...FONTS.body,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  unpairedBannerMessage: {
+    ...FONTS.small,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.tiny,
+  },
+  unpairedBannerNote: {
+    ...FONTS.small,
+    color: COLORS.textSecondary,
+    fontStyle: 'italic',
+    marginBottom: SPACING.base,
+  },
+  unpairedBannerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primary + '15',
+    paddingVertical: SPACING.small,
+    paddingHorizontal: SPACING.base,
+    borderRadius: 8,
+    gap: SPACING.tiny,
+  },
+  unpairedBannerButtonText: {
+    ...FONTS.body,
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  fabDisabled: {
+    backgroundColor: COLORS.textSecondary,
+    opacity: 0.5,
   },
 });

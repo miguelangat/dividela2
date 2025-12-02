@@ -49,7 +49,7 @@ const isMediumScreen = screenWidth >= 375 && screenWidth < 768;
 const isLargeScreen = screenWidth >= 768;
 
 export default function SettingsScreen({ navigation }) {
-  const { user, userDetails, signOut, getPartnerDetails, changePassword, deleteAccount } = useAuth();
+  const { user, userDetails, signOut, getPartnerDetails, changePassword, deleteAccount, unpair } = useAuth();
   const { isPremium, subscriptionInfo } = useSubscription();
   const { currentLanguage, changeLanguage, availableLanguages, getCurrentLanguageInfo } = useLanguage();
   const { t } = useTranslation();
@@ -59,6 +59,8 @@ export default function SettingsScreen({ navigation }) {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
   const [signOutModalVisible, setSignOutModalVisible] = useState(false);
+  const [unpairModalVisible, setUnpairModalVisible] = useState(false);
+  const [unpairing, setUnpairing] = useState(false);
   const [primaryCurrency, setPrimaryCurrency] = useState('USD');
   const [currencyLoading, setCurrencyLoading] = useState(false);
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
@@ -327,22 +329,61 @@ export default function SettingsScreen({ navigation }) {
           </View>
           <View style={styles.settingContent}>
             <Text style={styles.settingLabel}>{t('settings.partnerName')}</Text>
-            <Text style={styles.settingValue}>{partnerName}</Text>
+            <Text style={styles.settingValue}>
+              {userDetails?.partnerId ? partnerName : t('settings.noPartner')}
+            </Text>
           </View>
         </View>
 
-        {userDetails?.coupleId && (
-          <View style={[styles.settingRow, styles.settingRowLast]}>
+        {/* Show reconnect button for unpaired users */}
+        {!userDetails?.partnerId && (
+          <TouchableOpacity
+            style={[styles.settingRow, styles.settingRowLast]}
+            onPress={() => navigation.navigate('Connect')}
+            activeOpacity={0.7}
+          >
             <View style={styles.settingIcon}>
-              <Ionicons name="heart" size={20} color={COLORS.error} />
+              <Ionicons name="people-outline" size={20} color={COLORS.primary} />
             </View>
             <View style={styles.settingContent}>
-              <Text style={styles.settingLabel}>{t('settings.coupleId')}</Text>
-              <Text style={[styles.settingValue, styles.settingValueSmall]}>
-                {userDetails.coupleId.substring(0, 20)}...
+              <Text style={[styles.settingLabel, { color: COLORS.primary }]}>
+                {t('home.unpaired.findPartner')}
               </Text>
             </View>
-          </View>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+          </TouchableOpacity>
+        )}
+
+        {userDetails?.coupleId && userDetails?.partnerId && (
+          <>
+            <View style={styles.settingRow}>
+              <View style={styles.settingIcon}>
+                <Ionicons name="heart" size={20} color={COLORS.error} />
+              </View>
+              <View style={styles.settingContent}>
+                <Text style={styles.settingLabel}>{t('settings.coupleId')}</Text>
+                <Text style={[styles.settingValue, styles.settingValueSmall]}>
+                  {userDetails.coupleId.substring(0, 20)}...
+                </Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.settingRow, styles.settingRowLast]}
+              onPress={() => setUnpairModalVisible(true)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.settingIcon}>
+                <Ionicons name="cut-outline" size={20} color={COLORS.error} />
+              </View>
+              <View style={styles.settingContent}>
+                <Text style={[styles.settingLabel, { color: COLORS.error }]}>
+                  {t('settings.unpair')}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+            </TouchableOpacity>
+          </>
         )}
       </View>
     </View>
@@ -572,6 +613,23 @@ export default function SettingsScreen({ navigation }) {
         error.message || t('settings.deleteAccountModal.error')
       );
       setDeletingAccount(false);
+    }
+  };
+
+  const handleUnpair = async () => {
+    setUnpairing(true);
+    try {
+      await unpair();
+      setUnpairModalVisible(false);
+      Alert.alert(t('common.success'), t('settings.unpairModal.success'));
+    } catch (error) {
+      console.error('Unpair error:', error);
+      Alert.alert(
+        t('common.error'),
+        error.message || t('settings.unpairModal.error')
+      );
+    } finally {
+      setUnpairing(false);
     }
   };
 
@@ -1060,6 +1118,49 @@ export default function SettingsScreen({ navigation }) {
         </View>
       </Modal>
 
+      {/* Unpair Confirmation Modal */}
+      <Modal
+        visible={unpairModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setUnpairModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={[styles.modalHeader, { backgroundColor: COLORS.errorLight }]}>
+              <Ionicons name="cut" size={32} color={COLORS.error} />
+            </View>
+
+            <Text style={styles.modalTitle}>{t('settings.unpairModal.title')}</Text>
+            <Text style={styles.modalMessage}>
+              {t('settings.unpairModal.message')}
+            </Text>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonSecondary]}
+                onPress={() => setUnpairModalVisible(false)}
+                disabled={unpairing}
+              >
+                <Text style={styles.modalButtonTextSecondary}>{t('common.cancel')}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonDanger]}
+                onPress={handleUnpair}
+                disabled={unpairing}
+              >
+                {unpairing ? (
+                  <ActivityIndicator size="small" color={COLORS.background} />
+                ) : (
+                  <Text style={styles.modalButtonTextPrimary}>{t('settings.unpairModal.confirm')}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Language Selector Modal */}
       {renderLanguageModal()}
 
@@ -1371,7 +1472,7 @@ export default function SettingsScreen({ navigation }) {
           </View>
         </View>
       </Modal>
-    </View>
+    </View >
   );
 }
 

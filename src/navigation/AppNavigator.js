@@ -31,7 +31,7 @@ import PaywallScreen from '../screens/main/PaywallScreen';
 const Stack = createStackNavigator();
 
 export default function AppNavigator() {
-  const { user, userDetails, loading } = useAuth();
+  const { user, userDetails, loading, hasSkippedConnect } = useAuth();
   const [onboardingCompleted, setOnboardingCompleted] = useState(null);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
@@ -269,8 +269,9 @@ export default function AppNavigator() {
             <Stack.Screen name="SignUp" component={SignUpScreen} />
             <Stack.Screen name="SignIn" component={SignInScreen} />
           </>
-        ) : !userDetails?.partnerId ? (
-          // Connect Stack - User logged in but no partner
+        ) : !userDetails?.partnerId && !userDetails?.coupleId && !hasSkippedConnect ? (
+          // Connect Stack - User logged in but never had a partner
+          // (New users who need to connect for the first time)
           <>
             <Stack.Screen name="Connect" component={ConnectScreen} />
             <Stack.Screen name="Invite" component={InviteScreen} />
@@ -327,6 +328,12 @@ export default function AppNavigator() {
                 headerTintColor: COLORS.primary,
               }}
             />
+            {/* Connect screens - for unpaired/skipped users */}
+            <Stack.Screen name="Connect" component={ConnectScreen} />
+            <Stack.Screen name="Invite" component={InviteScreen} />
+            <Stack.Screen name="Join" component={JoinScreen} />
+            <Stack.Screen name="Success" component={SuccessScreen} />
+            <Stack.Screen name="FiscalYearSetup" component={FiscalYearSetupScreen} />
           </>
         )}
       </Stack.Navigator>

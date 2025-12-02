@@ -6,7 +6,11 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { COLORS, FONTS, SPACING, SIZES, SHADOWS, COMMON_STYLES } from '../../constants/theme';
 
+import { useAuth } from '../../contexts/AuthContext';
+
 export default function ConnectScreen({ navigation }) {
+  const { skipConnection } = useAuth();
+
   const handleInvitePartner = () => {
     // Check if navigation is possible (screen exists in current stack)
     try {
@@ -22,6 +26,18 @@ export default function ConnectScreen({ navigation }) {
       navigation.navigate('Join');
     } catch (error) {
       console.error('Navigation error:', error);
+    }
+  };
+
+  const handleSkip = () => {
+    skipConnection();
+    // If we can navigate to MainTabs, it means we're already in the Main App stack
+    // So navigate back instead of just setting the skip state
+    try {
+      navigation.navigate('MainTabs');
+    } catch (error) {
+      // If navigation fails, we're in the Connect stack and skipConnection() will trigger navigation
+      console.log('Skip from Connect stack, will auto-navigate');
     }
   };
 
@@ -67,6 +83,15 @@ export default function ConnectScreen({ navigation }) {
           <Text style={styles.cardDescriptionSecondary}>
             Enter your partner's invite code
           </Text>
+        </TouchableOpacity>
+
+        {/* Skip Option */}
+        <TouchableOpacity
+          style={styles.skipButton}
+          onPress={handleSkip}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.skipButtonText}>Skip for now (Go to Dashboard)</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -141,5 +166,15 @@ const styles = StyleSheet.create({
     fontSize: FONTS.sizes.body,
     color: COLORS.textSecondary,
     textAlign: 'center',
+  },
+  skipButton: {
+    marginTop: SPACING.medium,
+    padding: SPACING.medium,
+    alignItems: 'center',
+  },
+  skipButtonText: {
+    fontSize: FONTS.sizes.body,
+    color: COLORS.textSecondary,
+    textDecorationLine: 'underline',
   },
 });
