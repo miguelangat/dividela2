@@ -45,12 +45,40 @@
     "youPaid": "Tu as payé",
     "partnerPaid": "{{partnerName}} a payé",
     "settled": "Réglé",
+    "settledDate": "Réglé le {{date}}",
     "active": "Actif",
     "all": "Tout",
     "yourShare": "Ta part : {{amount}}",
     "errorPermission": "Permission refusée. Vérifie ta connexion avec ton partenaire.",
     "errorNetwork": "Erreur réseau. Vérifie ta connexion Internet.",
-    "errorGeneric": "Échec du chargement des dépenses. Tire vers le bas pour réessayer."
+    "errorGeneric": "Échec du chargement des dépenses. Tire vers le bas pour réessayer.",
+    "errors": {
+      "permissionDenied": "Permission refusée. Vérifie ta connexion avec ton partenaire.",
+      "networkError": "Erreur réseau. Vérifie ta connexion Internet.",
+      "loadFailed": "Échec du chargement des dépenses. Tire vers le bas pour réessayer."
+    },
+    "list": {
+      "youPaid": "Tu as payé",
+      "partnerPaid": "{{partner}} a payé",
+      "settled": "Réglé le {{date}}"
+    },
+    "modal": {
+      "recordPayment": "Enregistrer que {{payer}} {{action}} :",
+      "you": "tu",
+      "settled": "êtes à jour",
+      "paid": "a payé"
+    },
+    "alerts": {
+      "settleUpError": "Impossible de régler. Réessaie.",
+      "alreadySettledTitle": "Déjà Réglé",
+      "alreadySettledMessage": "Ton solde est déjà à zéro. Pas besoin de régler !",
+      "settledTitle": "Réglé ! 💰",
+      "settlementFailedTitle": "Échec du Règlement",
+      "settlementFailed": "Échec du règlement. Réessaie.",
+      "permissionDenied": "Permission refusée. Vérifie les paramètres de ton compte.",
+      "navigationErrorTitle": "Erreur de Navigation",
+      "navigationErrorMessage": "Impossible d'ouvrir l'écran d'importation. Réessaie."
+    }
   },
   "settleUpModal": {
     "title": "Régler",
@@ -79,16 +107,45 @@
     "subtitle": "Gère ton profil et tes préférences",
     "profile": "Profil",
     "displayName": "Nom d'Affichage",
+    "namePlaceholder": "Entre ton nom",
     "email": "E-mail",
     "partner": "Partenaire",
     "partnerName": "Nom du Partenaire",
     "coupleId": "coupleId",
     "preferences": "Préférences",
     "language": "Langue",
+    "languageChangeFailed": "Échec du changement de langue. Réessaie.",
     "currency": "Devise",
+    "currencyLabel": "Devise Principale",
+    "primaryCurrency": "Devise Principale",
     "defaultSplit": "Partage par Défaut",
+    "defaultSplitValue": "50 / 50",
     "budgetSetup": "Configuration du Budget",
     "restartOnboarding": "Redémarrer la configuration initiale",
+    "subscription": {
+      "title": "Abonnement",
+      "plan": "Plan",
+      "planPremium": "Premium",
+      "planFree": "Gratuit",
+      "active": "ACTIF",
+      "manage": "Gérer l'Abonnement",
+      "upgrade": "Passer à Premium",
+      "description": "Débloquer budgets illimités, analyses et plus",
+      "partnerHasPremium": "Ton partenaire a aussi l'accès premium !",
+      "bothGetPremium": "Lorsque tu passes à premium, toi et ton partenaire obtenez les fonctionnalités premium."
+    },
+    "receiptScanning": {
+      "title": "Scanner de Reçus",
+      "merchantAliases": "Alias de Commerces",
+      "merchantAliasesDescription": "Gérer les variations de noms de commerces"
+    },
+    "currencyChange": {
+      "title": "Changer la Devise Principale",
+      "message": "Changer de {{from}} à {{to}} ?",
+      "note": "Note : Les dépenses futures seront par défaut en {{currency}}. Les dépenses passées conserveront leur devise d'origine.",
+      "change": "Changer",
+      "changeError": "Échec du changement de devise. Réessaie."
+    },
     "about": "À propos",
     "appVersion": "Version de l'App",
     "appName": "Dividela",
@@ -116,15 +173,66 @@
   "addExpense": {
     "title": "Ajouter une Dépense",
     "editTitle": "Modifier la Dépense",
-    "description": "Description",
+    "subtitle": "Suis tes dépenses partagées",
     "amount": "Montant",
+    "amountPlaceholder": "0.00",
+    "description": "Description",
+    "addNoteLabel": "Ajouter une note",
+    "noteHelper": "Aide à se rappeler de quoi il s'agit (ex., \"Dîner chez Luigi's\")",
+    "notePlaceholder": "Ajoute des détails ici...",
     "category": "Catégorie",
+    "categoryLabel": "C'est pour quoi ?",
     "whoPaid": "Qui a Payé ?",
+    "you": "Toi",
+    "partner": "Partenaire",
     "splitMethod": "Méthode de Partage",
     "equal": "Égal (50/50)",
+    "splitEqual": "50/50",
+    "splitEqually": "Partager également",
+    "splitFull": "Tout pour Moi",
+    "splitFullTheirs": "Tout pour Eux",
+    "splitFullDescription": "Le payeur couvre tout",
     "custom": "Partage Personnalisé",
+    "customDescription": "Choisir %",
+    "yourShare": "Ta part :",
+    "partnerShare": "Part du partenaire :",
     "save": "Enregistrer la Dépense",
-    "delete": "Supprimer la Dépense"
+    "saveChanges": "Enregistrer les Modifications",
+    "create": "Ajouter Dépense",
+    "cancel": "Annuler",
+    "delete": "Supprimer la Dépense",
+    "expenseCurrency": "Devise de la Dépense",
+    "dateLabel": "C'était quand ?",
+    "dateDone": "Terminé",
+    "scanReceipt": "Scanner un Reçu",
+    "scanDivider": "ou scanne un reçu",
+    "errors": {
+      "invalidAmount": "Entre un montant valide",
+      "noDescription": "Entre une description",
+      "authError": "Erreur d'authentification. Reconnecte-toi.",
+      "noCouple": "Tu dois être associé à un partenaire pour ajouter des dépenses.",
+      "noPartnerInfo": "Informations du partenaire manquantes. Reconnecte-toi avec ton partenaire.",
+      "noPayer": "Sélectionne qui a payé cette dépense.",
+      "amountTooLarge": "Le montant semble trop important. Vérifie et réessaie.",
+      "updateFailed": "Échec de la mise à jour de la dépense. Réessaie.",
+      "createFailed": "Échec de la création de la dépense. Réessaie."
+    },
+    "ocr": {
+      "permissionTitle": "Permission Requise",
+      "permissionMessage": "La permission de la caméra est requise pour scanner les reçus. Active-la dans les paramètres de ton appareil.",
+      "successTitle": "Reçu Scanné",
+      "successMessage": "Informations du reçu extraites. Vérifie et modifie si nécessaire.",
+      "failedTitle": "Traitement Échoué",
+      "failedMessage": "Échec du traitement du reçu. Réessaie.",
+      "aliasSuccess": "Alias de commerce créé avec succès",
+      "aliasError": "Échec de la création de l'alias de commerce"
+    },
+    "discard": {
+      "title": "Abandonner les Modifications ?",
+      "message": "Tu as des modifications non enregistrées. Es-tu sûr de vouloir annuler ?",
+      "keepEditing": "Continuer l'Édition",
+      "discard": "Abandonner"
+    }
   },
   "import": {
     "title": "Importer depuis un Relevé Bancaire",
@@ -578,6 +686,151 @@
         "continueButton": "Aller au Tableau de Bord",
         "editButton": "Modifier le Budget"
       }
+    }
+  },
+  "components": {
+    "fieldLabel": {
+      "required": "REQUIS",
+      "optional": "OPTIONNEL"
+    },
+    "splitPreview": {
+      "title": "Aperçu de la Répartition"
+    },
+    "merchantAlias": {
+      "searchPlaceholder": "Rechercher des alias...",
+      "ocrMerchantPlaceholder": "Nom du Commerçant OCR",
+      "aliasPlaceholder": "Votre Alias",
+      "validationError": "Veuillez remplir les deux champs",
+      "loadError": "Échec du chargement des alias de commerçants. Veuillez réessayer.",
+      "deleteError": "Échec de la suppression de l'alias. Veuillez réessayer.",
+      "saveError": "Échec de l'enregistrement de l'alias. Veuillez réessayer."
+    },
+    "exchangeRate": {
+      "amountPlaceholder": "0.00",
+      "ratePlaceholder": "0.0000"
+    },
+    "currencyPicker": {
+      "searchPlaceholder": "Rechercher des devises..."
+    },
+    "categoryModal": {
+      "namePlaceholder": "ex., Santé et Fitness"
+    },
+    "amountRange": {
+      "minPlaceholder": "Min",
+      "maxPlaceholder": "Max"
+    },
+    "expenseDetail": {
+      "deleteError": "Échec de la suppression de la dépense"
+    },
+    "exportButton": {
+      "userDetailsError": "Détails de l'utilisateur non disponibles"
+    }
+  },
+  "stats": {
+    "title": "Statistiques",
+    "subtitle": "Suivez vos habitudes de dépenses",
+    "loading": "Chargement des statistiques...",
+    "errorMessage": "Échec du chargement des statistiques. Tirez vers le bas pour réessayer.",
+    "sorting": {
+      "sortBy": "Trier par :",
+      "latest": "Plus Récent",
+      "highest": "Plus Élevé",
+      "category": "Catégorie"
+    },
+    "grouping": {
+      "groupBy": "Grouper par :",
+      "none": "Aucun",
+      "month": "Mois",
+      "status": "Statut"
+    },
+    "summary": {
+      "totalExpenses": "Dépenses Totales",
+      "expenseCount": "{{count}} dépenses",
+      "yourShare": "Votre Part",
+      "partnerShare": "Part du Partenaire"
+    },
+    "expenseList": {
+      "title": "Détails des Dépenses ({{count}})",
+      "noDescription": "Aucune description",
+      "youPaid": "Tu as payé",
+      "partnerPaid": "{{partnerName}} a payé"
+    },
+    "categoryBreakdown": {
+      "title": "Répartition par Catégorie",
+      "percentage": "{{percentage}}% du total",
+      "noCategories": "Aucune catégorie à afficher"
+    },
+    "settlementHistory": {
+      "title": "Historique des Règlements",
+      "subtitle": "Enregistrement des soldes réglés"
+    },
+    "empty": {
+      "title": "Aucune Dépense Encore",
+      "message": "Commencez à ajouter des dépenses pour voir vos statistiques de dépenses"
+    },
+    "emptyFiltered": {
+      "title": "Aucune Dépense Correspondante",
+      "message": "Essayez d'ajuster vos filtres pour voir plus de résultats"
+    }
+  },
+  "categoryManager": {
+    "deleteSuccess": "Catégorie supprimée avec succès !",
+    "deleteError": "Échec de la suppression de la catégorie",
+    "updateSuccess": "Catégorie mise à jour avec succès !",
+    "addSuccess": "Catégorie ajoutée avec succès !",
+    "resetSuccess": "Catégories réinitialisées avec succès",
+    "resetError": "Échec de la réinitialisation des catégories"
+  },
+  "paywall": {
+    "selectPlanError": "Veuillez sélectionner un plan d'abonnement",
+    "purchaseFailed": "Achat Échoué",
+    "purchaseError": "Quelque chose s'est mal passé. Veuillez réessayer.",
+    "processingError": "Échec du traitement de l'achat. Veuillez réessayer.",
+    "noPurchasesTitle": "Aucun Achat Trouvé",
+    "noPurchasesMessage": "Aucun achat précédent n'a été trouvé à restaurer.",
+    "restoreFailed": "Restauration Échouée",
+    "restoreError": "Échec de la restauration des achats."
+  },
+  "settlementHistory": {
+    "loadError": "Échec du chargement des règlements. Veuillez réessayer."
+  },
+  "join": {
+    "codePlaceholder": "ABC 123",
+    "codeError": "Veuillez entrer un code valide de 6 caractères"
+  },
+  "invite": {
+    "copiedTitle": "Copié !",
+    "copiedMessage": "Code d'invitation copié dans le presse-papiers",
+    "copyError": "Échec de la copie du code",
+    "shareError": "Échec du partage du code d'invitation",
+    "authError": "Vous devez être connecté pour générer un code d'invitation.",
+    "permissionError": "Permission refusée. Veuillez vérifier vos règles de sécurité Firestore.",
+    "networkError": "Erreur réseau. Veuillez vérifier votre connexion Internet."
+  },
+  "contexts": {
+    "auth": {
+      "noUser": "Aucun utilisateur connecté",
+      "googleErrors": {
+        "notEnabled": "La connexion Google n'est pas activée. Veuillez l'activer dans Firebase Console → Authentification → Méthode de connexion → Google",
+        "popupBlocked": "La fenêtre popup a été bloquée. Veuillez autoriser les popups pour ce site.",
+        "cancelled": "Connexion annulée",
+        "accountExists": "Un compte existe déjà avec la même adresse e-mail. Essayez une méthode de connexion différente.",
+        "domainNotAuthorized": "Ce domaine n'est pas autorisé. Ajoutez-le dans Firebase Console → Authentification → Paramètres → Domaines autorisés"
+      },
+      "appleErrors": {
+        "notEnabled": "La connexion Apple n'est pas activée. Veuillez l'activer dans Firebase Console → Authentification → Méthode de connexion → Apple (nécessite un compte Apple Developer)",
+        "popupBlocked": "La fenêtre popup a été bloquée. Veuillez autoriser les popups pour ce site.",
+        "cancelled": "Connexion annulée",
+        "accountExists": "Un compte existe déjà avec la même adresse e-mail. Essayez une méthode de connexion différente.",
+        "domainNotAuthorized": "Ce domaine n'est pas autorisé. Ajoutez-le dans Firebase Console → Authentification → Paramètres → Domaines autorisés"
+      }
+    },
+    "onboarding": {
+      "noCoupleId": "Aucun ID de couple trouvé",
+      "storageFull": "Stockage plein - veuillez libérer de l'espace et réessayer",
+      "storagePermission": "Permission de stockage refusée - veuillez vérifier les autorisations de l'application",
+      "saveFailed": "Échec de l'enregistrement du statut de completion",
+      "networkError": "Erreur réseau - veuillez vérifier votre connexion et réessayer"
     }
   }
 }

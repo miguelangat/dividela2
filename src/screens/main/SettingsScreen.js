@@ -37,6 +37,8 @@ import { getCurrencyInfo } from '../../constants/currencies';
 import {
   updatePrimaryCurrency,
   getPrimaryCurrency,
+  updateNotificationPreferences,
+  getCoupleSettings,
 } from '../../services/coupleSettingsService';
 import MerchantAliasManager from '../../components/MerchantAliasManager';
 import { useTranslation } from 'react-i18next';
@@ -64,6 +66,15 @@ export default function SettingsScreen({ navigation }) {
   const [showAliasManager, setShowAliasManager] = useState(false);
   const [currencyChangeModalVisible, setCurrencyChangeModalVisible] = useState(false);
   const [pendingCurrency, setPendingCurrency] = useState(null);
+  const [notifications, setNotifications] = useState({
+    emailEnabled: true,
+    monthlyBudgetAlert: true,
+    annualBudgetAlert: true,
+    fiscalYearEndReminder: true,
+    savingsGoalMilestone: true,
+    partnerActivity: false,
+  });
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
 
   // Fetch partner details
   useEffect(() => {
@@ -89,19 +100,26 @@ export default function SettingsScreen({ navigation }) {
     }
   }, [userDetails?.displayName]);
 
-  // Fetch primary currency
+  // Fetch primary currency and notification settings
   useEffect(() => {
-    const fetchCurrency = async () => {
+    const fetchSettings = async () => {
       if (userDetails?.coupleId) {
         try {
+          // Fetch currency
           const currency = await getPrimaryCurrency(userDetails.coupleId);
           setPrimaryCurrency(currency.code);
+
+          // Fetch notification preferences
+          const settings = await getCoupleSettings(userDetails.coupleId);
+          if (settings.notifications) {
+            setNotifications(settings.notifications);
+          }
         } catch (error) {
-          console.error('Error fetching primary currency:', error);
+          console.error('Error fetching settings:', error);
         }
       }
     };
-    fetchCurrency();
+    fetchSettings();
   }, [userDetails?.coupleId]);
 
   const handleSaveName = async () => {
@@ -444,6 +462,200 @@ export default function SettingsScreen({ navigation }) {
     }
   };
 
+  const handleNotificationToggle = async (key, value) => {
+    if (!userDetails?.coupleId) return;
+
+    setNotificationsLoading(true);
+    try {
+      const updatedNotifications = {
+        ...notifications,
+        [key]: value,
+      };
+      setNotifications(updatedNotifications);
+
+      await updateNotificationPreferences(userDetails.coupleId, updatedNotifications);
+      console.log(`✅ Updated ${key} to ${value}`);
+    } catch (error) {
+      console.error('Error updating notification preferences:', error);
+      // Revert on error
+      setNotifications(notifications);
+      Alert.alert(t('common.error'), t('settings.notificationUpdateFailed'));
+    } finally {
+      setNotificationsLoading(false);
+    }
+  };
+
+  const renderNotificationsSection = () => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>{t('settings.notifications.title')}</Text>
+
+      <View style={styles.card}>
+        {/* Master Toggle */}
+        <View style={styles.settingRow}>
+          <View style={styles.settingIcon}>
+            <Ionicons
+              name={notifications.emailEnabled ? "mail" : "mail-outline"}
+              size={20}
+              color={notifications.emailEnabled ? COLORS.primary : COLORS.textSecondary}
+            />
+          </View>
+          <View style={styles.settingContent}>
+            <Text style={styles.settingLabel}>{t('settings.notifications.emailEnabled')}</Text>
+            <Text style={styles.settingDescription}>{t('settings.notifications.emailEnabledDesc')}</Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => handleNotificationToggle('emailEnabled', !notifications.emailEnabled)}
+            disabled={notificationsLoading}
+            activeOpacity={0.7}
+          >
+            <View style={[
+              styles.toggle,
+              notifications.emailEnabled && styles.toggleActive
+            ]}>
+              <View style={[
+                styles.toggleThumb,
+                notifications.emailEnabled && styles.toggleThumbActive
+              ]} />
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Only show other options if email is enabled */}
+        {notifications.emailEnabled && (
+          <>
+            {/* Monthly Budget Alert */}
+            <View style={styles.settingRow}>
+              <View style={styles.settingIcon}>
+                <Ionicons
+                  name="calendar"
+                  size={20}
+                  color={notifications.monthlyBudgetAlert ? COLORS.primary : COLORS.textSecondary}
+                />
+              </View>
+              <View style={styles.settingContent}>
+                <Text style={styles.settingLabel}>{t('settings.notifications.monthlyBudget')}</Text>
+                <Text style={styles.settingDescription}>{t('settings.notifications.monthlyBudgetDesc')}</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => handleNotificationToggle('monthlyBudgetAlert', !notifications.monthlyBudgetAlert)}
+                disabled={notificationsLoading}
+                activeOpacity={0.7}
+              >
+                <View style={[
+                  styles.toggle,
+                  notifications.monthlyBudgetAlert && styles.toggleActive
+                ]}>
+                  <View style={[
+                    styles.toggleThumb,
+                    notifications.monthlyBudgetAlert && styles.toggleThumbActive
+                  ]} />
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            {/* Fiscal Year End Reminder */}
+            <View style={styles.settingRow}>
+              <View style={styles.settingIcon}>
+                <Ionicons
+                  name="calendar-outline"
+                  size={20}
+                  color={notifications.fiscalYearEndReminder ? COLORS.primary : COLORS.textSecondary}
+                />
+              </View>
+              <View style={styles.settingContent}>
+                <Text style={styles.settingLabel}>{t('settings.notifications.fiscalYearEnd')}</Text>
+                <Text style={styles.settingDescription}>{t('settings.notifications.fiscalYearEndDesc')}</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => handleNotificationToggle('fiscalYearEndReminder', !notifications.fiscalYearEndReminder)}
+                disabled={notificationsLoading}
+                activeOpacity={0.7}
+              >
+                <View style={[
+                  styles.toggle,
+                  notifications.fiscalYearEndReminder && styles.toggleActive
+                ]}>
+                  <View style={[
+                    styles.toggleThumb,
+                    notifications.fiscalYearEndReminder && styles.toggleThumbActive
+                  ]} />
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            {/* Savings Goal Milestone */}
+            <View style={styles.settingRow}>
+              <View style={styles.settingIcon}>
+                <Ionicons
+                  name="trophy"
+                  size={20}
+                  color={notifications.savingsGoalMilestone ? COLORS.primary : COLORS.textSecondary}
+                />
+              </View>
+              <View style={styles.settingContent}>
+                <Text style={styles.settingLabel}>{t('settings.notifications.savingsGoal')}</Text>
+                <Text style={styles.settingDescription}>{t('settings.notifications.savingsGoalDesc')}</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => handleNotificationToggle('savingsGoalMilestone', !notifications.savingsGoalMilestone)}
+                disabled={notificationsLoading}
+                activeOpacity={0.7}
+              >
+                <View style={[
+                  styles.toggle,
+                  notifications.savingsGoalMilestone && styles.toggleActive
+                ]}>
+                  <View style={[
+                    styles.toggleThumb,
+                    notifications.savingsGoalMilestone && styles.toggleThumbActive
+                  ]} />
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            {/* Partner Activity */}
+            <View style={[styles.settingRow, styles.settingRowLast]}>
+              <View style={styles.settingIcon}>
+                <Ionicons
+                  name="person-add"
+                  size={20}
+                  color={notifications.partnerActivity ? COLORS.primary : COLORS.textSecondary}
+                />
+              </View>
+              <View style={styles.settingContent}>
+                <Text style={styles.settingLabel}>{t('settings.notifications.partnerActivity')}</Text>
+                <Text style={styles.settingDescription}>{t('settings.notifications.partnerActivityDesc')}</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => handleNotificationToggle('partnerActivity', !notifications.partnerActivity)}
+                disabled={notificationsLoading}
+                activeOpacity={0.7}
+              >
+                <View style={[
+                  styles.toggle,
+                  notifications.partnerActivity && styles.toggleActive
+                ]}>
+                  <View style={[
+                    styles.toggleThumb,
+                    notifications.partnerActivity && styles.toggleThumbActive
+                  ]} />
+                </View>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
+      </View>
+
+      {/* Info note */}
+      <View style={styles.infoCard}>
+        <Ionicons name="information-circle" size={16} color={COLORS.primary} />
+        <Text style={styles.infoCardText}>
+          {t('settings.notifications.infoText')}
+        </Text>
+      </View>
+    </View>
+  );
+
   const renderPreferencesSection = () => (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{t('settings.preferences')}</Text>
@@ -629,6 +841,9 @@ export default function SettingsScreen({ navigation }) {
 
         {/* Subscription Section */}
         {renderSubscriptionSection()}
+
+        {/* Email Notifications Section */}
+        {renderNotificationsSection()}
 
         {/* Preferences Section */}
         {renderPreferencesSection()}
@@ -1064,5 +1279,31 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     right: 0,
+  },
+  // Toggle switch styles
+  toggle: {
+    width: 50,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: COLORS.border,
+    padding: 2,
+    justifyContent: 'center',
+  },
+  toggleActive: {
+    backgroundColor: COLORS.primary,
+  },
+  toggleThumb: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: COLORS.background,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  toggleThumbActive: {
+    transform: [{ translateX: 22 }],
   },
 });

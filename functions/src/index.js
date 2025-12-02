@@ -19,6 +19,10 @@ const storage = admin.storage();
 // Import OCR functions
 const processReceiptDirect = require('./ocr/processReceiptDirect');
 
+// Import email notification functions
+const notificationTriggers = require('./email/notificationTriggers');
+const scheduledChecks = require('./email/scheduledChecks');
+
 // Export OCR function with CORS support (for web browsers)
 exports.processReceiptDirect = functions.https.onRequest((req, res) => {
   return cors(req, res, async () => {
@@ -93,4 +97,51 @@ exports.processReceiptDirect = functions.https.onRequest((req, res) => {
 // Placeholder function to verify deployment
 exports.helloWorld = functions.https.onRequest((req, res) => {
   res.json({ message: 'Dividela Cloud Functions are running!' });
+});
+
+// ============================================================================
+// Email Notification Functions
+// ============================================================================
+
+// Firestore Triggers
+exports.checkBudgetOnExpenseAdded = notificationTriggers.checkBudgetOnExpenseAdded;
+exports.notifyPartnerOnExpenseAdded = notificationTriggers.notifyPartnerOnExpenseAdded;
+exports.sendPartnerInvitation = notificationTriggers.sendPartnerInvitation;
+exports.checkSavingsGoalMilestone = notificationTriggers.checkSavingsGoalMilestone;
+
+// Scheduled Functions
+exports.checkFiscalYearEndReminders = scheduledChecks.checkFiscalYearEndReminders;
+
+// ============================================================================
+// Test & Utility Functions
+// ============================================================================
+
+// Test email function (for testing SES configuration)
+const { sendTestEmail } = require('./email/sesEmailService');
+
+exports.testEmail = functions.https.onRequest(async (req, res) => {
+  const toEmail = req.query.to;
+
+  if (!toEmail) {
+    res.status(400).json({
+      error: 'Missing "to" parameter. Usage: ?to=your-email@example.com',
+    });
+    return;
+  }
+
+  try {
+    const result = await sendTestEmail(toEmail);
+    res.json({
+      success: true,
+      messageId: result.messageId,
+      message: `Test email sent successfully to ${toEmail}!`,
+      response: result.response,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      details: error.toString(),
+    });
+  }
 });

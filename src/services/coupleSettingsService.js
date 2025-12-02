@@ -32,10 +32,13 @@ export const DEFAULT_COUPLE_SETTINGS = {
     currencyLocale: 'en-US',
   },
   notifications: {
+    emailEnabled: true, // Master toggle for all email notifications
     monthlyBudgetAlert: true,
+    monthlyBudgetThreshold: 80, // Percentage threshold (80%, 90%, 100%)
     annualBudgetAlert: true,
     fiscalYearEndReminder: true,
     savingsGoalMilestone: true,
+    partnerActivity: false, // Notify when partner adds expenses
     daysBeforeFiscalYearEnd: 30,
   },
   display: {

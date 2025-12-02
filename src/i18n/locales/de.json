@@ -50,7 +50,35 @@
     "yourShare": "Dein Anteil: {{amount}}",
     "errorPermission": "Berechtigung verweigert. Bitte überprüfe deine Verbindung mit deinem Partner.",
     "errorNetwork": "Netzwerkfehler. Bitte überprüfe deine Internetverbindung.",
-    "errorGeneric": "Ausgaben konnten nicht geladen werden. Ziehe nach unten, um es erneut zu versuchen."
+    "errorGeneric": "Ausgaben konnten nicht geladen werden. Ziehe nach unten, um es erneut zu versuchen.",
+    "settledDate": "Abgerechnet {{date}}",
+    "errors": {
+      "permissionDenied": "Berechtigung verweigert. Bitte überprüfen Sie Ihre Verbindung mit Ihrem Partner.",
+      "networkError": "Netzwerkfehler. Bitte überprüfen Sie Ihre Internetverbindung.",
+      "loadFailed": "Fehler beim Laden der Ausgaben. Ziehen Sie nach unten, um es erneut zu versuchen."
+    },
+    "list": {
+      "youPaid": "Sie haben bezahlt",
+      "partnerPaid": "{{partner}} hat bezahlt",
+      "settled": "Abgerechnet {{date}}"
+    },
+    "modal": {
+      "recordPayment": "Aufzeichnen, dass {{payer}} {{action}}:",
+      "you": "Sie",
+      "settled": "sind ausgeglichen",
+      "paid": "bezahlt hat"
+    },
+    "alerts": {
+      "settleUpError": "Abrechnung nicht möglich. Bitte versuchen Sie es erneut.",
+      "alreadySettledTitle": "Bereits Abgerechnet",
+      "alreadySettledMessage": "Ihr Saldo ist bereits bei Null. Keine Abrechnung erforderlich!",
+      "settledTitle": "Abgerechnet! 💰",
+      "settlementFailedTitle": "Abrechnung Fehlgeschlagen",
+      "settlementFailed": "Fehler bei der Abrechnung. Bitte versuchen Sie es erneut.",
+      "permissionDenied": "Berechtigung verweigert. Bitte überprüfen Sie Ihre Kontoeinstellungen.",
+      "navigationErrorTitle": "Navigationsfehler",
+      "navigationErrorMessage": "Importbildschirm konnte nicht geöffnet werden. Bitte versuchen Sie es erneut."
+    }
   },
   "settleUpModal": {
     "title": "Abrechnen",
@@ -103,7 +131,36 @@
     "restartOnboardingTitle": "Budget-Ersteinrichtung Neu Starten",
     "restartOnboardingMessage": "Dies führt dich erneut durch den Budget-Einrichtungsprozess. Dein aktuelles Budget wird ersetzt.",
     "restart": "Neu Starten",
-    "restartError": "Neustart der Einrichtung fehlgeschlagen. Bitte versuche es erneut."
+    "restartError": "Neustart der Einrichtung fehlgeschlagen. Bitte versuche es erneut.",
+    "namePlaceholder": "Geben Sie Ihren Namen ein",
+    "languageChangeFailed": "Fehler beim Ändern der Sprache. Bitte versuchen Sie es erneut.",
+    "currencyLabel": "Hauptwährung",
+    "primaryCurrency": "Hauptwährung",
+    "defaultSplitValue": "50 / 50",
+    "subscription": {
+      "title": "Abonnement",
+      "plan": "Plan",
+      "planPremium": "Premium",
+      "planFree": "Kostenlos",
+      "active": "AKTIV",
+      "manage": "Abonnement Verwalten",
+      "upgrade": "Auf Premium Upgraden",
+      "description": "Unbegrenzte Budgets, Analysen und mehr freischalten",
+      "partnerHasPremium": "Ihr Partner hat auch Premium-Zugang!",
+      "bothGetPremium": "Wenn Sie upgraden, erhalten Sie und Ihr Partner Premium-Funktionen."
+    },
+    "receiptScanning": {
+      "title": "Belegscannen",
+      "merchantAliases": "Händleraliase",
+      "merchantAliasesDescription": "Händlernamenvariationen verwalten"
+    },
+    "currencyChange": {
+      "title": "Hauptwährung Ändern",
+      "message": "Von {{from}} zu {{to}} wechseln?",
+      "note": "Hinweis: Zukünftige Ausgaben werden standardmäßig {{currency}} verwenden. Vergangene Ausgaben behalten ihre ursprüngliche Währung.",
+      "change": "Ändern",
+      "changeError": "Fehler beim Ändern der Währung. Bitte versuchen Sie es erneut."
+    }
   },
   "languages": {
     "en": "Englisch",
@@ -124,7 +181,58 @@
     "equal": "Gleich (50/50)",
     "custom": "Benutzerdefinierte Aufteilung",
     "save": "Ausgabe Speichern",
-    "delete": "Ausgabe Löschen"
+    "delete": "Ausgabe Löschen",
+    "subtitle": "Verfolgen Sie Ihre gemeinsamen Ausgaben",
+    "amountPlaceholder": "0,00",
+    "addNoteLabel": "Notiz hinzufügen",
+    "noteHelper": "Helfen Sie sich zu erinnern, wofür dies war (z.B. \"Abendessen bei Luigi's\")",
+    "notePlaceholder": "Details hier hinzufügen...",
+    "categoryLabel": "Wofür ist das?",
+    "you": "Sie",
+    "partner": "Partner",
+    "splitEqual": "50/50",
+    "splitEqually": "Gleichmäßig teilen",
+    "splitFull": "Alles Meins",
+    "splitFullTheirs": "Alles Ihrs",
+    "splitFullDescription": "Zahler deckt alles ab",
+    "customDescription": "% Wählen",
+    "yourShare": "Ihr Anteil:",
+    "partnerShare": "Partneranteil:",
+    "saveChanges": "Änderungen Speichern",
+    "create": "Ausgabe Hinzufügen",
+    "cancel": "Abbrechen",
+    "expenseCurrency": "Ausgabenwährung",
+    "dateLabel": "Wann war das?",
+    "dateDone": "Fertig",
+    "scanReceipt": "Beleg Scannen",
+    "scanDivider": "oder einen Beleg scannen",
+    "errors": {
+      "invalidAmount": "Bitte geben Sie einen gültigen Betrag ein",
+      "noDescription": "Bitte geben Sie eine Beschreibung ein",
+      "authError": "Authentifizierungsfehler. Bitte melden Sie sich erneut an.",
+      "noCouple": "Sie müssen mit einem Partner verbunden sein, um Ausgaben hinzuzufügen.",
+      "noPartnerInfo": "Partnerinformationen fehlen. Bitte verbinden Sie sich erneut mit Ihrem Partner.",
+      "noPayer": "Bitte wählen Sie aus, wer für diese Ausgabe bezahlt hat.",
+      "amountTooLarge": "Der Betrag scheint zu groß zu sein. Bitte überprüfen und erneut versuchen.",
+      "updateFailed": "Fehler beim Aktualisieren der Ausgabe. Bitte versuchen Sie es erneut.",
+      "createFailed": "Fehler beim Erstellen der Ausgabe. Bitte versuchen Sie es erneut."
+    },
+    "ocr": {
+      "permissionTitle": "Berechtigung Erforderlich",
+      "permissionMessage": "Kameraberechtigung ist erforderlich, um Belege zu scannen. Bitte aktivieren Sie diese in Ihren Geräteeinstellungen.",
+      "successTitle": "Beleg Gescannt",
+      "successMessage": "Beleginformationen extrahiert. Bitte überprüfen und bei Bedarf bearbeiten.",
+      "failedTitle": "Verarbeitung Fehlgeschlagen",
+      "failedMessage": "Fehler beim Verarbeiten des Belegs. Bitte versuchen Sie es erneut.",
+      "aliasSuccess": "Händleralias erfolgreich erstellt",
+      "aliasError": "Fehler beim Erstellen des Händleralias"
+    },
+    "discard": {
+      "title": "Änderungen Verwerfen?",
+      "message": "Sie haben nicht gespeicherte Änderungen. Sind Sie sicher, dass Sie abbrechen möchten?",
+      "keepEditing": "Weiter Bearbeiten",
+      "discard": "Verwerfen"
+    }
   },
   "import": {
     "title": "Aus Kontoauszug Importieren",
@@ -578,6 +686,151 @@
         "continueButton": "Zum Dashboard",
         "editButton": "Budget Bearbeiten"
       }
+    }
+  },
+  "components": {
+    "fieldLabel": {
+      "required": "ERFORDERLICH",
+      "optional": "OPTIONAL"
+    },
+    "splitPreview": {
+      "title": "Aufteilungsvorschau"
+    },
+    "merchantAlias": {
+      "searchPlaceholder": "Aliase suchen...",
+      "ocrMerchantPlaceholder": "OCR-Händlername",
+      "aliasPlaceholder": "Ihr Alias",
+      "validationError": "Bitte füllen Sie beide Felder aus",
+      "loadError": "Fehler beim Laden der Händleraliase. Bitte versuchen Sie es erneut.",
+      "deleteError": "Fehler beim Löschen des Alias. Bitte versuchen Sie es erneut.",
+      "saveError": "Fehler beim Speichern des Alias. Bitte versuchen Sie es erneut."
+    },
+    "exchangeRate": {
+      "amountPlaceholder": "0,00",
+      "ratePlaceholder": "0,0000"
+    },
+    "currencyPicker": {
+      "searchPlaceholder": "Währungen suchen..."
+    },
+    "categoryModal": {
+      "namePlaceholder": "z.B. Gesundheit & Fitness"
+    },
+    "amountRange": {
+      "minPlaceholder": "Min",
+      "maxPlaceholder": "Max"
+    },
+    "expenseDetail": {
+      "deleteError": "Fehler beim Löschen der Ausgabe"
+    },
+    "exportButton": {
+      "userDetailsError": "Benutzerdetails nicht verfügbar"
+    }
+  },
+  "stats": {
+    "title": "Statistiken",
+    "subtitle": "Verfolgen Sie Ihre Ausgabenmuster",
+    "loading": "Statistiken laden...",
+    "errorMessage": "Fehler beim Laden der Statistiken. Ziehen Sie nach unten, um es erneut zu versuchen.",
+    "sorting": {
+      "sortBy": "Sortieren nach:",
+      "latest": "Neueste",
+      "highest": "Höchste",
+      "category": "Kategorie"
+    },
+    "grouping": {
+      "groupBy": "Gruppieren nach:",
+      "none": "Keine",
+      "month": "Monat",
+      "status": "Status"
+    },
+    "summary": {
+      "totalExpenses": "Gesamtausgaben",
+      "expenseCount": "{{count}} Ausgaben",
+      "yourShare": "Ihr Anteil",
+      "partnerShare": "Partneranteil"
+    },
+    "expenseList": {
+      "title": "Ausgabendetails ({{count}})",
+      "noDescription": "Keine Beschreibung",
+      "youPaid": "Sie haben bezahlt",
+      "partnerPaid": "{{partnerName}} hat bezahlt"
+    },
+    "categoryBreakdown": {
+      "title": "Kategorieaufschlüsselung",
+      "percentage": "{{percentage}}% der Gesamtsumme",
+      "noCategories": "Keine Kategorien anzuzeigen"
+    },
+    "settlementHistory": {
+      "title": "Abrechnungsverlauf",
+      "subtitle": "Aufzeichnung der abgerechneten Salden"
+    },
+    "empty": {
+      "title": "Noch Keine Ausgaben",
+      "message": "Beginnen Sie mit dem Hinzufügen von Ausgaben, um Ihre Ausgabenstatistiken zu sehen"
+    },
+    "emptyFiltered": {
+      "title": "Keine Übereinstimmenden Ausgaben",
+      "message": "Versuchen Sie, Ihre Filter anzupassen, um mehr Ergebnisse zu sehen"
+    }
+  },
+  "categoryManager": {
+    "deleteSuccess": "Kategorie erfolgreich gelöscht!",
+    "deleteError": "Fehler beim Löschen der Kategorie",
+    "updateSuccess": "Kategorie erfolgreich aktualisiert!",
+    "addSuccess": "Kategorie erfolgreich hinzugefügt!",
+    "resetSuccess": "Kategorien erfolgreich zurückgesetzt",
+    "resetError": "Fehler beim Zurücksetzen der Kategorien"
+  },
+  "paywall": {
+    "selectPlanError": "Bitte wählen Sie einen Abonnementplan",
+    "purchaseFailed": "Kauf Fehlgeschlagen",
+    "purchaseError": "Etwas ist schief gelaufen. Bitte versuchen Sie es erneut.",
+    "processingError": "Fehler beim Verarbeiten des Kaufs. Bitte versuchen Sie es erneut.",
+    "noPurchasesTitle": "Keine Käufe Gefunden",
+    "noPurchasesMessage": "Es wurden keine vorherigen Käufe zum Wiederherstellen gefunden.",
+    "restoreFailed": "Wiederherstellung Fehlgeschlagen",
+    "restoreError": "Fehler beim Wiederherstellen der Käufe."
+  },
+  "settlementHistory": {
+    "loadError": "Fehler beim Laden der Abrechnungen. Bitte versuchen Sie es erneut."
+  },
+  "join": {
+    "codePlaceholder": "ABC 123",
+    "codeError": "Bitte geben Sie einen gültigen 6-Zeichen-Code ein"
+  },
+  "invite": {
+    "copiedTitle": "Kopiert!",
+    "copiedMessage": "Einladungscode in die Zwischenablage kopiert",
+    "copyError": "Fehler beim Kopieren des Codes",
+    "shareError": "Fehler beim Teilen des Einladungscodes",
+    "authError": "Sie müssen angemeldet sein, um einen Einladungscode zu generieren.",
+    "permissionError": "Berechtigung verweigert. Bitte überprüfen Sie Ihre Firestore-Sicherheitsregeln.",
+    "networkError": "Netzwerkfehler. Bitte überprüfen Sie Ihre Internetverbindung."
+  },
+  "contexts": {
+    "auth": {
+      "noUser": "Kein Benutzer angemeldet",
+      "googleErrors": {
+        "notEnabled": "Google-Anmeldung ist nicht aktiviert. Bitte aktivieren Sie sie in Firebase Console → Authentifizierung → Anmeldemethode → Google",
+        "popupBlocked": "Popup wurde blockiert. Bitte erlauben Sie Popups für diese Seite.",
+        "cancelled": "Anmeldung abgebrochen",
+        "accountExists": "Ein Konto mit derselben E-Mail existiert bereits. Versuchen Sie eine andere Anmeldemethode.",
+        "domainNotAuthorized": "Diese Domain ist nicht autorisiert. Fügen Sie sie in Firebase Console → Authentifizierung → Einstellungen → Autorisierte Domains hinzu"
+      },
+      "appleErrors": {
+        "notEnabled": "Apple-Anmeldung ist nicht aktiviert. Bitte aktivieren Sie sie in Firebase Console → Authentifizierung → Anmeldemethode → Apple (erfordert Apple Developer-Konto)",
+        "popupBlocked": "Popup wurde blockiert. Bitte erlauben Sie Popups für diese Seite.",
+        "cancelled": "Anmeldung abgebrochen",
+        "accountExists": "Ein Konto mit derselben E-Mail existiert bereits. Versuchen Sie eine andere Anmeldemethode.",
+        "domainNotAuthorized": "Diese Domain ist nicht autorisiert. Fügen Sie sie in Firebase Console → Authentifizierung → Einstellungen → Autorisierte Domains hinzu"
+      }
+    },
+    "onboarding": {
+      "noCoupleId": "Keine Paar-ID gefunden",
+      "storageFull": "Speicher voll - bitte Speicherplatz freigeben und erneut versuchen",
+      "storagePermission": "Speicherberechtigung verweigert - bitte App-Berechtigungen überprüfen",
+      "saveFailed": "Fehler beim Speichern des Abschlussstatus",
+      "networkError": "Netzwerkfehler - bitte Verbindung überprüfen und erneut versuchen"
     }
   }
 }

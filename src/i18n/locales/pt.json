@@ -50,7 +50,35 @@
     "yourShare": "Sua parte: {{amount}}",
     "errorPermission": "Permissão negada. Por favor, verifique sua conexão com seu parceiro.",
     "errorNetwork": "Erro de rede. Por favor, verifique sua conexão com a internet.",
-    "errorGeneric": "Falha ao carregar despesas. Puxe para baixo para tentar novamente."
+    "errorGeneric": "Falha ao carregar despesas. Puxe para baixo para tentar novamente.",
+    "settledDate": "Liquidado {{date}}",
+    "errors": {
+      "permissionDenied": "Permissão negada. Verifique sua conexão com seu parceiro.",
+      "networkError": "Erro de rede. Verifique sua conexão com a internet.",
+      "loadFailed": "Falha ao carregar despesas. Puxe para baixo para tentar novamente."
+    },
+    "list": {
+      "youPaid": "Você pagou",
+      "partnerPaid": "{{partner}} pagou",
+      "settled": "Liquidado {{date}}"
+    },
+    "modal": {
+      "recordPayment": "Registrar que {{payer}} {{action}}:",
+      "you": "você",
+      "settled": "estão quites",
+      "paid": "pagou"
+    },
+    "alerts": {
+      "settleUpError": "Não é possível liquidar. Tente novamente.",
+      "alreadySettledTitle": "Já Liquidado",
+      "alreadySettledMessage": "Seu saldo já está em zero. Não precisa liquidar!",
+      "settledTitle": "Liquidado! 💰",
+      "settlementFailedTitle": "Liquidação Falhou",
+      "settlementFailed": "Falha ao liquidar. Tente novamente.",
+      "permissionDenied": "Permissão negada. Verifique as configurações da sua conta.",
+      "navigationErrorTitle": "Erro de Navegação",
+      "navigationErrorMessage": "Não foi possível abrir a tela de importação. Tente novamente."
+    }
   },
   "settleUpModal": {
     "title": "Acertar",
@@ -103,7 +131,36 @@
     "restartOnboardingTitle": "Reiniciar Configuração do Orçamento",
     "restartOnboardingMessage": "Isso o levará novamente pelo processo de configuração do orçamento. Seu orçamento atual será substituído.",
     "restart": "Reiniciar",
-    "restartError": "Falha ao reiniciar configuração. Por favor, tente novamente."
+    "restartError": "Falha ao reiniciar configuração. Por favor, tente novamente.",
+    "namePlaceholder": "Digite seu nome",
+    "languageChangeFailed": "Falha ao alterar idioma. Tente novamente.",
+    "currencyLabel": "Moeda Principal",
+    "primaryCurrency": "Moeda Principal",
+    "defaultSplitValue": "50 / 50",
+    "subscription": {
+      "title": "Assinatura",
+      "plan": "Plano",
+      "planPremium": "Premium",
+      "planFree": "Gratuito",
+      "active": "ATIVO",
+      "manage": "Gerenciar Assinatura",
+      "upgrade": "Atualizar para Premium",
+      "description": "Desbloqueie orçamentos ilimitados, análises e mais",
+      "partnerHasPremium": "Seu parceiro também tem acesso premium!",
+      "bothGetPremium": "Quando você atualiza, você e seu parceiro obtêm recursos premium."
+    },
+    "receiptScanning": {
+      "title": "Digitalização de Recibos",
+      "merchantAliases": "Aliases de Comerciantes",
+      "merchantAliasesDescription": "Gerenciar variações de nomes de comerciantes"
+    },
+    "currencyChange": {
+      "title": "Alterar Moeda Principal",
+      "message": "Mudar de {{from}} para {{to}}?",
+      "note": "Nota: Despesas futuras terão {{currency}} como padrão. Despesas passadas manterão sua moeda original.",
+      "change": "Alterar",
+      "changeError": "Falha ao alterar moeda. Tente novamente."
+    }
   },
   "languages": {
     "en": "Inglês",
@@ -124,7 +181,58 @@
     "equal": "Igual (50/50)",
     "custom": "Divisão Personalizada",
     "save": "Salvar Despesa",
-    "delete": "Excluir Despesa"
+    "delete": "Excluir Despesa",
+    "subtitle": "Acompanhe seus gastos compartilhados",
+    "amountPlaceholder": "0,00",
+    "addNoteLabel": "Adicionar uma nota",
+    "noteHelper": "Ajude a lembrar para que foi isso (ex: \"Jantar no Luigi's\")",
+    "notePlaceholder": "Adicione detalhes aqui...",
+    "categoryLabel": "Para que é isso?",
+    "you": "Você",
+    "partner": "Parceiro",
+    "splitEqual": "50/50",
+    "splitEqually": "Dividir igualmente",
+    "splitFull": "Tudo Meu",
+    "splitFullTheirs": "Tudo Deles",
+    "splitFullDescription": "Pagador cobre tudo",
+    "customDescription": "Escolher %",
+    "yourShare": "Sua parte:",
+    "partnerShare": "Parte do parceiro:",
+    "saveChanges": "Salvar Alterações",
+    "create": "Adicionar Despesa",
+    "cancel": "Cancelar",
+    "expenseCurrency": "Moeda da Despesa",
+    "dateLabel": "Quando foi isso?",
+    "dateDone": "Concluído",
+    "scanReceipt": "Digitalizar Recibo",
+    "scanDivider": "ou digitalizar um recibo",
+    "errors": {
+      "invalidAmount": "Por favor, insira um valor válido",
+      "noDescription": "Por favor, insira uma descrição",
+      "authError": "Erro de autenticação. Faça login novamente.",
+      "noCouple": "Você deve estar pareado com um parceiro para adicionar despesas.",
+      "noPartnerInfo": "Informações do parceiro ausentes. Reconecte-se com seu parceiro.",
+      "noPayer": "Por favor, selecione quem pagou por esta despesa.",
+      "amountTooLarge": "O valor parece muito grande. Verifique e tente novamente.",
+      "updateFailed": "Falha ao atualizar despesa. Tente novamente.",
+      "createFailed": "Falha ao criar despesa. Tente novamente."
+    },
+    "ocr": {
+      "permissionTitle": "Permissão Necessária",
+      "permissionMessage": "É necessária permissão da câmera para digitalizar recibos. Ative-a nas configurações do dispositivo.",
+      "successTitle": "Recibo Digitalizado",
+      "successMessage": "Informações do recibo extraídas. Revise e edite conforme necessário.",
+      "failedTitle": "Processamento Falhou",
+      "failedMessage": "Falha ao processar recibo. Tente novamente.",
+      "aliasSuccess": "Alias de comerciante criado com sucesso",
+      "aliasError": "Falha ao criar alias de comerciante"
+    },
+    "discard": {
+      "title": "Descartar Alterações?",
+      "message": "Você tem alterações não salvas. Tem certeza que deseja cancelar?",
+      "keepEditing": "Continuar Editando",
+      "discard": "Descartar"
+    }
   },
   "import": {
     "title": "Importar de Extrato Bancário",
@@ -578,6 +686,151 @@
         "continueButton": "Ir para o Painel",
         "editButton": "Editar Orçamento"
       }
+    }
+  },
+  "components": {
+    "fieldLabel": {
+      "required": "OBRIGATÓRIO",
+      "optional": "OPCIONAL"
+    },
+    "splitPreview": {
+      "title": "Visualização da Divisão"
+    },
+    "merchantAlias": {
+      "searchPlaceholder": "Pesquisar aliases...",
+      "ocrMerchantPlaceholder": "Nome do Comerciante OCR",
+      "aliasPlaceholder": "Seu Alias",
+      "validationError": "Por favor, preencha ambos os campos",
+      "loadError": "Falha ao carregar aliases de comerciantes. Por favor, tente novamente.",
+      "deleteError": "Falha ao excluir alias. Por favor, tente novamente.",
+      "saveError": "Falha ao salvar alias. Por favor, tente novamente."
+    },
+    "exchangeRate": {
+      "amountPlaceholder": "0,00",
+      "ratePlaceholder": "0,0000"
+    },
+    "currencyPicker": {
+      "searchPlaceholder": "Pesquisar moedas..."
+    },
+    "categoryModal": {
+      "namePlaceholder": "ex., Saúde e Fitness"
+    },
+    "amountRange": {
+      "minPlaceholder": "Mín",
+      "maxPlaceholder": "Máx"
+    },
+    "expenseDetail": {
+      "deleteError": "Falha ao excluir despesa"
+    },
+    "exportButton": {
+      "userDetailsError": "Detalhes do usuário não disponíveis"
+    }
+  },
+  "stats": {
+    "title": "Estatísticas",
+    "subtitle": "Acompanhe seus padrões de gastos",
+    "loading": "Carregando estatísticas...",
+    "errorMessage": "Falha ao carregar estatísticas. Puxe para baixo para tentar novamente.",
+    "sorting": {
+      "sortBy": "Ordenar por:",
+      "latest": "Mais Recente",
+      "highest": "Mais Alto",
+      "category": "Categoria"
+    },
+    "grouping": {
+      "groupBy": "Agrupar por:",
+      "none": "Nenhum",
+      "month": "Mês",
+      "status": "Status"
+    },
+    "summary": {
+      "totalExpenses": "Despesas Totais",
+      "expenseCount": "{{count}} despesas",
+      "yourShare": "Sua Parte",
+      "partnerShare": "Parte do Parceiro"
+    },
+    "expenseList": {
+      "title": "Detalhes das Despesas ({{count}})",
+      "noDescription": "Sem descrição",
+      "youPaid": "Você pagou",
+      "partnerPaid": "{{partnerName}} pagou"
+    },
+    "categoryBreakdown": {
+      "title": "Divisão por Categoria",
+      "percentage": "{{percentage}}% do total",
+      "noCategories": "Nenhuma categoria para exibir"
+    },
+    "settlementHistory": {
+      "title": "Histórico de Liquidações",
+      "subtitle": "Registro de saldos liquidados"
+    },
+    "empty": {
+      "title": "Sem Despesas Ainda",
+      "message": "Comece a adicionar despesas para ver suas estatísticas de gastos"
+    },
+    "emptyFiltered": {
+      "title": "Nenhuma Despesa Correspondente",
+      "message": "Tente ajustar seus filtros para ver mais resultados"
+    }
+  },
+  "categoryManager": {
+    "deleteSuccess": "Categoria excluída com sucesso!",
+    "deleteError": "Falha ao excluir categoria",
+    "updateSuccess": "Categoria atualizada com sucesso!",
+    "addSuccess": "Categoria adicionada com sucesso!",
+    "resetSuccess": "Categorias redefinidas com sucesso",
+    "resetError": "Falha ao redefinir categorias"
+  },
+  "paywall": {
+    "selectPlanError": "Por favor, selecione um plano de assinatura",
+    "purchaseFailed": "Compra Falhou",
+    "purchaseError": "Algo deu errado. Por favor, tente novamente.",
+    "processingError": "Falha ao processar compra. Por favor, tente novamente.",
+    "noPurchasesTitle": "Nenhuma Compra Encontrada",
+    "noPurchasesMessage": "Nenhuma compra anterior foi encontrada para restaurar.",
+    "restoreFailed": "Restauração Falhou",
+    "restoreError": "Falha ao restaurar compras."
+  },
+  "settlementHistory": {
+    "loadError": "Falha ao carregar liquidações. Por favor, tente novamente."
+  },
+  "join": {
+    "codePlaceholder": "ABC 123",
+    "codeError": "Por favor, insira um código válido de 6 caracteres"
+  },
+  "invite": {
+    "copiedTitle": "Copiado!",
+    "copiedMessage": "Código de convite copiado para a área de transferência",
+    "copyError": "Falha ao copiar código",
+    "shareError": "Falha ao compartilhar código de convite",
+    "authError": "Você deve estar conectado para gerar um código de convite.",
+    "permissionError": "Permissão negada. Por favor, verifique suas regras de segurança do Firestore.",
+    "networkError": "Erro de rede. Por favor, verifique sua conexão com a internet."
+  },
+  "contexts": {
+    "auth": {
+      "noUser": "Nenhum usuário conectado",
+      "googleErrors": {
+        "notEnabled": "O login do Google não está habilitado. Por favor, habilite-o no Firebase Console → Autenticação → Método de login → Google",
+        "popupBlocked": "O popup foi bloqueado. Por favor, permita popups para este site.",
+        "cancelled": "Login cancelado",
+        "accountExists": "Já existe uma conta com o mesmo e-mail. Tente um método de login diferente.",
+        "domainNotAuthorized": "Este domínio não está autorizado. Adicione-o no Firebase Console → Autenticação → Configurações → Domínios autorizados"
+      },
+      "appleErrors": {
+        "notEnabled": "O login da Apple não está habilitado. Por favor, habilite-o no Firebase Console → Autenticação → Método de login → Apple (requer conta Apple Developer)",
+        "popupBlocked": "O popup foi bloqueado. Por favor, permita popups para este site.",
+        "cancelled": "Login cancelado",
+        "accountExists": "Já existe uma conta com o mesmo e-mail. Tente um método de login diferente.",
+        "domainNotAuthorized": "Este domínio não está autorizado. Adicione-o no Firebase Console → Autenticação → Configurações → Domínios autorizados"
+      }
+    },
+    "onboarding": {
+      "noCoupleId": "Nenhum ID de casal encontrado",
+      "storageFull": "Armazenamento cheio - por favor, libere espaço e tente novamente",
+      "storagePermission": "Permissão de armazenamento negada - por favor, verifique as permissões do aplicativo",
+      "saveFailed": "Falha ao salvar status de conclusão",
+      "networkError": "Erro de rede - por favor, verifique sua conexão e tente novamente"
     }
   }
 }

@@ -134,6 +134,20 @@
       "partnerHasPremium": "Your partner also has premium access!",
       "bothGetPremium": "When you upgrade, both you and your partner get premium features."
     },
+    "notifications": {
+      "title": "Email Notifications",
+      "emailEnabled": "Enable Email Notifications",
+      "emailEnabledDesc": "Receive email alerts for budget updates and milestones",
+      "monthlyBudget": "Monthly Budget Alerts",
+      "monthlyBudgetDesc": "Get notified when you reach 80%, 90%, or 100% of your monthly budget",
+      "fiscalYearEnd": "Fiscal Year Reminders",
+      "fiscalYearEndDesc": "Reminder 30 days before your fiscal year ends",
+      "savingsGoal": "Savings Milestones",
+      "savingsGoalDesc": "Celebrate when you reach savings goals (25%, 50%, 75%, 100%)",
+      "partnerActivity": "Partner Activity",
+      "partnerActivityDesc": "Get notified when your partner adds an expense",
+      "infoText": "Email notifications are sent to your registered email address. You can unsubscribe at any time."
+    },
     "receiptScanning": {
       "title": "Receipt Scanning",
       "merchantAliases": "Merchant Aliases",
@@ -157,6 +171,7 @@
     "nameEmpty": "Name cannot be empty",
     "nameUpdated": "Name updated successfully",
     "nameUpdateFailed": "Failed to update name. Please try again.",
+    "notificationUpdateFailed": "Failed to update notification settings. Please try again.",
     "restartOnboardingTitle": "Restart Budget Onboarding",
     "restartOnboardingMessage": "This will take you through the budget setup process again. Your current budget will be replaced.",
     "restart": "Restart",

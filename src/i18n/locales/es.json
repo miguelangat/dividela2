@@ -45,12 +45,40 @@
     "youPaid": "Tú pagaste",
     "partnerPaid": "{{partnerName}} pagó",
     "settled": "Liquidado",
+    "settledDate": "Liquidado {{date}}",
     "active": "Activo",
     "all": "Todos",
     "yourShare": "Tu parte: {{amount}}",
     "errorPermission": "Permiso denegado. Por favor verifica tu conexión con tu pareja.",
     "errorNetwork": "Error de red. Por favor verifica tu conexión a internet.",
-    "errorGeneric": "Error al cargar gastos. Desliza hacia abajo para reintentar."
+    "errorGeneric": "Error al cargar gastos. Desliza hacia abajo para reintentar.",
+    "errors": {
+      "permissionDenied": "Permiso denegado. Por favor verifica tu conexión con tu pareja.",
+      "networkError": "Error de red. Por favor verifica tu conexión a internet.",
+      "loadFailed": "Error al cargar gastos. Desliza hacia abajo para reintentar."
+    },
+    "list": {
+      "youPaid": "Tú pagaste",
+      "partnerPaid": "{{partner}} pagó",
+      "settled": "Liquidado {{date}}"
+    },
+    "modal": {
+      "recordPayment": "Registrar que {{payer}} {{action}}:",
+      "you": "tú",
+      "settled": "están en paz",
+      "paid": "pagó"
+    },
+    "alerts": {
+      "settleUpError": "No se puede liquidar. Por favor intenta de nuevo.",
+      "alreadySettledTitle": "Ya Liquidado",
+      "alreadySettledMessage": "Tu balance ya está en cero. ¡No necesitas liquidar!",
+      "settledTitle": "¡Liquidado! 💰",
+      "settlementFailedTitle": "Liquidación Fallida",
+      "settlementFailed": "Error al liquidar. Por favor intenta de nuevo.",
+      "permissionDenied": "Permiso denegado. Por favor verifica la configuración de tu cuenta.",
+      "navigationErrorTitle": "Error de Navegación",
+      "navigationErrorMessage": "No se pudo abrir la pantalla de importación. Por favor intenta de nuevo."
+    }
   },
   "settleUpModal": {
     "title": "Liquidar",
@@ -79,16 +107,45 @@
     "subtitle": "Gestiona tu perfil y preferencias",
     "profile": "Perfil",
     "displayName": "Nombre para Mostrar",
+    "namePlaceholder": "Ingresa tu nombre",
     "email": "Correo Electrónico",
     "partner": "Pareja",
     "partnerName": "Nombre de Pareja",
     "coupleId": "coupleId",
     "preferences": "Preferencias",
     "language": "Idioma",
+    "languageChangeFailed": "Error al cambiar idioma. Por favor intenta de nuevo.",
     "currency": "Moneda",
+    "currencyLabel": "Moneda Principal",
+    "primaryCurrency": "Moneda Principal",
     "defaultSplit": "División Predeterminada",
+    "defaultSplitValue": "50 / 50",
     "budgetSetup": "Configurar Presupuesto",
     "restartOnboarding": "Reiniciar configuración inicial",
+    "subscription": {
+      "title": "Suscripción",
+      "plan": "Plan",
+      "planPremium": "Premium",
+      "planFree": "Gratis",
+      "active": "ACTIVO",
+      "manage": "Gestionar Suscripción",
+      "upgrade": "Actualizar a Premium",
+      "description": "Desbloquea presupuestos ilimitados, analíticas y más",
+      "partnerHasPremium": "¡Tu pareja también tiene acceso premium!",
+      "bothGetPremium": "Cuando actualizas, tanto tú como tu pareja obtienen funciones premium."
+    },
+    "receiptScanning": {
+      "title": "Escaneo de Recibos",
+      "merchantAliases": "Alias de Comerciantes",
+      "merchantAliasesDescription": "Gestionar variaciones de nombres de comerciantes"
+    },
+    "currencyChange": {
+      "title": "Cambiar Moneda Principal",
+      "message": "¿Cambiar de {{from}} a {{to}}?",
+      "note": "Nota: Los gastos futuros tendrán {{currency}} como predeterminado. Los gastos pasados mantendrán su moneda original.",
+      "change": "Cambiar",
+      "changeError": "Error al cambiar moneda. Por favor intenta de nuevo."
+    },
     "about": "Acerca de",
     "appVersion": "Versión de la App",
     "appName": "Dividela",
@@ -116,15 +173,66 @@
   "addExpense": {
     "title": "Añadir Gasto",
     "editTitle": "Editar Gasto",
-    "description": "Descripción",
+    "subtitle": "Rastrea tus gastos compartidos",
     "amount": "Monto",
+    "amountPlaceholder": "0.00",
+    "description": "Descripción",
+    "addNoteLabel": "Añadir una nota",
+    "noteHelper": "Ayuda a recordar para qué fue esto (ej., \"Cena en Luigi's\")",
+    "notePlaceholder": "Añade detalles aquí...",
     "category": "Categoría",
+    "categoryLabel": "¿Para qué es esto?",
     "whoPaid": "¿Quién Pagó?",
+    "you": "Tú",
+    "partner": "Pareja",
     "splitMethod": "Método de División",
     "equal": "Igual (50/50)",
+    "splitEqual": "50/50",
+    "splitEqually": "Dividir por igual",
+    "splitFull": "Todo Mío",
+    "splitFullTheirs": "Todo de Ellos",
+    "splitFullDescription": "El pagador cubre todo",
     "custom": "División Personalizada",
+    "customDescription": "Elegir %",
+    "yourShare": "Tu parte:",
+    "partnerShare": "Parte de pareja:",
     "save": "Guardar Gasto",
-    "delete": "Eliminar Gasto"
+    "saveChanges": "Guardar Cambios",
+    "create": "Añadir Gasto",
+    "cancel": "Cancelar",
+    "delete": "Eliminar Gasto",
+    "expenseCurrency": "Moneda del Gasto",
+    "dateLabel": "¿Cuándo fue esto?",
+    "dateDone": "Listo",
+    "scanReceipt": "Escanear Recibo",
+    "scanDivider": "o escanea un recibo",
+    "errors": {
+      "invalidAmount": "Por favor ingresa un monto válido",
+      "noDescription": "Por favor ingresa una descripción",
+      "authError": "Error de autenticación. Por favor inicia sesión de nuevo.",
+      "noCouple": "Debes estar emparejado con una pareja para añadir gastos.",
+      "noPartnerInfo": "Información de pareja faltante. Por favor reconecta con tu pareja.",
+      "noPayer": "Por favor selecciona quién pagó este gasto.",
+      "amountTooLarge": "El monto parece demasiado grande. Por favor verifica e intenta de nuevo.",
+      "updateFailed": "Error al actualizar gasto. Por favor intenta de nuevo.",
+      "createFailed": "Error al crear gasto. Por favor intenta de nuevo."
+    },
+    "ocr": {
+      "permissionTitle": "Permiso Requerido",
+      "permissionMessage": "Se requiere permiso de cámara para escanear recibos. Por favor actívalo en la configuración de tu dispositivo.",
+      "successTitle": "Recibo Escaneado",
+      "successMessage": "Información del recibo extraída. Por favor revisa y edita según sea necesario.",
+      "failedTitle": "Procesamiento Fallido",
+      "failedMessage": "Error al procesar recibo. Por favor intenta de nuevo.",
+      "aliasSuccess": "Alias de comerciante creado exitosamente",
+      "aliasError": "Error al crear alias de comerciante"
+    },
+    "discard": {
+      "title": "¿Descartar Cambios?",
+      "message": "Tienes cambios sin guardar. ¿Estás seguro de que quieres cancelar?",
+      "keepEditing": "Seguir Editando",
+      "discard": "Descartar"
+    }
   },
   "import": {
     "title": "Importar desde Extracto Bancario",
@@ -348,6 +456,151 @@
     "permission": "Permiso denegado.",
     "notFound": "No encontrado.",
     "timeout": "Tiempo de espera agotado. Por favor intenta de nuevo."
+  },
+  "components": {
+    "fieldLabel": {
+      "required": "REQUERIDO",
+      "optional": "OPCIONAL"
+    },
+    "splitPreview": {
+      "title": "Vista Previa de División"
+    },
+    "merchantAlias": {
+      "searchPlaceholder": "Buscar alias...",
+      "ocrMerchantPlaceholder": "Nombre de Comerciante OCR",
+      "aliasPlaceholder": "Tu Alias",
+      "validationError": "Por favor completa ambos campos",
+      "loadError": "Error al cargar alias de comerciantes. Por favor intenta de nuevo.",
+      "deleteError": "Error al eliminar alias. Por favor intenta de nuevo.",
+      "saveError": "Error al guardar alias. Por favor intenta de nuevo."
+    },
+    "exchangeRate": {
+      "amountPlaceholder": "0.00",
+      "ratePlaceholder": "0.0000"
+    },
+    "currencyPicker": {
+      "searchPlaceholder": "Buscar monedas..."
+    },
+    "categoryModal": {
+      "namePlaceholder": "ej., Salud y Fitness"
+    },
+    "amountRange": {
+      "minPlaceholder": "Mín",
+      "maxPlaceholder": "Máx"
+    },
+    "expenseDetail": {
+      "deleteError": "Error al eliminar gasto"
+    },
+    "exportButton": {
+      "userDetailsError": "Detalles de usuario no disponibles"
+    }
+  },
+  "stats": {
+    "title": "Estadísticas",
+    "subtitle": "Rastrea tus patrones de gasto",
+    "loading": "Cargando estadísticas...",
+    "errorMessage": "Error al cargar estadísticas. Desliza hacia abajo para reintentar.",
+    "sorting": {
+      "sortBy": "Ordenar por:",
+      "latest": "Más Reciente",
+      "highest": "Más Alto",
+      "category": "Categoría"
+    },
+    "grouping": {
+      "groupBy": "Agrupar por:",
+      "none": "Ninguno",
+      "month": "Mes",
+      "status": "Estado"
+    },
+    "summary": {
+      "totalExpenses": "Gastos Totales",
+      "expenseCount": "{{count}} gastos",
+      "yourShare": "Tu Parte",
+      "partnerShare": "Parte de Pareja"
+    },
+    "expenseList": {
+      "title": "Detalles de Gastos ({{count}})",
+      "noDescription": "Sin descripción",
+      "youPaid": "Tú pagaste",
+      "partnerPaid": "{{partnerName}} pagó"
+    },
+    "categoryBreakdown": {
+      "title": "Desglose por Categoría",
+      "percentage": "{{percentage}}% del total",
+      "noCategories": "Sin categorías para mostrar"
+    },
+    "settlementHistory": {
+      "title": "Historial de Liquidaciones",
+      "subtitle": "Registro de cuándo se liquidaron los balances"
+    },
+    "empty": {
+      "title": "Sin Gastos Todavía",
+      "message": "Comienza a añadir gastos para ver tus estadísticas de gasto"
+    },
+    "emptyFiltered": {
+      "title": "Sin Gastos Coincidentes",
+      "message": "Intenta ajustar tus filtros para ver más resultados"
+    }
+  },
+  "categoryManager": {
+    "deleteSuccess": "¡Categoría eliminada exitosamente!",
+    "deleteError": "Error al eliminar categoría",
+    "updateSuccess": "¡Categoría actualizada exitosamente!",
+    "addSuccess": "¡Categoría añadida exitosamente!",
+    "resetSuccess": "Categorías restablecidas exitosamente",
+    "resetError": "Error al restablecer categorías"
+  },
+  "paywall": {
+    "selectPlanError": "Por favor selecciona un plan de suscripción",
+    "purchaseFailed": "Compra Fallida",
+    "purchaseError": "Algo salió mal. Por favor intenta de nuevo.",
+    "processingError": "Error al procesar compra. Por favor intenta de nuevo.",
+    "noPurchasesTitle": "No Se Encontraron Compras",
+    "noPurchasesMessage": "No se encontraron compras previas para restaurar.",
+    "restoreFailed": "Restauración Fallida",
+    "restoreError": "Error al restaurar compras."
+  },
+  "settlementHistory": {
+    "loadError": "Error al cargar liquidaciones. Por favor intenta de nuevo."
+  },
+  "join": {
+    "codePlaceholder": "ABC 123",
+    "codeError": "Por favor ingresa un código válido de 6 caracteres"
+  },
+  "invite": {
+    "copiedTitle": "¡Copiado!",
+    "copiedMessage": "Código de invitación copiado al portapapeles",
+    "copyError": "Error al copiar código",
+    "shareError": "Error al compartir código de invitación",
+    "authError": "Debes haber iniciado sesión para generar un código de invitación.",
+    "permissionError": "Permiso denegado. Por favor verifica tus reglas de seguridad de Firestore.",
+    "networkError": "Error de red. Por favor verifica tu conexión a internet."
+  },
+  "contexts": {
+    "auth": {
+      "noUser": "No hay usuario conectado",
+      "googleErrors": {
+        "notEnabled": "El inicio de sesión con Google no está habilitado. Por favor actívalo en Firebase Console → Authentication → Sign-in method → Google",
+        "popupBlocked": "La ventana emergente fue bloqueada. Por favor permite ventanas emergentes para este sitio.",
+        "cancelled": "Inicio de sesión cancelado",
+        "accountExists": "Ya existe una cuenta con el mismo correo. Intenta un método de inicio de sesión diferente.",
+        "domainNotAuthorized": "Este dominio no está autorizado. Añádelo en Firebase Console → Authentication → Settings → Authorized domains"
+      },
+      "appleErrors": {
+        "notEnabled": "El inicio de sesión con Apple no está habilitado. Por favor actívalo en Firebase Console → Authentication → Sign-in method → Apple (requiere cuenta de desarrollador de Apple)",
+        "popupBlocked": "La ventana emergente fue bloqueada. Por favor permite ventanas emergentes para este sitio.",
+        "cancelled": "Inicio de sesión cancelado",
+        "accountExists": "Ya existe una cuenta con el mismo correo. Intenta un método de inicio de sesión diferente.",
+        "domainNotAuthorized": "Este dominio no está autorizado. Añádelo en Firebase Console → Authentication → Settings → Authorized domains"
+      }
+    },
+    "onboarding": {
+      "noCoupleId": "No se encontró ID de pareja",
+      "storageFull": "Almacenamiento lleno - por favor libera espacio e intenta de nuevo",
+      "storagePermission": "Permiso de almacenamiento denegado - por favor verifica los permisos de la aplicación",
+      "saveFailed": "Error al guardar estado de finalización",
+      "networkError": "Error de red - por favor verifica tu conexión e intenta de nuevo"
+    }
   },
   "budget": {
     "dashboard": {

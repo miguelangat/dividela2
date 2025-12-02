@@ -50,7 +50,35 @@
     "yourShare": "La tua quota: {{amount}}",
     "errorPermission": "Permesso negato. Controlla la tua connessione con il tuo partner.",
     "errorNetwork": "Errore di rete. Controlla la tua connessione Internet.",
-    "errorGeneric": "Impossibile caricare le spese. Trascina verso il basso per riprovare."
+    "errorGeneric": "Impossibile caricare le spese. Trascina verso il basso per riprovare.",
+    "settledDate": "Liquidato {{date}}",
+    "errors": {
+      "permissionDenied": "Permesso negato. Controlla la tua connessione con il partner.",
+      "networkError": "Errore di rete. Controlla la tua connessione Internet.",
+      "loadFailed": "Impossibile caricare le spese. Trascina verso il basso per riprovare."
+    },
+    "list": {
+      "youPaid": "Hai pagato",
+      "partnerPaid": "{{partner}} ha pagato",
+      "settled": "Liquidato {{date}}"
+    },
+    "modal": {
+      "recordPayment": "Registra che {{payer}} {{action}}:",
+      "you": "tu",
+      "settled": "siete in pari",
+      "paid": "ha pagato"
+    },
+    "alerts": {
+      "settleUpError": "Impossibile liquidare. Riprova.",
+      "alreadySettledTitle": "Già Liquidato",
+      "alreadySettledMessage": "Il tuo saldo è già a zero. Non c'è bisogno di liquidare!",
+      "settledTitle": "Liquidato! 💰",
+      "settlementFailedTitle": "Liquidazione Fallita",
+      "settlementFailed": "Impossibile liquidare. Riprova.",
+      "permissionDenied": "Permesso negato. Controlla le impostazioni del tuo account.",
+      "navigationErrorTitle": "Errore di Navigazione",
+      "navigationErrorMessage": "Impossibile aprire la schermata di importazione. Riprova."
+    }
   },
   "settleUpModal": {
     "title": "Liquida",
@@ -103,7 +131,36 @@
     "restartOnboardingTitle": "Riavvia Configurazione Budget",
     "restartOnboardingMessage": "Questo ti farà ripetere il processo di configurazione del budget. Il tuo budget attuale sarà sostituito.",
     "restart": "Riavvia",
-    "restartError": "Impossibile riavviare la configurazione. Riprova."
+    "restartError": "Impossibile riavviare la configurazione. Riprova.",
+    "namePlaceholder": "Inserisci il tuo nome",
+    "languageChangeFailed": "Impossibile cambiare lingua. Riprova.",
+    "currencyLabel": "Valuta Principale",
+    "primaryCurrency": "Valuta Principale",
+    "defaultSplitValue": "50 / 50",
+    "subscription": {
+      "title": "Abbonamento",
+      "plan": "Piano",
+      "planPremium": "Premium",
+      "planFree": "Gratuito",
+      "active": "ATTIVO",
+      "manage": "Gestisci Abbonamento",
+      "upgrade": "Passa a Premium",
+      "description": "Sblocca budget illimitati, analisi e altro",
+      "partnerHasPremium": "Anche il tuo partner ha accesso premium!",
+      "bothGetPremium": "Quando effettui l'upgrade, sia tu che il tuo partner ottenete funzionalità premium."
+    },
+    "receiptScanning": {
+      "title": "Scansione Ricevute",
+      "merchantAliases": "Alias Commercianti",
+      "merchantAliasesDescription": "Gestisci variazioni nomi commercianti"
+    },
+    "currencyChange": {
+      "title": "Cambia Valuta Principale",
+      "message": "Cambiare da {{from}} a {{to}}?",
+      "note": "Nota: Le spese future avranno come predefinita {{currency}}. Le spese passate manterranno la loro valuta originale.",
+      "change": "Cambia",
+      "changeError": "Impossibile cambiare valuta. Riprova."
+    }
   },
   "languages": {
     "en": "Inglese",
@@ -124,7 +181,58 @@
     "equal": "Equo (50/50)",
     "custom": "Divisione Personalizzata",
     "save": "Salva Spesa",
-    "delete": "Elimina Spesa"
+    "delete": "Elimina Spesa",
+    "subtitle": "Monitora le tue spese condivise",
+    "amountPlaceholder": "0,00",
+    "addNoteLabel": "Aggiungi una nota",
+    "noteHelper": "Aiutati a ricordare a cosa serviva (es. \"Cena da Luigi's\")",
+    "notePlaceholder": "Aggiungi dettagli qui...",
+    "categoryLabel": "Per cosa è questo?",
+    "you": "Tu",
+    "partner": "Partner",
+    "splitEqual": "50/50",
+    "splitEqually": "Dividi equamente",
+    "splitFull": "Tutto Mio",
+    "splitFullTheirs": "Tutto Loro",
+    "splitFullDescription": "Il pagatore copre tutto",
+    "customDescription": "Scegli %",
+    "yourShare": "La tua quota:",
+    "partnerShare": "Quota del partner:",
+    "saveChanges": "Salva Modifiche",
+    "create": "Aggiungi Spesa",
+    "cancel": "Annulla",
+    "expenseCurrency": "Valuta Spesa",
+    "dateLabel": "Quando è stato?",
+    "dateDone": "Fatto",
+    "scanReceipt": "Scansiona Ricevuta",
+    "scanDivider": "o scansiona una ricevuta",
+    "errors": {
+      "invalidAmount": "Inserisci un importo valido",
+      "noDescription": "Inserisci una descrizione",
+      "authError": "Errore di autenticazione. Accedi di nuovo.",
+      "noCouple": "Devi essere accoppiato con un partner per aggiungere spese.",
+      "noPartnerInfo": "Informazioni partner mancanti. Riconnettiti con il tuo partner.",
+      "noPayer": "Seleziona chi ha pagato questa spesa.",
+      "amountTooLarge": "L'importo sembra troppo grande. Controlla e riprova.",
+      "updateFailed": "Impossibile aggiornare la spesa. Riprova.",
+      "createFailed": "Impossibile creare la spesa. Riprova."
+    },
+    "ocr": {
+      "permissionTitle": "Permesso Richiesto",
+      "permissionMessage": "È richiesto il permesso della fotocamera per scansionare le ricevute. Abilitalo nelle impostazioni del dispositivo.",
+      "successTitle": "Ricevuta Scansionata",
+      "successMessage": "Informazioni ricevuta estratte. Controlla e modifica se necessario.",
+      "failedTitle": "Elaborazione Fallita",
+      "failedMessage": "Impossibile elaborare la ricevuta. Riprova.",
+      "aliasSuccess": "Alias commerciante creato con successo",
+      "aliasError": "Impossibile creare alias commerciante"
+    },
+    "discard": {
+      "title": "Scartare le Modifiche?",
+      "message": "Hai modifiche non salvate. Sei sicuro di voler annullare?",
+      "keepEditing": "Continua a Modificare",
+      "discard": "Scarta"
+    }
   },
   "import": {
     "title": "Importa da Estratto Conto",
@@ -578,6 +686,151 @@
         "continueButton": "Vai alla Dashboard",
         "editButton": "Modifica Budget"
       }
+    }
+  },
+  "components": {
+    "fieldLabel": {
+      "required": "OBBLIGATORIO",
+      "optional": "OPZIONALE"
+    },
+    "splitPreview": {
+      "title": "Anteprima Divisione"
+    },
+    "merchantAlias": {
+      "searchPlaceholder": "Cerca alias...",
+      "ocrMerchantPlaceholder": "Nome Commerciante OCR",
+      "aliasPlaceholder": "Il Tuo Alias",
+      "validationError": "Si prega di compilare entrambi i campi",
+      "loadError": "Impossibile caricare gli alias dei commercianti. Riprova.",
+      "deleteError": "Impossibile eliminare l'alias. Riprova.",
+      "saveError": "Impossibile salvare l'alias. Riprova."
+    },
+    "exchangeRate": {
+      "amountPlaceholder": "0,00",
+      "ratePlaceholder": "0,0000"
+    },
+    "currencyPicker": {
+      "searchPlaceholder": "Cerca valute..."
+    },
+    "categoryModal": {
+      "namePlaceholder": "es., Salute e Fitness"
+    },
+    "amountRange": {
+      "minPlaceholder": "Min",
+      "maxPlaceholder": "Max"
+    },
+    "expenseDetail": {
+      "deleteError": "Impossibile eliminare la spesa"
+    },
+    "exportButton": {
+      "userDetailsError": "Dettagli utente non disponibili"
+    }
+  },
+  "stats": {
+    "title": "Statistiche",
+    "subtitle": "Monitora i tuoi modelli di spesa",
+    "loading": "Caricamento statistiche...",
+    "errorMessage": "Impossibile caricare le statistiche. Trascina verso il basso per riprovare.",
+    "sorting": {
+      "sortBy": "Ordina per:",
+      "latest": "Più Recente",
+      "highest": "Più Alto",
+      "category": "Categoria"
+    },
+    "grouping": {
+      "groupBy": "Raggruppa per:",
+      "none": "Nessuno",
+      "month": "Mese",
+      "status": "Stato"
+    },
+    "summary": {
+      "totalExpenses": "Spese Totali",
+      "expenseCount": "{{count}} spese",
+      "yourShare": "La Tua Quota",
+      "partnerShare": "Quota del Partner"
+    },
+    "expenseList": {
+      "title": "Dettagli Spese ({{count}})",
+      "noDescription": "Nessuna descrizione",
+      "youPaid": "Hai pagato",
+      "partnerPaid": "{{partnerName}} ha pagato"
+    },
+    "categoryBreakdown": {
+      "title": "Ripartizione per Categoria",
+      "percentage": "{{percentage}}% del totale",
+      "noCategories": "Nessuna categoria da visualizzare"
+    },
+    "settlementHistory": {
+      "title": "Storico Liquidazioni",
+      "subtitle": "Registro dei saldi liquidati"
+    },
+    "empty": {
+      "title": "Nessuna Spesa Ancora",
+      "message": "Inizia ad aggiungere spese per vedere le tue statistiche di spesa"
+    },
+    "emptyFiltered": {
+      "title": "Nessuna Spesa Corrispondente",
+      "message": "Prova a regolare i filtri per vedere più risultati"
+    }
+  },
+  "categoryManager": {
+    "deleteSuccess": "Categoria eliminata con successo!",
+    "deleteError": "Impossibile eliminare la categoria",
+    "updateSuccess": "Categoria aggiornata con successo!",
+    "addSuccess": "Categoria aggiunta con successo!",
+    "resetSuccess": "Categorie ripristinate con successo",
+    "resetError": "Impossibile ripristinare le categorie"
+  },
+  "paywall": {
+    "selectPlanError": "Si prega di selezionare un piano di abbonamento",
+    "purchaseFailed": "Acquisto Fallito",
+    "purchaseError": "Qualcosa è andato storto. Riprova.",
+    "processingError": "Impossibile elaborare l'acquisto. Riprova.",
+    "noPurchasesTitle": "Nessun Acquisto Trovato",
+    "noPurchasesMessage": "Nessun acquisto precedente trovato da ripristinare.",
+    "restoreFailed": "Ripristino Fallito",
+    "restoreError": "Impossibile ripristinare gli acquisti."
+  },
+  "settlementHistory": {
+    "loadError": "Impossibile caricare le liquidazioni. Riprova."
+  },
+  "join": {
+    "codePlaceholder": "ABC 123",
+    "codeError": "Si prega di inserire un codice valido di 6 caratteri"
+  },
+  "invite": {
+    "copiedTitle": "Copiato!",
+    "copiedMessage": "Codice invito copiato negli appunti",
+    "copyError": "Impossibile copiare il codice",
+    "shareError": "Impossibile condividere il codice invito",
+    "authError": "Devi essere connesso per generare un codice invito.",
+    "permissionError": "Permesso negato. Controlla le tue regole di sicurezza Firestore.",
+    "networkError": "Errore di rete. Controlla la tua connessione Internet."
+  },
+  "contexts": {
+    "auth": {
+      "noUser": "Nessun utente connesso",
+      "googleErrors": {
+        "notEnabled": "L'accesso Google non è abilitato. Abilitalo in Firebase Console → Autenticazione → Metodo di accesso → Google",
+        "popupBlocked": "Il popup è stato bloccato. Consenti i popup per questo sito.",
+        "cancelled": "Accesso annullato",
+        "accountExists": "Esiste già un account con la stessa email. Prova un metodo di accesso diverso.",
+        "domainNotAuthorized": "Questo dominio non è autorizzato. Aggiungilo in Firebase Console → Autenticazione → Impostazioni → Domini autorizzati"
+      },
+      "appleErrors": {
+        "notEnabled": "L'accesso Apple non è abilitato. Abilitalo in Firebase Console → Autenticazione → Metodo di accesso → Apple (richiede account Apple Developer)",
+        "popupBlocked": "Il popup è stato bloccato. Consenti i popup per questo sito.",
+        "cancelled": "Accesso annullato",
+        "accountExists": "Esiste già un account con la stessa email. Prova un metodo di accesso diverso.",
+        "domainNotAuthorized": "Questo dominio non è autorizzato. Aggiungilo in Firebase Console → Autenticazione → Impostazioni → Domini autorizzati"
+      }
+    },
+    "onboarding": {
+      "noCoupleId": "Nessun ID coppia trovato",
+      "storageFull": "Archiviazione piena - libera spazio e riprova",
+      "storagePermission": "Permesso di archiviazione negato - controlla le autorizzazioni dell'app",
+      "saveFailed": "Impossibile salvare lo stato di completamento",
+      "networkError": "Errore di rete - controlla la connessione e riprova"
     }
   }
 }
