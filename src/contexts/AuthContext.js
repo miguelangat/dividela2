@@ -9,7 +9,12 @@ import {
   onAuthStateChanged,
   GoogleAuthProvider,
   OAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  updatePassword,
+  deleteUser,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  reauthenticateWithPopup
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
@@ -211,7 +216,7 @@ export const AuthProvider = ({ children }) => {
 
       setError(null);
       await updateDoc(doc(db, 'users', user.uid), updates);
-      
+
       // Update local state
       setUserDetails(prev => ({ ...prev, ...updates }));
     } catch (err) {
@@ -390,6 +395,116 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Change password (requires recent authentication)
+  const changePassword = async (currentPassword, newPassword) => {
+    try {
+      if (!user) throw new Error('No user logged in');
+      setError(null);
+
+      // Check if user signed in with email/password
+      const providerData = user.providerData;
+      const hasEmailProvider = providerData.some(p => p.providerId === 'password');
+
+      if (!hasEmailProvider) {
+        throw new Error('Password change is only available for email/password accounts. You signed in with a social provider.');
+      }
+
+      // Reauthenticate user with current password
+      const credential = EmailAuthProvider.credential(user.email, currentPassword);
+      await reauthenticateWithCredential(user, credential);
+
+      // Update password
+      await updatePassword(user, newPassword);
+      console.log('✓ Password updated successfully');
+
+      return true;
+    } catch (err) {
+      console.error('Change password error:', err);
+
+      // Handle specific errors
+      if (err.code === 'auth/wrong-password') {
+        setError('Current password is incorrect');
+      } else if (err.code === 'auth/weak-password') {
+        setError('New password is too weak. Please use at least 6 characters.');
+      } else if (err.code === 'auth/requires-recent-login') {
+        setError('For security, please sign out and sign in again before changing your password');
+      } else {
+        setError(err.message);
+      }
+      throw err;
+    }
+  };
+
+  // Delete account (requires recent authentication)
+  const deleteAccount = async (password = null) => {
+    try {
+      if (!user) throw new Error('No user logged in');
+      setError(null);
+
+      // Check provider type
+      const providerData = user.providerData;
+      const hasEmailProvider = providerData.some(p => p.providerId === 'password');
+      const hasGoogleProvider = providerData.some(p => p.providerId === 'google.com');
+      const hasAppleProvider = providerData.some(p => p.providerId === 'apple.com');
+
+      // Reauthenticate based on provider
+      if (hasEmailProvider) {
+        if (!password) {
+          throw new Error('Password is required to delete account');
+        }
+        const credential = EmailAuthProvider.credential(user.email, password);
+        await reauthenticateWithCredential(user, credential);
+      } else if (hasGoogleProvider) {
+        const provider = new GoogleAuthProvider();
+        await reauthenticateWithPopup(user, provider);
+      } else if (hasAppleProvider) {
+        const provider = new OAuthProvider('apple.com');
+        await reauthenticateWithPopup(user, provider);
+      }
+
+      // Delete user data from Firestore
+      const userId = user.uid;
+
+      // If user has a partner, we should handle couple data cleanup
+      if (userDetails?.coupleId) {
+        console.log('⚠️ User has couple data. Consider implementing cleanup logic.');
+        // TODO: Implement couple data cleanup if needed
+        // For now, we'll just delete the user document
+      }
+
+      // Delete user document from Firestore
+      const userRef = doc(db, 'users', userId);
+      await updateDoc(userRef, {
+        deleted: true,
+        deletedAt: new Date().toISOString(),
+      });
+
+      // Delete the Firebase Auth account
+      await deleteUser(user);
+      console.log('✓ Account deleted successfully');
+
+      // Clear local state
+      setUser(null);
+      setUserDetails(null);
+
+      return true;
+    } catch (err) {
+      console.error('Delete account error:', err);
+
+      // Handle specific errors
+      if (err.code === 'auth/wrong-password') {
+        setError('Password is incorrect');
+      } else if (err.code === 'auth/requires-recent-login') {
+        setError('For security, please sign out and sign in again before deleting your account');
+      } else if (err.code === 'auth/popup-closed-by-user') {
+        setError('Account deletion cancelled');
+      } else {
+        setError(err.message);
+      }
+      throw err;
+    }
+  };
+
   // Value provided to consumers
   const value = {
     user,
@@ -405,6 +520,8 @@ export const AuthProvider = ({ children }) => {
     updatePartnerInfo,
     getPartnerDetails,
     hasPartner,
+    changePassword,
+    deleteAccount,
   };
 
   return (

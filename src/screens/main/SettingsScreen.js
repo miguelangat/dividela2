@@ -49,7 +49,7 @@ const isMediumScreen = screenWidth >= 375 && screenWidth < 768;
 const isLargeScreen = screenWidth >= 768;
 
 export default function SettingsScreen({ navigation }) {
-  const { user, userDetails, signOut, getPartnerDetails } = useAuth();
+  const { user, userDetails, signOut, getPartnerDetails, changePassword, deleteAccount } = useAuth();
   const { isPremium, subscriptionInfo } = useSubscription();
   const { currentLanguage, changeLanguage, availableLanguages, getCurrentLanguageInfo } = useLanguage();
   const { t } = useTranslation();
@@ -75,6 +75,19 @@ export default function SettingsScreen({ navigation }) {
     partnerActivity: false,
   });
   const [notificationsLoading, setNotificationsLoading] = useState(false);
+
+  // Change password modal state
+  const [changePasswordModalVisible, setChangePasswordModalVisible] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
+
+  // Delete account modal state
+  const [deleteAccountModalVisible, setDeleteAccountModalVisible] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   // Fetch partner details
   useEffect(() => {
@@ -485,6 +498,137 @@ export default function SettingsScreen({ navigation }) {
     }
   };
 
+  const handleChangePassword = async () => {
+    // Validation
+    if (!currentPassword.trim()) {
+      Alert.alert(t('common.error'), t('settings.changePasswordModal.currentPasswordEmpty'));
+      return;
+    }
+
+    if (!newPassword.trim()) {
+      Alert.alert(t('common.error'), t('settings.changePasswordModal.newPasswordEmpty'));
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      Alert.alert(t('common.error'), t('settings.changePasswordModal.passwordTooShort'));
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      Alert.alert(t('common.error'), t('settings.changePasswordModal.passwordMismatch'));
+      return;
+    }
+
+    setChangingPassword(true);
+    try {
+      await changePassword(currentPassword, newPassword);
+
+      // Success - clear form and close modal
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setChangePasswordModalVisible(false);
+
+      Alert.alert(t('common.success'), t('settings.changePasswordModal.success'));
+    } catch (error) {
+      console.error('Password change error:', error);
+      Alert.alert(
+        t('common.error'),
+        error.message || t('settings.changePasswordModal.error')
+      );
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    // Check if user signed in with OAuth
+    const providerData = user?.providerData || [];
+    const hasEmailProvider = providerData.some(p => p.providerId === 'password');
+
+    // Validation for email/password users
+    if (hasEmailProvider && !deletePassword.trim()) {
+      Alert.alert(t('common.error'), t('settings.deleteAccountModal.passwordEmpty'));
+      return;
+    }
+
+    // Require typing "DELETE" to confirm
+    if (deleteConfirmation.trim() !== 'DELETE') {
+      Alert.alert(t('common.error'), t('settings.deleteAccountModal.confirmationMismatch'));
+      return;
+    }
+
+    setDeletingAccount(true);
+    try {
+      await deleteAccount(hasEmailProvider ? deletePassword : null);
+
+      // Success - account deleted, user will be signed out automatically
+      Alert.alert(t('common.success'), t('settings.deleteAccountModal.success'));
+    } catch (error) {
+      console.error('Account deletion error:', error);
+      Alert.alert(
+        t('common.error'),
+        error.message || t('settings.deleteAccountModal.error')
+      );
+      setDeletingAccount(false);
+    }
+  };
+
+  const renderAccountManagementSection = () => {
+    // Check if user signed in with email/password
+    const providerData = user?.providerData || [];
+    const hasEmailProvider = providerData.some(p => p.providerId === 'password');
+
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{t('settings.accountManagement')}</Text>
+
+        <View style={styles.card}>
+          {/* Change Password - only for email/password users */}
+          {hasEmailProvider && (
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={() => setChangePasswordModalVisible(true)}
+              activeOpacity={0.6}
+            >
+              <View style={styles.settingIcon}>
+                <Ionicons name="key" size={20} color={COLORS.primary} />
+              </View>
+              <View style={styles.settingContent}>
+                <Text style={styles.settingLabel}>{t('settings.changePassword')}</Text>
+                <Text style={styles.settingDescription}>
+                  {t('settings.changePasswordDescription')}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+            </TouchableOpacity>
+          )}
+
+          {/* Delete Account */}
+          <TouchableOpacity
+            style={[styles.settingRow, styles.settingRowLast, styles.dangerRow]}
+            onPress={() => setDeleteAccountModalVisible(true)}
+            activeOpacity={0.6}
+          >
+            <View style={[styles.settingIcon, styles.dangerIcon]}>
+              <Ionicons name="trash" size={20} color={COLORS.error} />
+            </View>
+            <View style={styles.settingContent}>
+              <Text style={[styles.settingLabel, styles.dangerText]}>
+                {t('settings.deleteAccount')}
+              </Text>
+              <Text style={styles.settingDescription}>
+                {t('settings.deleteAccountDescription')}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.error} />
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
   const renderNotificationsSection = () => (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{t('settings.notifications.title')}</Text>
@@ -854,6 +998,9 @@ export default function SettingsScreen({ navigation }) {
         {/* About Section */}
         {renderAboutSection()}
 
+        {/* Account Management Section */}
+        {renderAccountManagementSection()}
+
         {/* Sign Out Button */}
         <View style={styles.section}>
           <TouchableOpacity
@@ -1010,6 +1157,219 @@ export default function SettingsScreen({ navigation }) {
           coupleId={userDetails?.coupleId}
           onClose={() => setShowAliasManager(false)}
         />
+      </Modal>
+
+      {/* Change Password Modal */}
+      <Modal
+        visible={changePasswordModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          setChangePasswordModalVisible(false);
+          setCurrentPassword('');
+          setNewPassword('');
+          setConfirmPassword('');
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="key" size={32} color={COLORS.primary} />
+            </View>
+
+            <Text style={styles.modalTitle}>{t('settings.changePasswordModal.title')}</Text>
+
+            {/* Current Password */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>
+                {t('settings.changePasswordModal.currentPassword')}
+              </Text>
+              <TextInput
+                style={styles.modalInput}
+                value={currentPassword}
+                onChangeText={setCurrentPassword}
+                placeholder={t('settings.changePasswordModal.currentPasswordPlaceholder')}
+                secureTextEntry
+                autoCapitalize="none"
+                editable={!changingPassword}
+              />
+            </View>
+
+            {/* New Password */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>
+                {t('settings.changePasswordModal.newPassword')}
+              </Text>
+              <TextInput
+                style={styles.modalInput}
+                value={newPassword}
+                onChangeText={setNewPassword}
+                placeholder={t('settings.changePasswordModal.newPasswordPlaceholder')}
+                secureTextEntry
+                autoCapitalize="none"
+                editable={!changingPassword}
+              />
+            </View>
+
+            {/* Confirm Password */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>
+                {t('settings.changePasswordModal.confirmPassword')}
+              </Text>
+              <TextInput
+                style={styles.modalInput}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                placeholder={t('settings.changePasswordModal.confirmPasswordPlaceholder')}
+                secureTextEntry
+                autoCapitalize="none"
+                editable={!changingPassword}
+              />
+            </View>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonSecondary]}
+                onPress={() => {
+                  setChangePasswordModalVisible(false);
+                  setCurrentPassword('');
+                  setNewPassword('');
+                  setConfirmPassword('');
+                }}
+                disabled={changingPassword}
+              >
+                <Text style={styles.modalButtonTextSecondary}>
+                  {t('settings.changePasswordModal.cancel')}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonPrimary]}
+                onPress={handleChangePassword}
+                disabled={changingPassword}
+              >
+                {changingPassword ? (
+                  <ActivityIndicator size="small" color={COLORS.background} />
+                ) : (
+                  <Text style={styles.modalButtonTextPrimary}>
+                    {t('settings.changePasswordModal.change')}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Delete Account Modal */}
+      <Modal
+        visible={deleteAccountModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          setDeleteAccountModalVisible(false);
+          setDeletePassword('');
+          setDeleteConfirmation('');
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={[styles.modalHeader, { backgroundColor: COLORS.errorLight }]}>
+              <Ionicons name="warning" size={32} color={COLORS.error} />
+            </View>
+
+            <Text style={styles.modalTitle}>{t('settings.deleteAccountModal.title')}</Text>
+            <Text style={[styles.modalMessage, { fontWeight: '600', color: COLORS.error }]}>
+              {t('settings.deleteAccountModal.warning')}
+            </Text>
+
+            <Text style={styles.modalMessage}>
+              {t('settings.deleteAccountModal.message')}
+            </Text>
+
+            <View style={styles.consequencesList}>
+              <Text style={styles.consequenceText}>
+                {t('settings.deleteAccountModal.consequence1')}
+              </Text>
+              <Text style={styles.consequenceText}>
+                {t('settings.deleteAccountModal.consequence2')}
+              </Text>
+              <Text style={styles.consequenceText}>
+                {t('settings.deleteAccountModal.consequence3')}
+              </Text>
+              <Text style={styles.consequenceText}>
+                {t('settings.deleteAccountModal.consequence4')}
+              </Text>
+            </View>
+
+            {/* Password input for email/password users */}
+            {user?.providerData?.some(p => p.providerId === 'password') ? (
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>
+                  {t('settings.deleteAccountModal.passwordLabel')}
+                </Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={deletePassword}
+                  onChangeText={setDeletePassword}
+                  placeholder={t('settings.deleteAccountModal.passwordPlaceholder')}
+                  secureTextEntry
+                  autoCapitalize="none"
+                  editable={!deletingAccount}
+                />
+              </View>
+            ) : (
+              <Text style={[styles.modalMessage, { fontSize: 13, fontStyle: 'italic' }]}>
+                {t('settings.deleteAccountModal.oauthMessage')}
+              </Text>
+            )}
+
+            {/* Confirmation text */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>
+                {t('settings.deleteAccountModal.confirmText')}
+              </Text>
+              <TextInput
+                style={styles.modalInput}
+                value={deleteConfirmation}
+                onChangeText={setDeleteConfirmation}
+                placeholder={t('settings.deleteAccountModal.confirmPlaceholder')}
+                autoCapitalize="characters"
+                editable={!deletingAccount}
+              />
+            </View>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonSecondary]}
+                onPress={() => {
+                  setDeleteAccountModalVisible(false);
+                  setDeletePassword('');
+                  setDeleteConfirmation('');
+                }}
+                disabled={deletingAccount}
+              >
+                <Text style={styles.modalButtonTextSecondary}>
+                  {t('settings.deleteAccountModal.cancel')}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonDanger]}
+                onPress={handleDeleteAccount}
+                disabled={deletingAccount}
+              >
+                {deletingAccount ? (
+                  <ActivityIndicator size="small" color={COLORS.background} />
+                ) : (
+                  <Text style={styles.modalButtonTextPrimary}>
+                    {t('settings.deleteAccountModal.delete')}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       </Modal>
     </View>
   );
@@ -1305,5 +1665,52 @@ const styles = StyleSheet.create({
   },
   toggleThumbActive: {
     transform: [{ translateX: 22 }],
+  },
+  // Account management styles
+  dangerRow: {
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border || '#E5E5E5',
+  },
+  dangerIcon: {
+    backgroundColor: COLORS.errorLight,
+  },
+  dangerText: {
+    color: COLORS.error,
+  },
+  inputGroup: {
+    width: '100%',
+    marginBottom: SPACING.base,
+  },
+  inputLabel: {
+    ...FONTS.small,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.tiny,
+    fontWeight: '600',
+  },
+  modalInput: {
+    ...FONTS.body,
+    backgroundColor: COLORS.backgroundSecondary,
+    borderRadius: 12,
+    padding: SPACING.base,
+    borderWidth: 1,
+    borderColor: COLORS.border || '#E5E5E5',
+    color: COLORS.text,
+  },
+  modalButtonDanger: {
+    backgroundColor: COLORS.error,
+  },
+  consequencesList: {
+    width: '100%',
+    backgroundColor: COLORS.errorLight,
+    borderRadius: 12,
+    padding: SPACING.base,
+    marginBottom: SPACING.base,
+  },
+  consequenceText: {
+    ...FONTS.body,
+    fontSize: 13,
+    color: COLORS.error,
+    marginBottom: SPACING.tiny,
+    lineHeight: 20,
   },
 });
