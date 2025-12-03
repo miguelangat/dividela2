@@ -612,6 +612,39 @@ export default function AddExpenseScreen({ navigation, route }) {
           </View>
         </LinearGradient>
 
+        {/* Description */}
+        <View style={styles.section}>
+          <FieldLabel label="Add a note" optional />
+          <Text style={styles.helperText}>
+            Help remember what this was for (e.g., "Dinner at Luigi's")
+          </Text>
+          <TextInput
+            style={[
+              styles.descriptionInput,
+              focusStates.description && styles.descriptionInputFocused
+            ]}
+            value={description}
+            onChangeText={setDescription}
+            placeholder="Add details here..."
+            placeholderTextColor={COLORS.textTertiary}
+            multiline
+            numberOfLines={3}
+            maxLength={200}
+            onFocus={() => setFocusStates(s => ({ ...s, description: true }))}
+            onBlur={() => setFocusStates(s => ({ ...s, description: false }))}
+            autoFocus
+          />
+        </View>
+
+        {/* Currency Selection */}
+        <View style={styles.section}>
+          <CurrencyPicker
+            selectedCurrency={expenseCurrency}
+            onSelect={setExpenseCurrency}
+            label="Expense Currency"
+          />
+        </View>
+
         {/* Amount Input */}
         <View style={[
           styles.amountSection,
@@ -625,11 +658,23 @@ export default function AddExpenseScreen({ navigation, route }) {
             placeholder="0.00"
             placeholderTextColor={COLORS.textSecondary}
             keyboardType="decimal-pad"
-            autoFocus
             onFocus={() => setFocusStates(s => ({ ...s, amount: true }))}
             onBlur={() => setFocusStates(s => ({ ...s, amount: false }))}
           />
         </View>
+
+        {/* Exchange Rate Input (only if different from primary) */}
+        {expenseCurrency !== primaryCurrency && parseFloat(amount) > 0 && (
+          <ExchangeRateInput
+            fromAmount={parseFloat(amount) || 0}
+            fromCurrency={expenseCurrency}
+            toCurrency={primaryCurrency}
+            onRateChange={setExchangeRate}
+            onConvertedAmountChange={setConvertedAmount}
+            initialRate={exchangeRate !== 1.0 ? exchangeRate : null}
+            style={styles.exchangeRateSection}
+          />
+        )}
 
         {/* Scan Receipt Section - MOVED from top to below amount */}
         {!isEditMode && (
@@ -684,51 +729,6 @@ export default function AddExpenseScreen({ navigation, route }) {
             )}
           </View>
         )}
-
-        {/* Currency Selection */}
-        <View style={styles.section}>
-          <CurrencyPicker
-            selectedCurrency={expenseCurrency}
-            onSelect={setExpenseCurrency}
-            label="Expense Currency"
-          />
-        </View>
-
-        {/* Exchange Rate Input (only if different from primary) */}
-        {expenseCurrency !== primaryCurrency && parseFloat(amount) > 0 && (
-          <ExchangeRateInput
-            fromAmount={parseFloat(amount) || 0}
-            fromCurrency={expenseCurrency}
-            toCurrency={primaryCurrency}
-            onRateChange={setExchangeRate}
-            onConvertedAmountChange={setConvertedAmount}
-            initialRate={exchangeRate !== 1.0 ? exchangeRate : null}
-            style={styles.exchangeRateSection}
-          />
-        )}
-
-        {/* Description */}
-        <View style={styles.section}>
-          <FieldLabel label="Add a note" optional />
-          <Text style={styles.helperText}>
-            Help remember what this was for (e.g., "Dinner at Luigi's")
-          </Text>
-          <TextInput
-            style={[
-              styles.descriptionInput,
-              focusStates.description && styles.descriptionInputFocused
-            ]}
-            value={description}
-            onChangeText={setDescription}
-            placeholder="Add details here..."
-            placeholderTextColor={COLORS.textTertiary}
-            multiline
-            numberOfLines={3}
-            maxLength={200}
-            onFocus={() => setFocusStates(s => ({ ...s, description: true }))}
-            onBlur={() => setFocusStates(s => ({ ...s, description: false }))}
-          />
-        </View>
 
         {/* Category Selection */}
         <View style={styles.section}>

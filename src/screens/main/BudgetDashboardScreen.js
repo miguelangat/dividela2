@@ -20,6 +20,7 @@ import BudgetProgressCard from '../../components/BudgetProgressCard';
 import * as expenseService from '../../services/expenseService';
 import * as settlementService from '../../services/settlementService';
 import { Ionicons } from '@expo/vector-icons';
+import { formatCurrency } from '../../utils/calculations';
 
 export default function BudgetDashboardScreen({ navigation }) {
   const { t } = useTranslation();
@@ -146,17 +147,17 @@ export default function BudgetDashboardScreen({ navigation }) {
         <View style={styles.summaryGrid}>
           <View style={[styles.summaryCard, styles.summaryCardPrimary]}>
             <Text style={styles.summaryLabel}>{t('budget.dashboard.totalBudget')}</Text>
-            <Text style={styles.summaryValue}>${totalBudget.toFixed(0)}</Text>
+            <Text style={styles.summaryValue}>{formatCurrency(totalBudget)}</Text>
           </View>
 
           <View style={[styles.summaryCard, styles.summaryCardWarning]}>
             <Text style={styles.summaryLabel}>{t('budget.dashboard.totalSpent')}</Text>
-            <Text style={styles.summaryValue}>${totalSpent.toFixed(0)}</Text>
+            <Text style={styles.summaryValue}>{formatCurrency(totalSpent)}</Text>
           </View>
 
           <View style={[styles.summaryCard, styles.summaryCardSuccess]}>
             <Text style={styles.summaryLabel}>{t('budget.dashboard.remaining')}</Text>
-            <Text style={styles.summaryValue}>${remaining.toFixed(0)}</Text>
+            <Text style={styles.summaryValue}>{formatCurrency(Math.abs(remaining))}</Text>
           </View>
         </View>
 
@@ -230,7 +231,7 @@ export default function BudgetDashboardScreen({ navigation }) {
                       </View>
                       <View style={styles.settlementAmount}>
                         <Text style={styles.settlementAmountText}>
-                          ${settlement.amount?.toFixed(0) || 0}
+                          {formatCurrency(settlement.amount || 0)}
                         </Text>
                       </View>
                     </View>
@@ -262,7 +263,7 @@ export default function BudgetDashboardScreen({ navigation }) {
                       <View style={styles.topCategorySmall}>
                         <Text style={styles.topCategoryIcon}>{topCategory.icon}</Text>
                         <Text style={styles.topCategoryText}>
-                          {t('budget.dashboard.topLabel')} {topCategory.categoryName} (${topCategory.amount?.toFixed(0) || 0})
+                          {t('budget.dashboard.topLabel')} {topCategory.categoryName} ({formatCurrency(topCategory.amount || 0)})
                         </Text>
                       </View>
                     )}

@@ -58,7 +58,7 @@ const isLargeScreen = screenWidth >= 768;
 export default function StatsScreen() {
   const { t } = useTranslation();
   const { user, userDetails, getPartnerDetails } = useAuth();
-  const { categories } = useBudget();
+  const { categories, budgetProgress } = useBudget();
   const [expenses, setExpenses] = useState([]);
   const [settlements, setSettlements] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -326,7 +326,9 @@ export default function StatsScreen() {
                 color={isPaidByUser ? COLORS.primary : COLORS.textSecondary}
               />
               <Text style={styles.expenseMetaText}>
-                {isPaidByUser ? t('stats.list.youPaid') : t('stats.list.partnerPaid', { partner: partnerName })}
+                {isPaidByUser
+                  ? t('stats.list.youPaid')
+                  : t('stats.list.partnerPaid', { partnerName: partnerName })}
               </Text>
             </View>
 
@@ -351,7 +353,9 @@ export default function StatsScreen() {
         <Ionicons name="wallet" size={24} color={COLORS.primary} />
         <Text style={styles.summaryLabel}>{t('stats.summary.totalExpenses')}</Text>
         <Text style={styles.summaryAmount}>{formatCurrency(totalExpenses)}</Text>
-        <Text style={styles.summarySubtext}>{t('stats.summary.expenseCount', { count: filteredExpenses.length })}</Text>
+        <Text style={styles.summarySubtext}>
+          {t('stats.summary.expenseCount', { count: filteredExpenses.length })}
+        </Text>
       </View>
 
       <View style={styles.summaryRow}>
@@ -363,7 +367,9 @@ export default function StatsScreen() {
 
         <View style={styles.summaryCardSmall}>
           <Ionicons name="people" size={20} color={COLORS.warning} />
-          <Text style={styles.summaryLabelSmall}>{t('stats.summary.partnerShare')}</Text>
+          <Text style={styles.summaryLabelSmall}>
+            {t('stats.summary.partnerShare', { partnerName: partnerName })}
+          </Text>
           <Text style={styles.summaryAmountSmall}>{formatCurrency(partnerShare)}</Text>
         </View>
       </View>
@@ -374,7 +380,18 @@ export default function StatsScreen() {
     const categoryName = categories[categoryKey]?.name || 'Other';
     const categoryIcon = categories[categoryKey]?.icon || '💡';
     const categoryColor = COLORS.primary;
-    const percentage = totalExpenses > 0 ? (amount / totalExpenses) * 100 : 0;
+
+    // Get budget data for this category
+    const categoryProgress = budgetProgress?.categoryProgress?.[categoryKey];
+    const budgetAmount = categoryProgress?.budget || 0;
+
+    // Calculate percentage based on budget if available, otherwise fallback to total expenses share
+    // If budget exists: (spent / budget) * 100
+    // If no budget: (spent / totalExpenses) * 100 (original behavior)
+    const hasBudget = budgetAmount > 0;
+    const percentage = hasBudget
+      ? (amount / budgetAmount) * 100
+      : (totalExpenses > 0 ? (amount / totalExpenses) * 100 : 0);
 
     return (
       <View key={categoryKey} style={styles.categoryItem}>
@@ -385,19 +402,34 @@ export default function StatsScreen() {
         <View style={styles.categoryDetails}>
           <View style={styles.categoryHeader}>
             <Text style={styles.categoryName}>{categoryName}</Text>
-            <Text style={styles.categoryAmount}>{formatCurrency(amount)}</Text>
+            <View style={{ alignItems: 'flex-end' }}>
+              <Text style={styles.categoryAmount}>{formatCurrency(amount)}</Text>
+              {hasBudget && (
+                <Text style={{ ...FONTS.small, color: COLORS.textSecondary }}>
+                  of {formatCurrency(budgetAmount)}
+                </Text>
+              )}
+            </View>
           </View>
 
           <View style={styles.progressBarContainer}>
             <View
               style={[
                 styles.progressBar,
-                { width: `${percentage}%`, backgroundColor: categoryColor },
+                {
+                  width: `${Math.min(percentage, 100)}%`,
+                  backgroundColor: hasBudget && percentage > 100 ? COLORS.error : categoryColor
+                },
               ]}
             />
           </View>
 
-          <Text style={styles.categoryPercentage}>{t('stats.breakdown.percentage', { percentage: percentage.toFixed(1) })}</Text>
+          <Text style={styles.categoryPercentage}>
+            {hasBudget
+              ? `${percentage.toFixed(0)}% of budget`
+              : t('stats.breakdown.percentage', { percentage: percentage.toFixed(1) })
+            }
+          </Text>
         </View>
       </View>
     );
@@ -435,9 +467,7 @@ export default function StatsScreen() {
     <View style={styles.emptyState}>
       <Text style={styles.emptyStateEmoji}>📊</Text>
       <Text style={styles.emptyStateTitle}>{t('stats.empty.title')}</Text>
-      <Text style={styles.emptyStateText}>
-        {t('stats.empty.message')}
-      </Text>
+      <Text style={styles.emptyStateText}>{t('stats.empty.message')}</Text>
     </View>
   );
 
@@ -516,17 +546,17 @@ export default function StatsScreen() {
                   {groupBy === 'none'
                     ? sortedFilteredExpenses.map(renderExpenseItem)
                     : Object.entries(groupedExpenses || {}).map(([groupKey, groupData]) => {
-                        // Extract expenses array from groupData
-                        const expensesArray = groupData.expenses || [];
-                        const displayLabel = groupData.label || groupKey;
+                      // Extract expenses array from groupData
+                      const expensesArray = groupData.expenses || [];
+                      const displayLabel = groupData.label || groupKey;
 
-                        return (
-                          <View key={groupKey} style={styles.expenseGroup}>
-                            <Text style={styles.groupHeader}>{displayLabel}</Text>
-                            {expensesArray.map(renderExpenseItem)}
-                          </View>
-                        );
-                      })}
+                      return (
+                        <View key={groupKey} style={styles.expenseGroup}>
+                          <Text style={styles.groupHeader}>{displayLabel}</Text>
+                          {expensesArray.map(renderExpenseItem)}
+                        </View>
+                      );
+                    })}
                 </View>
               </View>
             ) : (
@@ -534,9 +564,7 @@ export default function StatsScreen() {
                 <View style={styles.emptyFilterState}>
                   <Ionicons name="filter-outline" size={48} color={COLORS.textSecondary} />
                   <Text style={styles.emptyFilterTitle}>{t('stats.emptyFilter.title')}</Text>
-                  <Text style={styles.emptyFilterText}>
-                    {t('stats.emptyFilter.message')}
-                  </Text>
+                  <Text style={styles.emptyFilterText}>{t('stats.emptyFilter.message')}</Text>
                 </View>
               </View>
             )}

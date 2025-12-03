@@ -573,15 +573,15 @@
     "title": "Statistics",
     "subtitle": "Track your spending patterns",
     "loading": "Loading statistics...",
-    "errorMessage": "Failed to load statistics. Pull down to retry.",
+    "error": "Failed to load statistics. Pull down to retry.",
     "sorting": {
-      "sortBy": "Sort by:",
+      "label": "Sort by:",
       "latest": "Latest",
       "highest": "Highest",
       "category": "Category"
     },
     "grouping": {
-      "groupBy": "Group by:",
+      "label": "Group by:",
       "none": "None",
       "month": "Month",
       "status": "Status"
@@ -590,20 +590,20 @@
       "totalExpenses": "Total Expenses",
       "expenseCount": "{{count}} expenses",
       "yourShare": "Your Share",
-      "partnerShare": "Partner's Share"
+      "partnerShare": "{{partnerName}}'s Share"
     },
-    "expenseList": {
+    "list": {
       "title": "Expense Details ({{count}})",
       "noDescription": "No description",
       "youPaid": "You paid",
       "partnerPaid": "{{partnerName}} paid"
     },
-    "categoryBreakdown": {
+    "breakdown": {
       "title": "Category Breakdown",
       "percentage": "{{percentage}}% of total",
-      "noCategories": "No categories to display"
+      "empty": "No categories to display"
     },
-    "settlementHistory": {
+    "settlement": {
       "title": "Settlement History",
       "subtitle": "Record of when balances were settled"
     },
@@ -611,7 +611,7 @@
       "title": "No Expenses Yet",
       "message": "Start adding expenses to see your spending statistics"
     },
-    "emptyFiltered": {
+    "emptyFilter": {
       "title": "No Matching Expenses",
       "message": "Try adjusting your filters to see more results"
     }
