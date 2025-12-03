@@ -116,7 +116,10 @@ exports.checkFiscalYearEndReminders = scheduledChecks.checkFiscalYearEndReminder
 // Test & Utility Functions
 // ============================================================================
 
-// Test email function (for testing SES configuration)
+// Import test email functions
+const testEmail = require('./email/testEmail');
+
+// Test email function (simple test for SES configuration)
 const { sendTestEmail } = require('./email/sesEmailService');
 
 exports.testEmail = functions.https.onRequest(async (req, res) => {
@@ -145,3 +148,8 @@ exports.testEmail = functions.https.onRequest(async (req, res) => {
     });
   }
 });
+
+// Comprehensive test functions (with SMPT verification and template testing)
+exports.testSendEmail = testEmail.testSendEmail;
+exports.testEmailTemplates = testEmail.testEmailTemplates;
+

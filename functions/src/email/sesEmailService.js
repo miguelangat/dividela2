@@ -12,6 +12,7 @@
 
 const nodemailer = require('nodemailer');
 const admin = require('firebase-admin');
+const functions = require('firebase-functions');
 
 // SES Configuration - Store these in Firebase Config or Secret Manager
 const SES_CONFIG = {
