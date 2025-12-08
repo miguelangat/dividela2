@@ -116,6 +116,11 @@ export default function JoinScreen({ navigation }) {
       }
       console.log('✓ Partner document validated');
 
+      // Validate IDs
+      if (!partnerId || !user.uid) {
+        throw new Error('Invalid user IDs for pairing');
+      }
+
       // Generate couple ID
       const coupleId = `couple_${user.uid}_${partnerId}_${Date.now()}`;
       console.log('Generated couple ID:', coupleId);
@@ -146,6 +151,7 @@ export default function JoinScreen({ navigation }) {
       console.log('✓ Batch: current user update queued');
 
       // Operation 3: Update partner's document with pairing info
+      // This is the cross-user write that requires special rules
       batch.update(partnerDocRef, {
         partnerId: user.uid,
         coupleId: coupleId,
@@ -178,9 +184,12 @@ export default function JoinScreen({ navigation }) {
       console.error('Error code:', err.code);
       console.error('Error message:', err.message);
 
+      // Log full error object for debugging
+      console.log('Full error object:', JSON.stringify(err, null, 2));
+
       // Provide specific error messages
       if (err.code === 'permission-denied') {
-        throw new Error('Permission denied. Please check Firestore security rules.');
+        throw new Error('Permission denied. The app cannot update your partner\'s account. Please contact support.');
       } else if (err.code === 'not-found') {
         throw new Error('Database connection issue. Please check your internet and try again.');
       } else if (err.code === 'unavailable') {

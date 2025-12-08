@@ -95,6 +95,40 @@ export default function InviteScreen({ navigation }) {
         return;
       }
 
+      // Validate that user document exists (self-healing)
+      console.log('Validating user document exists...');
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (!userDoc.exists()) {
+        console.warn('⚠️ User document not found. Creating it now...');
+        const newUserData = {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName || user.email?.split('@')[0] || 'User',
+          partnerId: null,
+          coupleId: null,
+          createdAt: new Date().toISOString(),
+          settings: {
+            notifications: true,
+            defaultSplit: 50,
+            currency: 'USD',
+          },
+          subscriptionStatus: 'free',
+          subscriptionPlatform: null,
+          subscriptionExpiresAt: null,
+          subscriptionProductId: null,
+          revenueCatUserId: user.uid,
+          trialUsed: false,
+          trialEndsAt: null,
+        };
+
+        await setDoc(userDocRef, newUserData);
+        console.log('✓ User document created successfully');
+      } else {
+        console.log('✓ User document validated');
+      }
+
       // Generate unique code
       let code = generateInviteCode();
 

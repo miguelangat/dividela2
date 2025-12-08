@@ -11,7 +11,7 @@ firebase functions:config:set \
   ses.smtp_user="YOUR_SMTP_USERNAME" \
   ses.smtp_pass="YOUR_SMTP_PASSWORD" \
   ses.smtp_host="email-smtp.REGION.amazonaws.com" \
-  ses.from_email="noreply@dividela.com" \
+  ses.from_email="noreply@dividela.co" \
   ses.from_name="Dividela"
 ```
 
@@ -238,7 +238,7 @@ firebase functions:config:set \
   ses.smtp_user="AKIAIOSFODNN7EXAMPLE" \
   ses.smtp_pass="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY" \
   ses.smtp_host="email-smtp.us-east-1.amazonaws.com" \
-  ses.from_email="noreply@dividela.com" \
+  ses.from_email="noreply@dividela.co" \
   ses.from_name="Dividela"
 
 # 3. Verify config
