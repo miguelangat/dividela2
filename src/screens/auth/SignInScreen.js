@@ -57,8 +57,17 @@ export default function SignInScreen({ navigation }) {
       // User will be redirected based on whether they have a partner
     } catch (error) {
       console.error('Sign in error:', error);
-      // Error message is already user-friendly from AuthContext
-      setErrors({ general: error.message });
+      // Check for specific error codes that should show "Invalid credentials"
+      // This overrides the generic message from AuthContext to ensure localization
+      if (
+        error.code === 'auth/invalid-credential' ||
+        error.code === 'auth/user-not-found' ||
+        error.code === 'auth/wrong-password'
+      ) {
+        setErrors({ general: t('auth.signIn.invalidCredentials') });
+      } else {
+        setErrors({ general: error.message || t('auth.signIn.signInError') });
+      }
     } finally {
       setLoading(false);
     }

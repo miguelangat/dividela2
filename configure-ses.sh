@@ -45,7 +45,7 @@ echo ""
 echo ""
 
 # Get FROM email
-read -p "4. Enter FROM email address (e.g., noreply@dividela.com): " FROM_EMAIL
+read -p "4. Enter FROM email address (e.g., noreply@dividela.co): " FROM_EMAIL
 echo ""
 
 # Get FROM name

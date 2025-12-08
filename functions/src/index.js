@@ -22,6 +22,9 @@ const processReceiptDirect = require('./ocr/processReceiptDirect');
 // Import email notification functions
 const notificationTriggers = require('./email/notificationTriggers');
 const scheduledChecks = require('./email/scheduledChecks');
+const unsubscribe = require('./email/unsubscribe');
+const webhooks = require('./email/webhooks');
+const { sendTestEmail } = require('./email/mailersendService');
 
 // Export OCR function with CORS support (for web browsers)
 exports.processReceiptDirect = functions.https.onRequest((req, res) => {
@@ -100,7 +103,7 @@ exports.helloWorld = functions.https.onRequest((req, res) => {
 });
 
 // ============================================================================
-// Email Notification Functions
+// Email Notification Functions (Mailersend)
 // ============================================================================
 
 // Firestore Triggers
@@ -112,13 +115,15 @@ exports.checkSavingsGoalMilestone = notificationTriggers.checkSavingsGoalMilesto
 // Scheduled Functions
 exports.checkFiscalYearEndReminders = scheduledChecks.checkFiscalYearEndReminders;
 
+// HTTP Endpoints
+exports.handleUnsubscribe = unsubscribe.handleUnsubscribe;
+exports.handleMailersendWebhook = webhooks.handleMailersendWebhook;
+
 // ============================================================================
 // Test & Utility Functions
 // ============================================================================
 
-// Test email function (for testing SES configuration)
-const { sendTestEmail } = require('./email/sesEmailService');
-
+// Test email function (simple test for Mailersend configuration)
 exports.testEmail = functions.https.onRequest(async (req, res) => {
   const toEmail = req.query.to;
 
@@ -135,7 +140,6 @@ exports.testEmail = functions.https.onRequest(async (req, res) => {
       success: true,
       messageId: result.messageId,
       message: `Test email sent successfully to ${toEmail}!`,
-      response: result.response,
     });
   } catch (error) {
     res.status(500).json({

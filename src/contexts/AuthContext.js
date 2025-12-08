@@ -63,7 +63,7 @@ export const AuthProvider = ({ children }) => {
 
           userDocUnsubscribe = onSnapshot(
             userRef,
-            (snapshot) => {
+            async (snapshot) => {
               if (snapshot.exists()) {
                 const userData = snapshot.data();
                 console.log('🔄 User details updated from Firestore:', {
@@ -72,18 +72,22 @@ export const AuthProvider = ({ children }) => {
                   subscriptionExpiresAt: userData.subscriptionExpiresAt,
                 });
 
-
-
                 setUserDetails(userData);
               } else {
-                // User document doesn't exist - create a minimal one
-                console.warn('User document not found, creating minimal user details');
-                const minimalUserDetails = {
+                // User document doesn't exist - create it (self-healing)
+                console.warn('⚠️ User document not found for authenticated user. Creating it now...');
+                const newUserData = {
                   uid: firebaseUser.uid,
                   email: firebaseUser.email,
                   displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
                   partnerId: null,
                   coupleId: null,
+                  createdAt: new Date().toISOString(),
+                  settings: {
+                    notifications: true,
+                    defaultSplit: 50,
+                    currency: 'USD',
+                  },
                   subscriptionStatus: 'free',
                   subscriptionPlatform: null,
                   subscriptionExpiresAt: null,
@@ -92,7 +96,16 @@ export const AuthProvider = ({ children }) => {
                   trialUsed: false,
                   trialEndsAt: null,
                 };
-                setUserDetails(minimalUserDetails);
+
+                try {
+                  await setDoc(userRef, newUserData);
+                  console.log('✓ User document created successfully');
+                  setUserDetails(newUserData);
+                } catch (error) {
+                  console.error('❌ Failed to create user document:', error);
+                  // Fall back to local state only
+                  setUserDetails(newUserData);
+                }
               }
               setLoading(false);
             },

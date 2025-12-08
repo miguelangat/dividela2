@@ -55,7 +55,15 @@ service cloud.firestore {
           )
         ) ||
         // Allow pairing updates (partnerId/coupleId only)
-        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['partnerId', 'coupleId']))
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['partnerId', 'coupleId']) &&
+          (
+            // Allow if user is setting THEMSELVES as the partner (pairing flow)
+            request.resource.data.partnerId == request.auth.uid ||
+            // OR if user is the owner (already covered above, but good for clarity)
+            isOwner(userId)
+          )
+        )
       );
 
       allow delete: if false; // Don't allow deleting users

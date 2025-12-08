@@ -2,6 +2,7 @@
  * Notification Triggers
  *
  * Cloud Functions that send email notifications based on app events.
+ * Uses Mailersend API with templates managed in the Mailersend dashboard.
  *
  * Updated for Firebase Functions v2 (7.0.0+)
  */
@@ -11,15 +12,14 @@ const admin = require('firebase-admin');
 const {
   sendEmail,
   getUserEmail,
+  getUserDisplayName,
   isNotificationEnabled,
   logEmailSent,
-} = require('./sesEmailService');
-const {
-  monthlyBudgetAlertTemplate,
-  savingsGoalMilestoneTemplate,
-  expenseAddedTemplate,
-  partnerInvitationTemplate,
-} = require('./templates');
+  generateUnsubscribeUrl,
+  formatCurrency,
+  formatDate,
+  TEMPLATE_IDS,
+} = require('./mailersendService');
 
 /**
  * Send budget alert when expense is added and threshold is crossed
@@ -35,7 +35,7 @@ exports.checkBudgetOnExpenseAdded = onDocumentCreated('expenses/{expenseId}', as
   const { coupleId, amount, paidBy } = expense;
 
   if (!coupleId) {
-    console.log('❌ Expense has no coupleId, skipping budget check');
+    console.log('Expense has no coupleId, skipping budget check');
     return;
   }
 
@@ -43,7 +43,7 @@ exports.checkBudgetOnExpenseAdded = onDocumentCreated('expenses/{expenseId}', as
     // Check if budget alerts are enabled
     const alertsEnabled = await isNotificationEnabled(coupleId, 'monthlyBudgetAlert');
     if (!alertsEnabled) {
-      console.log('📧 Budget alerts disabled for couple:', coupleId);
+      console.log('Budget alerts disabled for couple:', coupleId);
       return;
     }
 
@@ -64,12 +64,17 @@ exports.checkBudgetOnExpenseAdded = onDocumentCreated('expenses/{expenseId}', as
       .get();
 
     if (budgetSnapshot.empty) {
-      console.log('📊 No budget found for current month');
+      console.log('No budget found for current month');
       return;
     }
 
     const budget = budgetSnapshot.docs[0].data();
     const budgetAmount = budget.totalBudget || 0;
+
+    if (budgetAmount <= 0) {
+      console.log('Budget amount is zero or negative, skipping');
+      return;
+    }
 
     // Get all expenses for current month
     const startDate = new Date(year, month - 1, 1);
@@ -96,7 +101,7 @@ exports.checkBudgetOnExpenseAdded = onDocumentCreated('expenses/{expenseId}', as
     });
 
     if (!shouldAlert) {
-      console.log(`📊 Budget at ${percentageUsed}%, no threshold crossed`);
+      console.log(`Budget at ${percentageUsed}%, no threshold crossed`);
       return;
     }
 
@@ -111,43 +116,45 @@ exports.checkBudgetOnExpenseAdded = onDocumentCreated('expenses/{expenseId}', as
     const couple = coupleDoc.data();
 
     if (!couple) {
-      console.log('❌ Couple not found');
+      console.log('Couple not found');
       return;
     }
 
     const partners = [couple.user1Id, couple.user2Id].filter(Boolean);
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'];
 
     // Send email to both partners
     for (const userId of partners) {
       try {
         const userEmail = await getUserEmail(userId);
-        const userDoc = await db.collection('users').doc(userId).get();
-        const userName = userDoc.data()?.displayName || 'there';
+        if (!userEmail) {
+          console.log(`No email found for user ${userId}`);
+          continue;
+        }
 
-        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-                           'July', 'August', 'September', 'October', 'November', 'December'];
-
-        const html = monthlyBudgetAlertTemplate({
-          coupleId,
-          userName,
-          month: monthNames[month - 1],
-          year,
-          budgetAmount,
-          spentAmount: totalSpent,
-          percentageUsed,
-          remainingAmount: budgetAmount - totalSpent,
-          currency,
-          locale,
-        });
+        const userName = await getUserDisplayName(userId);
+        const remainingAmount = budgetAmount - totalSpent;
 
         const subject = percentageUsed >= 100
-          ? `⚠️ Budget Exceeded - ${monthNames[month - 1]} ${year}`
-          : `📊 Budget Alert (${percentageUsed}%) - ${monthNames[month - 1]} ${year}`;
+          ? `Budget Exceeded - ${monthNames[month - 1]} ${year}`
+          : `Budget Alert (${percentageUsed}%) - ${monthNames[month - 1]} ${year}`;
 
         const result = await sendEmail({
           to: userEmail,
+          toName: userName,
           subject,
-          html,
+          templateId: TEMPLATE_IDS.monthlyBudgetAlert,
+          variables: {
+            userName,
+            percentUsed: percentageUsed.toString(),
+            budgetAmount: formatCurrency(budgetAmount, currency, locale),
+            spentAmount: formatCurrency(totalSpent, currency, locale),
+            remainingAmount: formatCurrency(remainingAmount, currency, locale),
+            month: monthNames[month - 1],
+            year: year.toString(),
+            unsubscribeUrl: generateUnsubscribeUrl(coupleId, 'monthlyBudgetAlert'),
+          },
         });
 
         await logEmailSent({
@@ -158,9 +165,9 @@ exports.checkBudgetOnExpenseAdded = onDocumentCreated('expenses/{expenseId}', as
           success: true,
         });
 
-        console.log(`✅ Budget alert sent to ${userEmail}`);
+        console.log(`Budget alert sent to ${userEmail}`);
       } catch (error) {
-        console.error(`❌ Error sending budget alert to user ${userId}:`, error);
+        console.error(`Error sending budget alert to user ${userId}:`, error);
         await logEmailSent({
           coupleId,
           userId,
@@ -172,7 +179,7 @@ exports.checkBudgetOnExpenseAdded = onDocumentCreated('expenses/{expenseId}', as
       }
     }
   } catch (error) {
-    console.error('❌ Error in budget check trigger:', error);
+    console.error('Error in budget check trigger:', error);
   }
 });
 
@@ -197,7 +204,7 @@ exports.notifyPartnerOnExpenseAdded = onDocumentCreated('expenses/{expenseId}', 
     // Check if expense notifications are enabled
     const notificationsEnabled = await isNotificationEnabled(coupleId, 'partnerActivity');
     if (!notificationsEnabled) {
-      console.log('📧 Partner activity notifications disabled');
+      console.log('Partner activity notifications disabled');
       return;
     }
 
@@ -218,13 +225,16 @@ exports.notifyPartnerOnExpenseAdded = onDocumentCreated('expenses/{expenseId}', 
       return;
     }
 
-    // Get both users' info
-    const paidByDoc = await db.collection('users').doc(paidBy).get();
-    const partnerDoc = await db.collection('users').doc(partnerId).get();
-
-    const paidByName = paidByDoc.data()?.displayName || 'Your partner';
-    const partnerName = partnerDoc.data()?.displayName || 'there';
+    // Get partner's email
     const partnerEmail = await getUserEmail(partnerId);
+    if (!partnerEmail) {
+      console.log(`No email found for partner ${partnerId}`);
+      return;
+    }
+
+    // Get user names
+    const paidByName = await getUserDisplayName(paidBy);
+    const partnerName = await getUserDisplayName(partnerId);
 
     // Get currency settings
     const settingsDoc = await db.collection('coupleSettings').doc(coupleId).get();
@@ -232,26 +242,20 @@ exports.notifyPartnerOnExpenseAdded = onDocumentCreated('expenses/{expenseId}', 
     const currency = settings.budgetPreferences?.budgetCurrency || 'USD';
     const locale = settings.budgetPreferences?.currencyLocale || 'en-US';
 
-    const formattedDate = date.toDate
-      ? date.toDate().toLocaleDateString(locale)
-      : new Date().toLocaleDateString(locale);
-
-    const html = expenseAddedTemplate({
-      coupleId,
-      userName: partnerName,
-      partnerName: paidByName,
-      amount,
-      description: description || 'No description',
-      category: category || 'Uncategorized',
-      date: formattedDate,
-      currency,
-      locale,
-    });
-
     const result = await sendEmail({
       to: partnerEmail,
-      subject: `💳 ${paidByName} added an expense`,
-      html,
+      toName: partnerName,
+      subject: `${paidByName} added an expense`,
+      templateId: TEMPLATE_IDS.expenseAdded,
+      variables: {
+        userName: partnerName,
+        partnerName: paidByName,
+        amount: formatCurrency(amount, currency, locale),
+        description: description || 'No description',
+        category: category || 'Uncategorized',
+        date: formatDate(date, locale),
+        unsubscribeUrl: generateUnsubscribeUrl(coupleId, 'partnerActivity'),
+      },
     });
 
     await logEmailSent({
@@ -262,9 +266,10 @@ exports.notifyPartnerOnExpenseAdded = onDocumentCreated('expenses/{expenseId}', 
       success: true,
     });
 
-    console.log(`✅ Expense notification sent to ${partnerEmail}`);
+    console.log(`Expense notification sent to ${partnerEmail}`);
   } catch (error) {
-    console.error('❌ Error in expense notification trigger:', error);
+    console.error('Error in expense notification trigger:', error);
+    // Don't log failed attempt here to avoid duplicate logs
   }
 });
 
@@ -282,33 +287,30 @@ exports.sendPartnerInvitation = onDocumentCreated('coupleCodes/{codeId}', async 
   const { code, createdBy, inviteeEmail } = inviteData;
 
   if (!code || !createdBy || !inviteeEmail) {
-    console.log('❌ Missing invitation data');
+    console.log('Missing invitation data');
     return;
   }
 
   try {
-    const db = admin.firestore();
-
     // Get sender's info
-    const senderDoc = await db.collection('users').doc(createdBy).get();
-    const senderName = senderDoc.data()?.displayName || 'Someone';
+    const senderName = await getUserDisplayName(createdBy);
 
-    // We don't have a coupleId yet, so use a temporary ID
-    const tempCoupleId = code;
-
-    const html = partnerInvitationTemplate({
-      coupleId: tempCoupleId,
-      senderName,
-      invitationCode: code,
-    });
+    // Deep link to join (adjust based on your app's URL scheme)
+    const joinUrl = `https://dividela.co/join?code=${code}`;
 
     const result = await sendEmail({
       to: inviteeEmail,
-      subject: `💑 ${senderName} invited you to Dividela`,
-      html,
+      subject: `${senderName} invited you to Dividela`,
+      templateId: TEMPLATE_IDS.partnerInvitation,
+      variables: {
+        senderName,
+        inviteCode: code,
+        joinUrl,
+        expirationDays: '7',
+      },
     });
 
-    console.log(`✅ Invitation sent to ${inviteeEmail}`);
+    console.log(`Invitation sent to ${inviteeEmail}`);
 
     // Update the invitation document with email status
     await snapshot.ref.update({
@@ -317,7 +319,7 @@ exports.sendPartnerInvitation = onDocumentCreated('coupleCodes/{codeId}', async 
       messageId: result.messageId,
     });
   } catch (error) {
-    console.error('❌ Error sending invitation email:', error);
+    console.error('Error sending invitation email:', error);
 
     // Update invitation with error
     await snapshot.ref.update({
@@ -344,7 +346,7 @@ exports.checkSavingsGoalMilestone = onDocumentUpdated('savingsGoals/{goalId}', a
 
   const { coupleId, name, targetAmount, currentAmount } = after;
 
-  if (!coupleId) {
+  if (!coupleId || !targetAmount || targetAmount <= 0) {
     return;
   }
 
@@ -352,12 +354,12 @@ exports.checkSavingsGoalMilestone = onDocumentUpdated('savingsGoals/{goalId}', a
     // Check if notifications are enabled
     const notificationsEnabled = await isNotificationEnabled(coupleId, 'savingsGoalMilestone');
     if (!notificationsEnabled) {
-      console.log('📧 Savings goal notifications disabled');
+      console.log('Savings goal notifications disabled');
       return;
     }
 
     // Calculate percentages
-    const percentageBefore = Math.round((before.currentAmount / before.targetAmount) * 100);
+    const percentageBefore = Math.round(((before.currentAmount || 0) / (before.targetAmount || 1)) * 100);
     const percentageAfter = Math.round((currentAmount / targetAmount) * 100);
 
     // Only notify at milestones: 25%, 50%, 75%, 100%
@@ -367,7 +369,7 @@ exports.checkSavingsGoalMilestone = onDocumentUpdated('savingsGoals/{goalId}', a
     });
 
     if (!milestoneCrossed) {
-      console.log(`📊 No milestone crossed (${percentageAfter}%)`);
+      console.log(`No milestone crossed (${percentageAfter}%)`);
       return;
     }
 
@@ -393,28 +395,30 @@ exports.checkSavingsGoalMilestone = onDocumentUpdated('savingsGoals/{goalId}', a
     for (const userId of partners) {
       try {
         const userEmail = await getUserEmail(userId);
-        const userDoc = await db.collection('users').doc(userId).get();
-        const userName = userDoc.data()?.displayName || 'there';
+        if (!userEmail) {
+          console.log(`No email found for user ${userId}`);
+          continue;
+        }
 
-        const html = savingsGoalMilestoneTemplate({
-          coupleId,
-          userName,
-          goalName: name,
-          targetAmount,
-          currentAmount,
-          percentageReached: percentageAfter,
-          currency,
-          locale,
-        });
+        const userName = await getUserDisplayName(userId);
 
         const subject = percentageAfter >= 100
-          ? `🎉 Savings Goal Reached: ${name}`
-          : `💰 Savings Milestone (${percentageAfter}%): ${name}`;
+          ? `Savings Goal Reached: ${name}`
+          : `Savings Milestone (${percentageAfter}%): ${name}`;
 
         const result = await sendEmail({
           to: userEmail,
+          toName: userName,
           subject,
-          html,
+          templateId: TEMPLATE_IDS.savingsMilestone,
+          variables: {
+            userName,
+            goalName: name,
+            milestone: milestoneCrossed.toString(),
+            targetAmount: formatCurrency(targetAmount, currency, locale),
+            savedAmount: formatCurrency(currentAmount, currency, locale),
+            unsubscribeUrl: generateUnsubscribeUrl(coupleId, 'savingsGoalMilestone'),
+          },
         });
 
         await logEmailSent({
@@ -425,9 +429,9 @@ exports.checkSavingsGoalMilestone = onDocumentUpdated('savingsGoals/{goalId}', a
           success: true,
         });
 
-        console.log(`✅ Savings goal notification sent to ${userEmail}`);
+        console.log(`Savings goal notification sent to ${userEmail}`);
       } catch (error) {
-        console.error(`❌ Error sending savings notification to user ${userId}:`, error);
+        console.error(`Error sending savings notification to user ${userId}:`, error);
         await logEmailSent({
           coupleId,
           userId,
@@ -439,6 +443,6 @@ exports.checkSavingsGoalMilestone = onDocumentUpdated('savingsGoals/{goalId}', a
       }
     }
   } catch (error) {
-    console.error('❌ Error in savings goal milestone trigger:', error);
+    console.error('Error in savings goal milestone trigger:', error);
   }
 });

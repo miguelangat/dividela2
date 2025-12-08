@@ -3,27 +3,34 @@
  *
  * Cloud Functions that run on a schedule to check for notification triggers.
  * These run daily to check for fiscal year end reminders and other time-based alerts.
+ *
+ * Updated for Firebase Functions v2 (7.0.0+)
  */
 
-const functions = require('firebase-functions');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
 const admin = require('firebase-admin');
 const {
   sendEmail,
   getUserEmail,
+  getUserDisplayName,
   isNotificationEnabled,
   logEmailSent,
-} = require('./emailService');
-const { fiscalYearEndReminderTemplate } = require('./templates');
+  generateUnsubscribeUrl,
+  formatCurrency,
+  TEMPLATE_IDS,
+} = require('./mailersendService');
 
 /**
  * Check for fiscal year end reminders
- * Runs daily at 9 AM UTC (adjust timezone as needed)
+ * Runs daily at 9 AM Eastern Time
  */
-exports.checkFiscalYearEndReminders = functions.pubsub
-  .schedule('0 9 * * *') // Every day at 9 AM UTC
-  .timeZone('America/New_York') // Adjust to your timezone
-  .onRun(async (context) => {
-    console.log('🔔 Running fiscal year end reminder check...');
+exports.checkFiscalYearEndReminders = onSchedule(
+  {
+    schedule: '0 9 * * *', // Every day at 9 AM
+    timeZone: 'America/New_York',
+  },
+  async (event) => {
+    console.log('Running fiscal year end reminder check...');
 
     const db = admin.firestore();
     const today = new Date();
@@ -40,7 +47,7 @@ exports.checkFiscalYearEndReminders = functions.pubsub
           // Check if reminders are enabled
           const remindersEnabled = await isNotificationEnabled(coupleId, 'fiscalYearEndReminder');
           if (!remindersEnabled) {
-            console.log(`📧 Fiscal year reminders disabled for couple: ${coupleId}`);
+            console.log(`Fiscal year reminders disabled for couple: ${coupleId}`);
             continue;
           }
 
@@ -52,7 +59,7 @@ exports.checkFiscalYearEndReminders = functions.pubsub
           const fiscalYearEnd = calculateFiscalYearEnd(fiscalYear, today);
 
           if (!fiscalYearEnd) {
-            console.log(`❌ Could not calculate fiscal year end for couple: ${coupleId}`);
+            console.log(`Could not calculate fiscal year end for couple: ${coupleId}`);
             continue;
           }
 
@@ -61,14 +68,14 @@ exports.checkFiscalYearEndReminders = functions.pubsub
 
           // Send reminder if within the threshold (e.g., 30 days)
           if (daysUntilEnd === daysBeforeEnd) {
-            console.log(`📅 Fiscal year ends in ${daysUntilEnd} days for couple: ${coupleId}`);
+            console.log(`Fiscal year ends in ${daysUntilEnd} days for couple: ${coupleId}`);
 
             // Get couple info
             const coupleDoc = await db.collection('couples').doc(coupleId).get();
             const couple = coupleDoc.data();
 
             if (!couple) {
-              console.log(`❌ Couple not found: ${coupleId}`);
+              console.log(`Couple not found: ${coupleId}`);
               continue;
             }
 
@@ -93,64 +100,67 @@ exports.checkFiscalYearEndReminders = functions.pubsub
             for (const userId of partners) {
               try {
                 const userEmail = await getUserEmail(userId);
-                const userDoc = await db.collection('users').doc(userId).get();
-                const userName = userDoc.data()?.displayName || 'there';
+                if (!userEmail) {
+                  console.log(`No email found for user ${userId}`);
+                  continue;
+                }
 
-                const html = fiscalYearEndReminderTemplate({
-                  coupleId,
-                  userName,
-                  daysRemaining: daysUntilEnd,
-                  fiscalYearLabel,
-                  totalBudget,
-                  totalSpent,
-                  currency,
-                  locale,
-                });
+                const userName = await getUserDisplayName(userId);
 
-                const emailDocId = await sendEmail({
+                const result = await sendEmail({
                   to: userEmail,
-                  subject: `📅 Fiscal Year ${fiscalYearLabel} Ending in ${daysUntilEnd} Days`,
-                  html,
+                  toName: userName,
+                  subject: `Fiscal Year ${fiscalYearLabel} Ending in ${daysUntilEnd} Days`,
+                  templateId: TEMPLATE_IDS.fiscalYearReminder,
+                  variables: {
+                    userName,
+                    daysRemaining: daysUntilEnd.toString(),
+                    fiscalYearLabel,
+                    totalBudget: formatCurrency(totalBudget, currency, locale),
+                    totalSpent: formatCurrency(totalSpent, currency, locale),
+                    unsubscribeUrl: generateUnsubscribeUrl(coupleId, 'fiscalYearEndReminder'),
+                  },
                 });
 
                 await logEmailSent({
                   coupleId,
                   userId,
                   type: 'fiscalYearEndReminder',
-                  emailDocId,
+                  messageId: result.messageId,
                   success: true,
                 });
 
-                console.log(`✅ Fiscal year reminder sent to ${userEmail}`);
+                console.log(`Fiscal year reminder sent to ${userEmail}`);
               } catch (error) {
-                console.error(`❌ Error sending reminder to user ${userId}:`, error);
+                console.error(`Error sending reminder to user ${userId}:`, error);
                 await logEmailSent({
                   coupleId,
                   userId,
                   type: 'fiscalYearEndReminder',
-                  emailDocId: null,
+                  messageId: null,
                   success: false,
                   error: error.message,
                 });
               }
             }
           } else if (daysUntilEnd < 0) {
-            console.log(`⏰ Fiscal year has ended for couple: ${coupleId}`);
+            console.log(`Fiscal year has ended for couple: ${coupleId}`);
           } else {
-            console.log(`📅 ${daysUntilEnd} days until fiscal year end (threshold: ${daysBeforeEnd})`);
+            console.log(`${daysUntilEnd} days until fiscal year end (threshold: ${daysBeforeEnd})`);
           }
         } catch (error) {
-          console.error(`❌ Error processing couple ${coupleId}:`, error);
+          console.error(`Error processing couple ${coupleId}:`, error);
         }
       }
 
-      console.log('✅ Fiscal year end reminder check completed');
+      console.log('Fiscal year end reminder check completed');
       return null;
     } catch (error) {
-      console.error('❌ Error in fiscal year reminder check:', error);
+      console.error('Error in fiscal year reminder check:', error);
       return null;
     }
-  });
+  }
+);
 
 /**
  * Calculate fiscal year end date
@@ -286,7 +296,7 @@ async function getAnnualBudgetSummary(db, coupleId, fiscalYear, referenceDate) {
 
     return { totalBudget, totalSpent };
   } catch (error) {
-    console.error('❌ Error getting annual budget summary:', error);
+    console.error('Error getting annual budget summary:', error);
     return { totalBudget: 0, totalSpent: 0 };
   }
 }
