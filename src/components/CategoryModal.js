@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import EmojiPicker from 'rn-emoji-keyboard';
+import { useTranslation } from 'react-i18next';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES } from '../constants/theme';
 
 export default function CategoryModal({
@@ -22,6 +23,7 @@ export default function CategoryModal({
   editingCategory = null, // { key, name, icon, defaultBudget }
   mode = 'add', // 'add' or 'edit'
 }) {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('');
   const [defaultBudget, setDefaultBudget] = useState('100');
@@ -48,18 +50,18 @@ export default function CategoryModal({
     const newErrors = {};
 
     if (!name.trim()) {
-      newErrors.name = 'Category name is required';
+      newErrors.name = t('components.categoryModal.nameRequired');
     } else if (name.trim().length > 30) {
-      newErrors.name = 'Name must be 30 characters or less';
+      newErrors.name = t('components.categoryModal.nameTooLong');
     }
 
     if (!icon.trim()) {
-      newErrors.icon = 'Icon is required';
+      newErrors.icon = t('components.categoryModal.iconRequired');
     }
 
     const budgetNum = parseFloat(defaultBudget);
     if (isNaN(budgetNum) || budgetNum < 0) {
-      newErrors.defaultBudget = 'Budget must be a positive number';
+      newErrors.defaultBudget = t('components.categoryModal.budgetError');
     }
 
     setErrors(newErrors);
@@ -83,7 +85,7 @@ export default function CategoryModal({
       handleClose();
     } catch (error) {
       console.error('Error saving category:', error);
-      setErrors({ general: error.message || 'Failed to save category' });
+      setErrors({ general: error.message || t('components.categoryModal.saveFailed') });
     } finally {
       setLoading(false);
     }
@@ -121,15 +123,15 @@ export default function CategoryModal({
           >
             {/* Header */}
             <Text style={styles.modalTitle}>
-              {mode === 'edit' ? 'Edit Category' : 'Add Custom Category'}
+              {mode === 'edit' ? t('components.categoryModal.editTitle') : t('components.categoryModal.addTitle')}
             </Text>
 
             {/* Category Name */}
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Category Name</Text>
+              <Text style={styles.label}>{t('components.categoryModal.categoryName')}</Text>
               <TextInput
                 style={[styles.input, errors.name && styles.inputError]}
-                placeholder="e.g., Health & Fitness"
+                placeholder={t('components.categoryModal.namePlaceholder')}
                 value={name}
                 onChangeText={setName}
                 maxLength={30}
@@ -140,7 +142,7 @@ export default function CategoryModal({
 
             {/* Icon (Emoji) */}
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Icon (emoji)</Text>
+              <Text style={styles.label}>{t('components.categoryModal.iconLabel')}</Text>
               <TouchableOpacity
                 style={[
                   styles.emojiButton,
@@ -152,18 +154,18 @@ export default function CategoryModal({
                 {icon ? (
                   <Text style={styles.emojiButtonIcon}>{icon}</Text>
                 ) : (
-                  <Text style={styles.emojiButtonPlaceholder}>Tap to select emoji</Text>
+                  <Text style={styles.emojiButtonPlaceholder}>{t('components.categoryModal.tapToSelect')}</Text>
                 )}
               </TouchableOpacity>
               <Text style={styles.hint}>
-                Tap to choose an emoji to represent this category
+                {t('components.categoryModal.iconHint')}
               </Text>
               {errors.icon && <Text style={styles.errorText}>{errors.icon}</Text>}
             </View>
 
             {/* Default Budget */}
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Default Budget</Text>
+              <Text style={styles.label}>{t('components.categoryModal.defaultBudget')}</Text>
               <View style={styles.budgetInputContainer}>
                 <Text style={styles.dollarSign}>$</Text>
                 <TextInput
@@ -194,7 +196,7 @@ export default function CategoryModal({
                 disabled={loading}
                 activeOpacity={0.8}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -206,7 +208,7 @@ export default function CategoryModal({
                 {loading ? (
                   <ActivityIndicator color={COLORS.textWhite} />
                 ) : (
-                  <Text style={styles.saveButtonText}>Save</Text>
+                  <Text style={styles.saveButtonText}>{t('common.save')}</Text>
                 )}
               </TouchableOpacity>
             </View>

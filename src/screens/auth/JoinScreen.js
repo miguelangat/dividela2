@@ -24,6 +24,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { useTranslation } from 'react-i18next';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatCodeInput, isValidCodeFormat } from '../../utils/inviteCode';
@@ -31,6 +32,7 @@ import { COLORS, FONTS, SPACING, COMMON_STYLES } from '../../constants/theme';
 import { initializeCategoriesForCouple } from '../../services/categoryService';
 
 export default function JoinScreen({ navigation }) {
+  const { t } = useTranslation();
   const { user, userDetails, updatePartnerInfo } = useAuth();
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -59,21 +61,21 @@ export default function JoinScreen({ navigation }) {
       const codeDoc = await getDoc(doc(db, 'inviteCodes', enteredCode));
 
       if (!codeDoc.exists()) {
-        return { valid: false, error: 'Invalid code. Please check and try again.' };
+        return { valid: false, error: t('auth.join.invalidCode') };
       }
 
       const codeData = codeDoc.data();
 
       // Check if user is trying to use their own code
       if (codeData.createdBy === user.uid) {
-        return { valid: false, error: 'You cannot use your own invite code.' };
+        return { valid: false, error: t('auth.join.ownCodeError') };
       }
 
       // Check if already used
       if (codeData.isUsed) {
         return {
           valid: false,
-          error: 'This code has already been used. Ask your partner for a new code.',
+          error: t('auth.join.codeAlreadyUsed'),
         };
       }
 
@@ -82,14 +84,14 @@ export default function JoinScreen({ navigation }) {
       if (expiresAt < new Date()) {
         return {
           valid: false,
-          error: 'This code has expired. Ask your partner for a new code.',
+          error: t('auth.join.codeExpired'),
         };
       }
 
       return { valid: true, partnerId: codeData.createdBy };
     } catch (err) {
       console.error('Error validating code:', err);
-      return { valid: false, error: 'Failed to validate code. Please try again.' };
+      return { valid: false, error: t('auth.join.validationFailed') };
     }
   };
 
@@ -106,19 +108,13 @@ export default function JoinScreen({ navigation }) {
 
       if (!partnerDoc.exists()) {
         console.error('⚠️ Partner document not found!');
-        throw new Error(
-          'Your partner\'s account is incomplete. Ask them to:\n' +
-          '1. Sign out\n' +
-          '2. Sign in again\n' +
-          '3. Generate a new invite code\n' +
-          'Then try joining again.'
-        );
+        throw new Error(t('auth.join.partnerAccountIncomplete'));
       }
       console.log('✓ Partner document validated');
 
       // Validate IDs
       if (!partnerId || !user.uid) {
-        throw new Error('Invalid user IDs for pairing');
+        throw new Error(t('auth.join.invalidUserIds'));
       }
 
       // Generate couple ID
@@ -189,16 +185,16 @@ export default function JoinScreen({ navigation }) {
 
       // Provide specific error messages
       if (err.code === 'permission-denied') {
-        throw new Error('Permission denied. The app cannot update your partner\'s account. Please contact support.');
+        throw new Error(t('auth.join.permissionDenied'));
       } else if (err.code === 'not-found') {
-        throw new Error('Database connection issue. Please check your internet and try again.');
+        throw new Error(t('auth.join.databaseError'));
       } else if (err.code === 'unavailable') {
-        throw new Error('Network error. Please check your internet connection.');
-      } else if (err.message.includes('account is incomplete')) {
+        throw new Error(t('auth.join.networkError'));
+      } else if (err.message.includes('account is incomplete') || err.message.includes('Invalid user IDs')) {
         // Re-throw our custom validation error
         throw err;
       } else {
-        throw new Error(`Failed to create couple: ${err.message}`);
+        throw new Error(t('auth.join.createCoupleFailed', { error: err.message }));
       }
     }
   };
@@ -206,7 +202,7 @@ export default function JoinScreen({ navigation }) {
   const handleConnect = async () => {
     // Validate format first
     if (!isValidCodeFormat(code)) {
-      setError('Please enter a valid 6-character code');
+      setError(t('auth.join.invalidFormat'));
       return;
     }
 
@@ -237,7 +233,7 @@ export default function JoinScreen({ navigation }) {
       }
     } catch (err) {
       console.error('Error connecting:', err);
-      setError(err.message || 'Failed to connect. Please try again.');
+      setError(err.message || t('auth.join.connectFailed'));
     } finally {
       setLoading(false);
     }
@@ -270,20 +266,20 @@ export default function JoinScreen({ navigation }) {
         </View>
 
         {/* Title */}
-        <Text style={styles.title}>Enter Invite Code</Text>
+        <Text style={styles.title}>{t('auth.join.title')}</Text>
         <Text style={styles.subtitle}>
-          Ask your partner for their 6-character invite code
+          {t('auth.join.subtitle')}
         </Text>
 
         {/* Code Input */}
         <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>Invite Code</Text>
+          <Text style={styles.inputLabel}>{t('auth.join.inputLabel')}</Text>
           <TextInput
             ref={codeInputRef}
             style={styles.codeInput}
             value={formatCodeDisplay(code)}
             onChangeText={handleCodeChange}
-            placeholder="ABC 123"
+            placeholder={t('auth.join.placeholder')}
             placeholderTextColor={COLORS.textSecondary}
             maxLength={7} // 6 chars + 1 space
             autoCapitalize="characters"
@@ -299,7 +295,7 @@ export default function JoinScreen({ navigation }) {
           <View style={styles.hintContainer}>
             <Ionicons name="information-circle-outline" size={16} color={COLORS.textSecondary} />
             <Text style={styles.hintText}>
-              Enter the code exactly as your partner shared it
+              {t('auth.join.hint')}
             </Text>
           </View>
         </View>
@@ -324,15 +320,15 @@ export default function JoinScreen({ navigation }) {
           {loading ? (
             <ActivityIndicator color={COLORS.background} />
           ) : (
-            <Text style={COMMON_STYLES.primaryButtonText}>Connect</Text>
+            <Text style={COMMON_STYLES.primaryButtonText}>{t('auth.join.connect')}</Text>
           )}
         </TouchableOpacity>
 
         {/* Help Text */}
         <View style={styles.helpContainer}>
-          <Text style={styles.helpText}>Don't have a code yet?</Text>
+          <Text style={styles.helpText}>{t('auth.join.noCodeYet')}</Text>
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Text style={styles.helpLink}>Go back and invite your partner</Text>
+            <Text style={styles.helpLink}>{t('auth.join.goBackAndInvite')}</Text>
           </TouchableOpacity>
         </View>
       </View>

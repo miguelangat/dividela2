@@ -15,6 +15,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { COLORS, FONTS, SPACING } from '../constants/theme';
 import { exportExpenses } from '../utils/csvExport';
 
@@ -27,19 +28,20 @@ export default function ExportButton({
   disabled = false,
   style,
 }) {
+  const { t } = useTranslation();
   const [exporting, setExporting] = useState(false);
 
   const handleExport = async () => {
     if (!expenses || expenses.length === 0) {
       Alert.alert(
-        'No Expenses',
-        'There are no expenses to export. Add some expenses first!'
+        t('components.exportButton.noExpenses'),
+        t('components.exportButton.noExpensesMessage')
       );
       return;
     }
 
     if (!userDetails) {
-      Alert.alert('Error', 'User details not available');
+      Alert.alert(t('common.error'), t('components.exportButton.userDetailsError'));
       return;
     }
 
@@ -52,15 +54,15 @@ export default function ExportButton({
       });
 
       Alert.alert(
-        'Export Successful!',
-        `Exported ${result.expenseCount} expense${result.expenseCount !== 1 ? 's' : ''} to ${result.filename}`,
-        [{ text: 'OK' }]
+        t('components.exportButton.successTitle'),
+        t(result.expenseCount !== 1 ? 'components.exportButton.successMessage_plural' : 'components.exportButton.successMessage', { count: result.expenseCount, filename: result.filename }),
+        [{ text: t('common.ok') }]
       );
     } catch (error) {
       console.error('Export error:', error);
       Alert.alert(
-        'Export Failed',
-        error.message || 'Failed to export expenses. Please try again.'
+        t('components.exportButton.failedTitle'),
+        error.message || t('components.exportButton.failedMessage')
       );
     } finally {
       setExporting(false);
@@ -80,7 +82,7 @@ export default function ExportButton({
         <Ionicons name="download-outline" size={20} color={COLORS.background} />
       )}
       <Text style={styles.buttonText}>
-        {exporting ? 'Exporting...' : 'Export to CSV'}
+        {exporting ? t('components.exportButton.exporting') : t('components.exportButton.exportToCsv')}
       </Text>
     </TouchableOpacity>
   );

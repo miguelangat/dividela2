@@ -78,6 +78,13 @@
       "permissionDenied": "Permiso denegado. Por favor verifica la configuración de tu cuenta.",
       "navigationErrorTitle": "Error de Navegación",
       "navigationErrorMessage": "No se pudo abrir la pantalla de importación. Por favor intenta de nuevo."
+    },
+    "unpaired": {
+      "title": "Actualmente No Estás Emparejado",
+      "message": "Tus datos están seguros, pero no estás compartiendo gastos con nadie en este momento.",
+      "findPartner": "Buscar Pareja",
+      "reconnect": "Reconectar con {{partner}}",
+      "readOnlyMode": "Puedes ver tus gastos pero no puedes agregar nuevos mientras no estés emparejado."
     }
   },
   "settleUpModal": {
@@ -112,6 +119,8 @@
     "partner": "Pareja",
     "partnerName": "Nombre de Pareja",
     "coupleId": "coupleId",
+    "noPartner": "Sin pareja conectada",
+    "noPartnerConnected": "Sin pareja conectada",
     "preferences": "Preferencias",
     "language": "Idioma",
     "languageChangeFailed": "Error al cambiar idioma. Por favor intenta de nuevo.",
@@ -133,6 +142,20 @@
       "description": "Desbloquea presupuestos ilimitados, analíticas y más",
       "partnerHasPremium": "¡Tu pareja también tiene acceso premium!",
       "bothGetPremium": "Cuando actualizas, tanto tú como tu pareja obtienen funciones premium."
+    },
+    "notifications": {
+      "title": "Notificaciones por Correo",
+      "emailEnabled": "Activar Notificaciones por Correo",
+      "emailEnabledDesc": "Recibe alertas por correo para actualizaciones de presupuesto y logros",
+      "monthlyBudget": "Alertas de Presupuesto Mensual",
+      "monthlyBudgetDesc": "Recibe notificaciones cuando alcances el 80%, 90% o 100% de tu presupuesto mensual",
+      "fiscalYearEnd": "Recordatorios de Fin de Año Fiscal",
+      "fiscalYearEndDesc": "Recordatorio 30 días antes de que termine tu año fiscal",
+      "savingsGoal": "Logros de Ahorros",
+      "savingsGoalDesc": "Celebra cuando alcances metas de ahorro (25%, 50%, 75%, 100%)",
+      "partnerActivity": "Actividad de Pareja",
+      "partnerActivityDesc": "Recibe notificaciones cuando tu pareja agregue un gasto",
+      "infoText": "Las notificaciones por correo se envían a tu dirección de correo registrada. Puedes cancelar la suscripción en cualquier momento."
     },
     "receiptScanning": {
       "title": "Escaneo de Recibos",
@@ -157,10 +180,62 @@
     "nameEmpty": "El nombre no puede estar vacío",
     "nameUpdated": "Nombre actualizado exitosamente",
     "nameUpdateFailed": "Error al actualizar nombre. Por favor intenta de nuevo.",
+    "notificationUpdateFailed": "Error al actualizar configuración de notificaciones. Por favor intenta de nuevo.",
     "restartOnboardingTitle": "Reiniciar Configuración de Presupuesto",
     "restartOnboardingMessage": "Esto te llevará nuevamente por el proceso de configuración del presupuesto. Tu presupuesto actual será reemplazado.",
     "restart": "Reiniciar",
-    "restartError": "Error al reiniciar configuración. Por favor intenta de nuevo."
+    "restartError": "Error al reiniciar configuración. Por favor intenta de nuevo.",
+    "accountManagement": "Gestión de Cuenta",
+    "changePassword": "Cambiar Contraseña",
+    "changePasswordDescription": "Actualiza la contraseña de tu cuenta",
+    "deleteAccount": "Eliminar Cuenta",
+    "deleteAccountDescription": "Eliminar permanentemente tu cuenta",
+    "changePasswordModal": {
+      "title": "Cambiar Contraseña",
+      "currentPassword": "Contraseña Actual",
+      "currentPasswordPlaceholder": "Ingresa tu contraseña actual",
+      "newPassword": "Nueva Contraseña",
+      "newPasswordPlaceholder": "Ingresa nueva contraseña",
+      "confirmPassword": "Confirmar Nueva Contraseña",
+      "confirmPasswordPlaceholder": "Re-ingresa nueva contraseña",
+      "change": "Cambiar Contraseña",
+      "cancel": "Cancelar",
+      "success": "¡Contraseña cambiada exitosamente!",
+      "error": "Error al cambiar contraseña",
+      "passwordMismatch": "Las contraseñas no coinciden",
+      "passwordTooShort": "La contraseña debe tener al menos 6 caracteres",
+      "currentPasswordEmpty": "Por favor ingresa tu contraseña actual",
+      "newPasswordEmpty": "Por favor ingresa una nueva contraseña",
+      "oauthAccountError": "El cambio de contraseña solo está disponible para cuentas de correo/contraseña. Iniciaste sesión con un proveedor social."
+    },
+    "deleteAccountModal": {
+      "title": "Eliminar Cuenta",
+      "warning": "⚠️ Esta acción no se puede deshacer",
+      "message": "¿Estás absolutamente seguro de que quieres eliminar tu cuenta? Esto:",
+      "consequence1": "• Eliminará permanentemente todos tus datos",
+      "consequence2": "• Te desvinculará de tu emparejamiento de pareja",
+      "consequence3": "• Eliminará todos tus registros de gastos",
+      "consequence4": "• Cancelará cualquier suscripción activa",
+      "passwordLabel": "Ingresa tu contraseña para confirmar",
+      "passwordPlaceholder": "Tu contraseña",
+      "oauthMessage": "Se te pedirá que inicies sesión nuevamente para confirmar la eliminación",
+      "confirmText": "Escribe ELIMINAR para confirmar",
+      "confirmPlaceholder": "Escribe ELIMINAR",
+      "delete": "Eliminar Mi Cuenta",
+      "cancel": "Cancelar",
+      "success": "Cuenta eliminada exitosamente",
+      "error": "Error al eliminar cuenta",
+      "confirmationMismatch": "Por favor escribe ELIMINAR para confirmar",
+      "passwordEmpty": "Por favor ingresa tu contraseña"
+    },
+    "unpair": "Desemparejar",
+    "unpairModal": {
+      "title": "Desemparejar de Pareja",
+      "message": "¿Estás seguro de que quieres desemparejarte? Ya no compartirás gastos ni presupuesto con tu pareja.",
+      "confirm": "Desemparejar",
+      "success": "Desemparejado exitosamente",
+      "error": "Error al desemparejar"
+    }
   },
   "languages": {
     "en": "Inglés",
@@ -411,7 +486,10 @@
       "tagline": "Rastrea gastos compartidos con tu pareja, sin esfuerzo",
       "getStarted": "Comenzar",
       "alreadyHaveAccount": "¿Ya tienes una cuenta?",
-      "signIn": "Iniciar sesión"
+      "signIn": "Iniciar sesión",
+      "feature1": "Enfocado en Privacidad",
+      "feature2": "Perfecto para Parejas",
+      "feature3": "Seguimiento Fácil"
     },
     "signIn": {
       "title": "Iniciar Sesión",
@@ -438,16 +516,88 @@
       "email": "Correo Electrónico",
       "emailPlaceholder": "tu@email.com",
       "password": "Contraseña",
-      "passwordPlaceholder": "Crea una contraseña",
+      "passwordPlaceholder": "Al menos 8 caracteres",
       "acceptTerms": "Acepto los términos y la política de privacidad",
       "termsRequired": "Debes aceptar los términos y la política de privacidad",
       "signUpButton": "Crear Cuenta",
+      "createAccountButton": "Crear Cuenta",
       "orDivider": "o",
       "continueWithApple": "Continuar con Apple",
       "continueWithGoogle": "Continuar con Google",
       "alreadyHaveAccount": "¿Ya tienes una cuenta?",
       "signIn": "Iniciar sesión",
-      "signUpError": "Error al crear cuenta. Por favor intenta de nuevo."
+      "signUpError": "Error al crear cuenta. Por favor intenta de nuevo.",
+      "googleSignInError": "Error al iniciar sesión con Google. Por favor intenta de nuevo.",
+      "appleSignInError": "Error al iniciar sesión con Apple. Por favor intenta de nuevo.",
+      "agreeToTerms": "Acepto los",
+      "termsOfService": "Términos de Servicio",
+      "and": "y",
+      "privacyPolicy": "Política de Privacidad"
+    },
+    "connect": {
+      "title": "Conectar Pareja",
+      "subtitle": "Conecta con tu pareja para empezar a rastrear gastos compartidos",
+      "invitePartner": "Invitar Pareja",
+      "inviteDescription": "Genera un código para que tu pareja se una",
+      "joinPartner": "Unirse a Pareja",
+      "joinDescription": "Ingresa el código de invitación de tu pareja",
+      "skipForNow": "Saltar por ahora (Ir al Panel)"
+    },
+    "join": {
+      "title": "Ingresa el Código de Invitación",
+      "subtitle": "Pide a tu pareja su código de 6 caracteres",
+      "inputLabel": "Código de Invitación",
+      "placeholder": "ABC 123",
+      "hint": "Ingresa el código exactamente como tu pareja lo compartió",
+      "connect": "Conectar",
+      "noCodeYet": "¿Aún no tienes un código?",
+      "goBackAndInvite": "Vuelve e invita a tu pareja",
+      "invalidCode": "Código inválido. Por favor verifica e intenta de nuevo.",
+      "ownCodeError": "No puedes usar tu propio código de invitación.",
+      "codeAlreadyUsed": "Este código ya ha sido usado. Pide a tu pareja un nuevo código.",
+      "codeExpired": "Este código ha expirado. Pide a tu pareja un nuevo código.",
+      "validationFailed": "Error al validar código. Por favor intenta de nuevo.",
+      "invalidFormat": "Por favor ingresa un código válido de 6 caracteres",
+      "partnerAccountIncomplete": "La cuenta de tu pareja está incompleta. Pídele que:\n1. Cierre sesión\n2. Inicie sesión de nuevo\n3. Genere un nuevo código de invitación\nLuego intenta unirte de nuevo.",
+      "invalidUserIds": "IDs de usuario inválidos para emparejamiento",
+      "permissionDenied": "Permiso denegado. La app no puede actualizar la cuenta de tu pareja. Por favor contacta soporte.",
+      "databaseError": "Problema de conexión a base de datos. Por favor verifica tu internet e intenta de nuevo.",
+      "networkError": "Error de red. Por favor verifica tu conexión a internet.",
+      "createCoupleFailed": "Error al crear pareja: {{error}}",
+      "connectFailed": "Error al conectar. Por favor intenta de nuevo."
+    },
+    "invite": {
+      "generating": "Generando código de invitación...",
+      "tryAgain": "Intentar de Nuevo",
+      "title": "Comparte Tu Código",
+      "subtitle": "Envía este código a tu pareja para que se una a Dividela",
+      "codeLabel": "Tu Código de Invitación",
+      "copied": "¡Copiado!",
+      "copyCode": "Copiar Código",
+      "shareVia": "Compartir por SMS, Email u Otros",
+      "waiting": "Esperando que tu pareja se una...",
+      "expiresIn": "El código expira en {{time}}",
+      "generateNew": "Generar Nuevo Código",
+      "shareMessage": "¡Únete a Dividela! Usa este código para conectar: {{code}}\n\nDividela ayuda a las parejas a rastrear gastos compartidos fácilmente.",
+      "shareTitle": "Únete a Dividela",
+      "copySuccess": "Código de invitación copiado al portapapeles",
+      "copyError": "Error al copiar código",
+      "shareError": "Error al compartir código de invitación"
+    },
+    "success": {
+      "title": "¡Conectado!",
+      "connectedWith": "Ahora estás conectado con",
+      "readyMessage": "¡Listo para rastrear gastos juntos y mantener tus finanzas organizadas!",
+      "nextSteps": "Siguiente: Configura Tu Presupuesto",
+      "trackExpenses": "Rastrea gastos compartidos",
+      "monitorBudget": "Monitorea tu presupuesto juntos",
+      "stayOnTrack": "Mantente en camino con tus metas",
+      "setupBudget": "Configurar Presupuesto",
+      "skipNote": "Puedes saltar este paso más tarde si prefieres",
+      "yourPartner": "Tu Pareja"
+    },
+    "footer": {
+      "madeInColombia": "Hecho en Colombia 🇨🇴 con ♥"
     }
   },
   "errors": {
@@ -466,8 +616,21 @@
       "title": "Vista Previa de División"
     },
     "merchantAlias": {
+      "title": "Alias de Comerciantes",
+      "loading": "Cargando alias...",
       "searchPlaceholder": "Buscar alias...",
+      "addNew": "Añadir Nuevo",
+      "noMatchingAliases": "Sin alias coincidentes",
+      "noAliasesYet": "Sin alias aún",
+      "noAliasesDescription": "Crea alias para normalizar nombres de comerciantes",
+      "noCoupleId": "No se proporcionó ID de pareja",
+      "deleteTitle": "Eliminar Alias",
+      "deleteMessage": "¿Estás seguro de que quieres eliminar el alias para \"{{merchant}}\"?",
+      "editTitle": "Editar Alias de Comerciante",
+      "createTitle": "Crear Alias de Comerciante",
+      "ocrMerchantLabel": "Nombre Original del Comerciante (de OCR)",
       "ocrMerchantPlaceholder": "Nombre de Comerciante OCR",
+      "aliasLabel": "Tu Alias",
       "aliasPlaceholder": "Tu Alias",
       "validationError": "Por favor completa ambos campos",
       "loadError": "Error al cargar alias de comerciantes. Por favor intenta de nuevo.",
@@ -482,31 +645,116 @@
       "searchPlaceholder": "Buscar monedas..."
     },
     "categoryModal": {
-      "namePlaceholder": "ej., Salud y Fitness"
+      "editTitle": "Editar Categoría",
+      "addTitle": "Añadir Categoría Personalizada",
+      "categoryName": "Nombre de Categoría",
+      "namePlaceholder": "ej., Salud y Fitness",
+      "nameRequired": "El nombre de la categoría es requerido",
+      "nameTooLong": "El nombre debe tener 30 caracteres o menos",
+      "iconLabel": "Icono (emoji)",
+      "iconRequired": "El icono es requerido",
+      "iconHint": "Toca para elegir un emoji que represente esta categoría",
+      "tapToSelect": "Toca para seleccionar emoji",
+      "defaultBudget": "Presupuesto por Defecto",
+      "budgetError": "El presupuesto debe ser un número positivo",
+      "saveFailed": "Error al guardar categoría"
     },
     "amountRange": {
       "minPlaceholder": "Mín",
       "maxPlaceholder": "Máx"
     },
     "expenseDetail": {
+      "title": "Detalles del Gasto",
+      "description": "Descripción",
+      "noDescription": "Sin descripción",
+      "totalAmount": "Monto Total",
+      "date": "Fecha",
+      "unknown": "Desconocido",
+      "paidBy": "Pagado Por",
+      "splitBreakdown": "Desglose de División",
+      "yourShare": "Tu Parte",
+      "partnerShare": "Parte de {{partner}}",
+      "settlementStatus": "Estado de Liquidación",
+      "settled": "Liquidado",
+      "pending": "Pendiente",
+      "settledOn": "Liquidado el {{date}}",
+      "settlementId": "ID de Liquidación: {{id}}...",
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "settledWarning": "Este gasto es parte de una liquidación y no puede ser editado",
+      "deleteTitle": "Eliminar Gasto",
+      "deleteWarning": "¿Estás seguro de que quieres eliminar este gasto? Esto no se puede deshacer.",
+      "deleteWarningSettled": "Este gasto es parte de una liquidación. Eliminarlo puede afectar tu historial de balance.\n\n¿Estás seguro de que quieres eliminar este gasto?",
       "deleteError": "Error al eliminar gasto"
     },
     "exportButton": {
-      "userDetailsError": "Detalles de usuario no disponibles"
+      "noExpenses": "Sin Gastos",
+      "noExpensesMessage": "No hay gastos para exportar. ¡Añade algunos gastos primero!",
+      "userDetailsError": "Detalles de usuario no disponibles",
+      "successTitle": "¡Exportación Exitosa!",
+      "successMessage": "Se exportó {{count}} gasto a {{filename}}",
+      "successMessage_plural": "Se exportaron {{count}} gastos a {{filename}}",
+      "failedTitle": "Error de Exportación",
+      "failedMessage": "Error al exportar gastos. Por favor intenta de nuevo.",
+      "exporting": "Exportando...",
+      "exportToCsv": "Exportar a CSV"
+    },
+    "expenseFilters": {
+      "filters": "Filtros",
+      "dateRange": "Rango de Fechas",
+      "categories": "Categorías",
+      "settlementStatus": "Estado de Liquidación",
+      "all": "Todos",
+      "settled": "Liquidado",
+      "pending": "Pendiente",
+      "paidBy": "Pagado Por",
+      "me": "Yo",
+      "partner": "Pareja",
+      "clearAllFilters": "Limpiar Todos los Filtros",
+      "category": "categoría",
+      "category_plural": "categorías",
+      "paidByMe": "Pagado por Mí",
+      "paidByPartner": "Pagado por Pareja"
+    },
+    "dateRangePicker": {
+      "selectPeriod": "Seleccionar Período",
+      "thisWeek": "Esta Semana",
+      "thisMonth": "Este Mes",
+      "lastMonth": "Mes Pasado",
+      "last30Days": "Últimos 30 Días",
+      "last90Days": "Últimos 90 Días",
+      "thisYear": "Este Año",
+      "allTime": "Todo el Tiempo"
+    },
+    "ocrSuggestion": {
+      "aiDetected": "Detalles Detectados por IA",
+      "amount": "Monto",
+      "currencyNote": "Usando {{currency}} • Puedes cambiar la moneda y editar todos los campos después de aceptar",
+      "merchant": "Comerciante",
+      "unknownMerchant": "Comerciante Desconocido",
+      "date": "Fecha",
+      "category": "Categoría",
+      "dismiss": "Descartar",
+      "useTheseDetails": "Usar Estos Detalles",
+      "createAliasTitle": "Crear Alias de Comerciante",
+      "createAliasSubtitle": "Crear un nombre corto para \"{{merchant}}\""
     }
   },
   "stats": {
     "title": "Estadísticas",
     "subtitle": "Rastrea tus patrones de gasto",
     "loading": "Cargando estadísticas...",
+    "error": "Error al cargar estadísticas. Desliza hacia abajo para reintentar.",
     "errorMessage": "Error al cargar estadísticas. Desliza hacia abajo para reintentar.",
     "sorting": {
+      "label": "Ordenar por:",
       "sortBy": "Ordenar por:",
       "latest": "Más Reciente",
       "highest": "Más Alto",
       "category": "Categoría"
     },
     "grouping": {
+      "label": "Agrupar por:",
       "groupBy": "Agrupar por:",
       "none": "Ninguno",
       "month": "Mes",
@@ -516,7 +764,13 @@
       "totalExpenses": "Gastos Totales",
       "expenseCount": "{{count}} gastos",
       "yourShare": "Tu Parte",
-      "partnerShare": "Parte de Pareja"
+      "partnerShare": "Parte de {{partnerName}}"
+    },
+    "list": {
+      "title": "Detalles de Gastos ({{count}})",
+      "noDescription": "Sin descripción",
+      "youPaid": "Tú pagaste",
+      "partnerPaid": "{{partnerName}} pagó"
     },
     "expenseList": {
       "title": "Detalles de Gastos ({{count}})",
@@ -524,10 +778,19 @@
       "youPaid": "Tú pagaste",
       "partnerPaid": "{{partnerName}} pagó"
     },
+    "breakdown": {
+      "title": "Desglose por Categoría",
+      "percentage": "{{percentage}}% del total",
+      "empty": "Sin categorías para mostrar"
+    },
     "categoryBreakdown": {
       "title": "Desglose por Categoría",
       "percentage": "{{percentage}}% del total",
       "noCategories": "Sin categorías para mostrar"
+    },
+    "settlement": {
+      "title": "Historial de Liquidaciones",
+      "subtitle": "Registro de cuándo se liquidaron los balances"
     },
     "settlementHistory": {
       "title": "Historial de Liquidaciones",
@@ -537,12 +800,32 @@
       "title": "Sin Gastos Todavía",
       "message": "Comienza a añadir gastos para ver tus estadísticas de gasto"
     },
+    "emptyFilter": {
+      "title": "Sin Gastos Coincidentes",
+      "message": "Intenta ajustar tus filtros para ver más resultados"
+    },
     "emptyFiltered": {
       "title": "Sin Gastos Coincidentes",
       "message": "Intenta ajustar tus filtros para ver más resultados"
     }
   },
   "categoryManager": {
+    "title": "Administrar Categorías",
+    "subtitle": "Personaliza tus categorías de gastos y presupuestos por defecto",
+    "loading": "Cargando categorías...",
+    "addCustomCategory": "+ Añadir Categoría Personalizada",
+    "resetToDefaults": "Restablecer Valores",
+    "noCategoriesTitle": "Sin categorías aún",
+    "noCategoriesText": "Añade tu primera categoría para comenzar",
+    "cannotDeleteTitle": "No Se Puede Eliminar",
+    "cannotDeleteMessage": "\"{{name}}\" tiene {{count}} gasto. Por favor elimina o reasigna esos gastos primero.",
+    "cannotDeleteMessage_plural": "\"{{name}}\" tiene {{count}} gastos. Por favor elimina o reasigna esos gastos primero.",
+    "deleteTitle": "Eliminar Categoría",
+    "deleteMessage": "¿Estás seguro de que quieres eliminar \"{{name}}\"?",
+    "resetTitle": "Restablecer Categorías",
+    "resetMessage": "¿Restablecer todas las categorías a valores por defecto? Esto eliminará categorías personalizadas (si no tienen gastos) y restaurará presupuestos por defecto.",
+    "resetSuccessMessage": "¡Categorías restablecidas a valores por defecto!",
+    "resetKeptMessage": "Se mantuvieron {{count}} categorías personalizadas con gastos.",
     "deleteSuccess": "¡Categoría eliminada exitosamente!",
     "deleteError": "Error al eliminar categoría",
     "updateSuccess": "¡Categoría actualizada exitosamente!",
@@ -551,6 +834,60 @@
     "resetError": "Error al restablecer categorías"
   },
   "paywall": {
+    "loading": "Cargando opciones de suscripción...",
+    "premiumBadge": "PREMIUM",
+    "title": "Actualiza a\nDividela Premium",
+    "subtitle": "Desbloquea funciones poderosas para manejar tus finanzas en pareja",
+    "requiresPremium": "{{feature}} requiere Premium",
+    "bestValue": "MEJOR VALOR",
+    "annual": "Anual",
+    "monthly": "Mensual",
+    "perYear": "/año",
+    "perMonth": "/mes",
+    "justPerMonth": "Solo ${{amount}}/mes",
+    "save33": "Ahorra 33%",
+    "whatsIncluded": "Qué Incluye",
+    "features": {
+      "unlimitedBudgets": "Presupuestos Ilimitados",
+      "unlimitedBudgetsDesc": "Crea tantos presupuestos como necesites",
+      "receiptScanning": "Escaneo de Recibos",
+      "receiptScanningDesc": "Escanea recibos con OCR impulsado por IA",
+      "annualView": "Vista Anual",
+      "annualViewDesc": "Rastrea gastos durante todo el año",
+      "advancedAnalytics": "Análisis Avanzado",
+      "advancedAnalyticsDesc": "Perspectivas y tendencias para gastos más inteligentes",
+      "exportData": "Exportar Datos",
+      "exportDataDesc": "Descarga gastos para impuestos o registros",
+      "csvImport": "Importar CSV",
+      "csvImportDesc": "Importa gastos masivamente desde extractos bancarios",
+      "customCategories": "Categorías Personalizadas",
+      "customCategoriesDesc": "Crea tus propias categorías de gastos",
+      "recurringExpenses": "Gastos Recurrentes",
+      "recurringExpensesDesc": "Automatiza facturas regulares y suscripciones",
+      "relationshipInsights": "Perspectivas de Pareja",
+      "relationshipInsightsDesc": "Puntuaciones de salud financiera para parejas",
+      "prioritySupport": "Soporte Prioritario",
+      "prioritySupportDesc": "Obtén ayuda cuando la necesites"
+    },
+    "featureTitles": {
+      "unlimited_budgets": "Presupuestos Ilimitados",
+      "annual_view": "Vista Anual",
+      "advanced_analytics": "Análisis Avanzado",
+      "export_data": "Exportar Datos",
+      "custom_categories": "Categorías Personalizadas",
+      "receipt_scanning": "Escaneo de Recibos",
+      "import_expenses": "Importar CSV"
+    },
+    "finePrint": "La suscripción se renueva automáticamente a menos que la renovación automática se desactive al menos 24 horas antes del final del período actual. El pago se cargará a tu cuenta de {{store}}.",
+    "startPremium": "Comenzar Premium",
+    "startPremiumWithPrice": "Comenzar Premium - ${{price}}",
+    "restorePurchases": "Restaurar Compras",
+    "welcomeTitle": "¡Bienvenido a Premium! 🎉",
+    "welcomeMessage": "Ahora tienes acceso a todas las funciones premium. ¡Disfruta!",
+    "getStarted": "Comenzar",
+    "purchasesRestored": "¡Compras Restauradas! 🎉",
+    "purchasesRestoredMessage": "Tu suscripción premium ha sido restaurada.",
+    "continue": "Continuar",
     "selectPlanError": "Por favor selecciona un plan de suscripción",
     "purchaseFailed": "Compra Fallida",
     "purchaseError": "Algo salió mal. Por favor intenta de nuevo.",
@@ -603,6 +940,25 @@
     }
   },
   "budget": {
+    "setup": {
+      "title": "Configuración de Presupuesto Mensual",
+      "subtitle": "Establece tus límites de presupuesto para cada categoría",
+      "loading": "Cargando presupuesto...",
+      "enableTracking": "Activar Seguimiento de Presupuesto",
+      "enableTrackingDesc": "Rastrea gastos contra presupuestos mensuales",
+      "categoryBudgets": "Presupuestos por Categoría",
+      "totalMonthlyBudget": "Presupuesto Mensual Total",
+      "settlementSettings": "Configuración de Liquidación",
+      "includeBudgetSavings": "Incluir Ahorros de Presupuesto",
+      "includeBudgetSavingsDesc": "Dividir ahorros de presupuesto en liquidación mensual",
+      "savingsInfoText": "Cuando está activado, si gastas menos del presupuesto, los ahorros se dividirán equitativamente y se añadirán al cálculo de liquidación mensual.",
+      "saveBudgets": "Guardar Presupuestos",
+      "manageCategories": "Gestionar Categorías →",
+      "successTitle": "Éxito",
+      "successMessage": "¡Presupuestos guardados exitosamente!",
+      "errorTitle": "Error",
+      "errorMessage": "Error al guardar presupuestos"
+    },
     "dashboard": {
       "title": "Panel de Presupuesto",
       "loadingDashboard": "Cargando panel...",

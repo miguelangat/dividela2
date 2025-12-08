@@ -19,6 +19,12 @@ import {
 import { doc, setDoc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  registerForPushNotifications,
+  unregisterPushToken,
+  setupNotificationListeners,
+  removeNotificationListeners,
+} from '../services/pushNotificationService';
 
 // Create the context
 const AuthContext = createContext({});
@@ -39,6 +45,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [hasSkippedConnect, setHasSkippedConnect] = useState(false);
+  const [pushToken, setPushToken] = useState(null);
 
   // Load skipped state
   useEffect(() => {
@@ -46,6 +53,60 @@ export const AuthProvider = ({ children }) => {
       if (value === 'true') setHasSkippedConnect(true);
     });
   }, []);
+
+  // Register for push notifications when user is authenticated
+  // Note: On web, permission must be granted via user gesture (Settings screen toggle)
+  // This effect only registers token if permission is already granted
+  useEffect(() => {
+    if (user && userDetails) {
+      const initPushNotifications = async () => {
+        try {
+          // Import dynamically to check permission status
+          const { getPermissionStatus, isPushNotificationSupported } = await import('../services/pushNotificationService');
+
+          if (!isPushNotificationSupported()) {
+            console.log('Push notifications not supported on this device/browser');
+            return;
+          }
+
+          const status = await getPermissionStatus();
+          console.log('Push notification permission status:', status);
+
+          // Only auto-register if permission is already granted
+          // On web, user must explicitly enable via Settings to trigger permission prompt
+          if (status === 'granted') {
+            const result = await registerForPushNotifications(user.uid);
+            if (result.success) {
+              setPushToken(result.token);
+              console.log('Push notifications registered successfully, token:', result.token?.substring(0, 20) + '...');
+            } else {
+              console.log('Push notifications not registered:', result.error);
+            }
+          } else {
+            console.log('Push notification permission not granted yet - user can enable in Settings');
+          }
+        } catch (err) {
+          console.error('Error initializing push notifications:', err);
+        }
+      };
+
+      initPushNotifications();
+
+      // Setup notification listeners (these work regardless of permission)
+      setupNotificationListeners(
+        (notification) => {
+          console.log('Notification received in foreground:', notification);
+        },
+        (response) => {
+          console.log('User interacted with notification:', response);
+        }
+      );
+
+      return () => {
+        removeNotificationListeners();
+      };
+    }
+  }, [user, userDetails]);
 
   // Listen for auth state changes
   useEffect(() => {
@@ -257,6 +318,14 @@ export const AuthProvider = ({ children }) => {
   const signOut = async () => {
     try {
       setError(null);
+
+      // Unregister push token before signing out
+      if (user) {
+        await unregisterPushToken(user.uid);
+        setPushToken(null);
+        removeNotificationListeners();
+      }
+
       await firebaseSignOut(auth);
       setUser(null);
       setUserDetails(null);
@@ -629,6 +698,7 @@ export const AuthProvider = ({ children }) => {
     userDetails,
     loading,
     error,
+    pushToken,
     signUp,
     signIn,
     signOut,

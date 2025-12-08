@@ -40,10 +40,10 @@ export default function WelcomeScreen({ navigation }) {
         <View style={styles.contentWrapper}>
           {/* Top Section - Logo and Title */}
           <View style={styles.topSection}>
-            {/* Logo with gradient border */}
+            {/* Logo with gradient border - matches favicon */}
             <View style={styles.logoContainer}>
               <View style={styles.logoCircle}>
-                <MaterialCommunityIcons name="finance" size={50} color={COLORS.textWhite} />
+                <Text style={styles.logoSlash}>/</Text>
               </View>
             </View>
 
@@ -159,6 +159,12 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: 'rgba(255, 255, 255, 0.3)',
     ...SHADOWS.large,
+  },
+  logoSlash: {
+    fontSize: 64,
+    fontWeight: FONTS.weights.bold,
+    color: COLORS.textWhite,
+    marginTop: -4,
   },
   textContainer: {
     alignItems: 'center',

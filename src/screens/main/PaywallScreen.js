@@ -17,10 +17,12 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useSubscription } from '../../contexts/SubscriptionContext';
 import { COLORS, FONTS, SPACING, SIZES } from '../../constants/theme';
 
 export default function PaywallScreen({ navigation, route }) {
+  const { t } = useTranslation();
   const { feature } = route?.params || {};
   const { offerings, purchase, restore, loading, isPremium } = useSubscription();
   const [selectedPackage, setSelectedPackage] = useState(null);
@@ -47,7 +49,7 @@ export default function PaywallScreen({ navigation, route }) {
 
   const handlePurchase = async () => {
     if (!selectedPackage) {
-      Alert.alert('Error', 'Please select a subscription plan');
+      Alert.alert(t('common.error'), t('paywall.selectPlanError'));
       return;
     }
 
@@ -57,11 +59,11 @@ export default function PaywallScreen({ navigation, route }) {
 
       if (result.success) {
         Alert.alert(
-          'Welcome to Premium! 🎉',
-          'You now have access to all premium features. Enjoy!',
+          t('paywall.welcomeTitle'),
+          t('paywall.welcomeMessage'),
           [
             {
-              text: 'Get Started',
+              text: t('paywall.getStarted'),
               onPress: () => navigation.goBack(),
             },
           ]
@@ -69,11 +71,11 @@ export default function PaywallScreen({ navigation, route }) {
       } else if (result.cancelled) {
         // User cancelled, do nothing
       } else {
-        Alert.alert('Purchase Failed', result.error || 'Something went wrong. Please try again.');
+        Alert.alert(t('paywall.purchaseFailed'), result.error || t('paywall.purchaseError'));
       }
     } catch (error) {
       console.error('Purchase error:', error);
-      Alert.alert('Error', 'Failed to process purchase. Please try again.');
+      Alert.alert(t('common.error'), t('paywall.processingError'));
     } finally {
       setPurchasing(false);
     }
@@ -87,64 +89,60 @@ export default function PaywallScreen({ navigation, route }) {
       if (result.success) {
         if (result.isPremium) {
           Alert.alert(
-            'Purchases Restored! 🎉',
-            'Your premium subscription has been restored.',
+            t('paywall.purchasesRestored'),
+            t('paywall.purchasesRestoredMessage'),
             [
               {
-                text: 'Continue',
+                text: t('paywall.continue'),
                 onPress: () => navigation.goBack(),
               },
             ]
           );
         } else {
-          Alert.alert('No Purchases Found', 'No previous purchases were found to restore.');
+          Alert.alert(t('paywall.noPurchasesTitle'), t('paywall.noPurchasesMessage'));
         }
       } else {
-        Alert.alert('Restore Failed', result.error || 'Failed to restore purchases.');
+        Alert.alert(t('paywall.restoreFailed'), result.error || t('paywall.restoreError'));
       }
     } catch (error) {
       console.error('Restore error:', error);
-      Alert.alert('Error', 'Failed to restore purchases. Please try again.');
+      Alert.alert(t('common.error'), t('paywall.restoreError'));
     } finally {
       setRestoring(false);
     }
   };
 
   const getFeatureTitle = () => {
-    const titles = {
-      unlimited_budgets: 'Unlimited Budgets',
-      annual_view: 'Annual View',
-      advanced_analytics: 'Advanced Analytics',
-      export_data: 'Export Data',
-      custom_categories: 'Custom Categories',
-      receipt_scanning: 'Receipt Scanning',
-      import_expenses: 'CSV Import',
-    };
-
-    return titles[feature] || 'Premium Features';
+    return t(`paywall.featureTitles.${feature}`, t('paywall.featureTitles.unlimited_budgets'));
   };
 
   const premiumFeatures = [
-    { icon: 'infinite', title: 'Unlimited Budgets', description: 'Create as many budgets as you need' },
-    { icon: 'camera', title: 'Receipt Scanning', description: 'Scan receipts with AI-powered OCR' },
-    { icon: 'calendar', title: 'Annual View', description: 'Track expenses across the entire year' },
-    { icon: 'stats-chart', title: 'Advanced Analytics', description: 'Insights and trends for smarter spending' },
-    { icon: 'download', title: 'Export Data', description: 'Download expenses for taxes or records' },
-    { icon: 'cloud-upload', title: 'CSV Import', description: 'Bulk import expenses from bank statements' },
-    { icon: 'pricetag', title: 'Custom Categories', description: 'Create your own expense categories' },
-    { icon: 'repeat', title: 'Recurring Expenses', description: 'Automate regular bills and subscriptions' },
-    { icon: 'heart', title: 'Relationship Insights', description: 'Financial health scores for couples' },
-    { icon: 'shield-checkmark', title: 'Priority Support', description: 'Get help when you need it' },
+    { icon: 'infinite', titleKey: 'unlimitedBudgets', descKey: 'unlimitedBudgetsDesc' },
+    { icon: 'camera', titleKey: 'receiptScanning', descKey: 'receiptScanningDesc' },
+    { icon: 'calendar', titleKey: 'annualView', descKey: 'annualViewDesc' },
+    { icon: 'stats-chart', titleKey: 'advancedAnalytics', descKey: 'advancedAnalyticsDesc' },
+    { icon: 'download', titleKey: 'exportData', descKey: 'exportDataDesc' },
+    { icon: 'cloud-upload', titleKey: 'csvImport', descKey: 'csvImportDesc' },
+    { icon: 'pricetag', titleKey: 'customCategories', descKey: 'customCategoriesDesc' },
+    { icon: 'repeat', titleKey: 'recurringExpenses', descKey: 'recurringExpensesDesc' },
+    { icon: 'heart', titleKey: 'relationshipInsights', descKey: 'relationshipInsightsDesc' },
+    { icon: 'shield-checkmark', titleKey: 'prioritySupport', descKey: 'prioritySupportDesc' },
   ];
 
   if (loading && !offerings) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Loading subscription options...</Text>
+        <Text style={styles.loadingText}>{t('paywall.loading')}</Text>
       </View>
     );
   }
+
+  const getStoreName = () => {
+    if (Platform.OS === 'ios') return 'App Store';
+    if (Platform.OS === 'android') return 'Google Play';
+    return 'Stripe';
+  };
 
   return (
     <View style={styles.container}>
@@ -160,11 +158,11 @@ export default function PaywallScreen({ navigation, route }) {
         <View style={styles.hero}>
           <View style={styles.premiumBadge}>
             <Ionicons name="sparkles" size={24} color="#FFD700" />
-            <Text style={styles.premiumBadgeText}>PREMIUM</Text>
+            <Text style={styles.premiumBadgeText}>{t('paywall.premiumBadge')}</Text>
           </View>
-          <Text style={styles.title}>Upgrade to{'\n'}Dividela Premium</Text>
+          <Text style={styles.title}>{t('paywall.title')}</Text>
           <Text style={styles.subtitle}>
-            Unlock powerful features to manage your finances as a couple
+            {t('paywall.subtitle')}
           </Text>
         </View>
 
@@ -173,7 +171,7 @@ export default function PaywallScreen({ navigation, route }) {
           <View style={styles.featureHighlight}>
             <Ionicons name="lock-closed" size={20} color={COLORS.primary} />
             <Text style={styles.featureHighlightText}>
-              <Text style={styles.featureHighlightBold}>{getFeatureTitle()}</Text> requires Premium
+              <Text style={styles.featureHighlightBold}>{getFeatureTitle()}</Text> {t('paywall.requiresPremium', { feature: '' }).replace('{{feature}} ', '')}
             </Text>
           </View>
         )}
@@ -196,13 +194,13 @@ export default function PaywallScreen({ navigation, route }) {
                 >
                   {isAnnual && (
                     <View style={styles.bestValueBadge}>
-                      <Text style={styles.bestValueText}>BEST VALUE</Text>
+                      <Text style={styles.bestValueText}>{t('paywall.bestValue')}</Text>
                     </View>
                   )}
 
                   <View style={styles.pricingHeader}>
                     <Text style={styles.pricingTitle}>
-                      {isAnnual ? 'Annual' : 'Monthly'}
+                      {isAnnual ? t('paywall.annual') : t('paywall.monthly')}
                     </Text>
                     {isSelected && (
                       <Ionicons name="checkmark-circle" size={24} color={COLORS.primary} />
@@ -212,19 +210,19 @@ export default function PaywallScreen({ navigation, route }) {
                   <View style={styles.pricingAmount}>
                     <Text style={styles.price}>${pkg.product.price.toFixed(2)}</Text>
                     <Text style={styles.pricePeriod}>
-                      {isAnnual ? '/year' : '/month'}
+                      {isAnnual ? t('paywall.perYear') : t('paywall.perMonth')}
                     </Text>
                   </View>
 
                   {isAnnual && (
                     <Text style={styles.monthlyEquivalent}>
-                      Just ${monthlyPrice}/month
+                      {t('paywall.justPerMonth', { amount: monthlyPrice })}
                     </Text>
                   )}
 
                   {isAnnual && (
                     <View style={styles.savingsBadge}>
-                      <Text style={styles.savingsText}>Save 33%</Text>
+                      <Text style={styles.savingsText}>{t('paywall.save33')}</Text>
                     </View>
                   )}
                 </TouchableOpacity>
@@ -235,7 +233,7 @@ export default function PaywallScreen({ navigation, route }) {
 
         {/* Features List */}
         <View style={styles.featuresSection}>
-          <Text style={styles.featuresTitle}>What's Included</Text>
+          <Text style={styles.featuresTitle}>{t('paywall.whatsIncluded')}</Text>
 
           {premiumFeatures.map((item, index) => (
             <View key={index} style={styles.featureItem}>
@@ -243,8 +241,8 @@ export default function PaywallScreen({ navigation, route }) {
                 <Ionicons name={item.icon} size={24} color={COLORS.primary} />
               </View>
               <View style={styles.featureContent}>
-                <Text style={styles.featureTitle}>{item.title}</Text>
-                <Text style={styles.featureDescription}>{item.description}</Text>
+                <Text style={styles.featureTitle}>{t(`paywall.features.${item.titleKey}`)}</Text>
+                <Text style={styles.featureDescription}>{t(`paywall.features.${item.descKey}`)}</Text>
               </View>
             </View>
           ))}
@@ -252,8 +250,7 @@ export default function PaywallScreen({ navigation, route }) {
 
         {/* Fine Print */}
         <Text style={styles.finePrint}>
-          Subscription automatically renews unless auto-renew is turned off at least 24 hours before
-          the end of the current period. Payment will be charged to your {Platform.OS === 'ios' ? 'App Store' : Platform.OS === 'android' ? 'Google Play' : 'Stripe'} account.
+          {t('paywall.finePrint', { store: getStoreName() })}
         </Text>
       </ScrollView>
 
@@ -268,7 +265,9 @@ export default function PaywallScreen({ navigation, route }) {
             <ActivityIndicator color="#FFFFFF" />
           ) : (
             <Text style={styles.purchaseButtonText}>
-              Start Premium{selectedPackage && ` - $${selectedPackage.product.price.toFixed(2)}`}
+              {selectedPackage
+                ? t('paywall.startPremiumWithPrice', { price: selectedPackage.product.price.toFixed(2) })
+                : t('paywall.startPremium')}
             </Text>
           )}
         </TouchableOpacity>
@@ -281,7 +280,7 @@ export default function PaywallScreen({ navigation, route }) {
           {restoring ? (
             <ActivityIndicator size="small" color={COLORS.primary} />
           ) : (
-            <Text style={styles.restoreButtonText}>Restore Purchases</Text>
+            <Text style={styles.restoreButtonText}>{t('paywall.restorePurchases')}</Text>
           )}
         </TouchableOpacity>
       </View>

@@ -12,6 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { useTranslation } from 'react-i18next';
 import { useBudget } from '../../contexts/BudgetContext';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES } from '../../constants/theme';
 import CategoryCard from '../../components/CategoryCard';
@@ -20,6 +21,7 @@ import * as expenseService from '../../services/expenseService';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function CategoryManagerScreen({ navigation }) {
+  const { t } = useTranslation();
   const { categories, loading, addCategory, updateCategory, deleteCategory, resetCategories } = useBudget();
   const { userDetails } = useAuth();
 
@@ -76,27 +78,27 @@ export default function CategoryManagerScreen({ navigation }) {
 
     if (expenseCount > 0) {
       Alert.alert(
-        'Cannot Delete Category',
-        `"${category.name}" has ${expenseCount} expense${expenseCount !== 1 ? 's' : ''}. Please delete or reassign those expenses first.`,
-        [{ text: 'OK' }]
+        t('categoryManager.cannotDeleteTitle'),
+        t('categoryManager.cannotDeleteMessage', { name: category.name, count: expenseCount }),
+        [{ text: t('common.ok') }]
       );
       return;
     }
 
     Alert.alert(
-      'Delete Category',
-      `Are you sure you want to delete "${category.name}"?`,
+      t('categoryManager.deleteTitle'),
+      t('categoryManager.deleteMessage', { name: category.name }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
               await deleteCategory(key, expenseService);
-              Alert.alert('Success', 'Category deleted successfully!');
+              Alert.alert(t('common.success'), t('categoryManager.deleteSuccess'));
             } catch (error) {
-              Alert.alert('Error', error.message || 'Failed to delete category');
+              Alert.alert(t('common.error'), error.message || t('categoryManager.deleteError'));
             }
           },
         },
@@ -106,25 +108,25 @@ export default function CategoryManagerScreen({ navigation }) {
 
   const handleResetCategories = () => {
     Alert.alert(
-      'Reset Categories',
-      'Reset all categories to defaults? This will remove custom categories (if they have no expenses) and restore default budgets.',
+      t('categoryManager.resetTitle'),
+      t('categoryManager.resetMessage'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Reset',
+          text: t('categoryManager.resetToDefaults').replace('Reset to ', ''),
           style: 'destructive',
           onPress: async () => {
             try {
               const result = await resetCategories(expenseService);
 
-              let message = 'Categories reset to defaults!';
+              let message = t('categoryManager.resetSuccessMessage');
               if (result.keptCategories && result.keptCategories.length > 0) {
-                message += `\n\nKept ${result.keptCategories.length} custom categories with expenses.`;
+                message += `\n\n${t('categoryManager.resetKeptMessage', { count: result.keptCategories.length })}`;
               }
 
-              Alert.alert('Success', message);
+              Alert.alert(t('common.success'), message);
             } catch (error) {
-              Alert.alert('Error', error.message || 'Failed to reset categories');
+              Alert.alert(t('common.error'), error.message || t('categoryManager.resetError'));
             }
           },
         },
@@ -136,10 +138,10 @@ export default function CategoryManagerScreen({ navigation }) {
     try {
       if (modalMode === 'edit' && editingCategory) {
         await updateCategory(editingCategory.key, categoryData);
-        Alert.alert('Success', 'Category updated successfully!');
+        Alert.alert(t('common.success'), t('categoryManager.updateSuccess'));
       } else {
         await addCategory(categoryData);
-        Alert.alert('Success', 'Category added successfully!');
+        Alert.alert(t('common.success'), t('categoryManager.addSuccess'));
       }
     } catch (error) {
       throw error; // Let modal handle the error
@@ -152,7 +154,7 @@ export default function CategoryManagerScreen({ navigation }) {
         <StatusBar style="dark" />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading categories...</Text>
+          <Text style={styles.loadingText}>{t('categoryManager.loading')}</Text>
         </View>
       </View>
     );
@@ -174,9 +176,9 @@ export default function CategoryManagerScreen({ navigation }) {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Manage Categories</Text>
+          <Text style={styles.title}>{t('categoryManager.title')}</Text>
           <Text style={styles.subtitle}>
-            Customize your expense categories and default budgets
+            {t('categoryManager.subtitle')}
           </Text>
         </View>
 
@@ -187,7 +189,7 @@ export default function CategoryManagerScreen({ navigation }) {
             onPress={handleAddCategory}
             activeOpacity={0.8}
           >
-            <Text style={styles.primaryButtonText}>+ Add Custom Category</Text>
+            <Text style={styles.primaryButtonText}>{t('categoryManager.addCustomCategory')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -195,7 +197,7 @@ export default function CategoryManagerScreen({ navigation }) {
             onPress={handleResetCategories}
             activeOpacity={0.8}
           >
-            <Text style={styles.secondaryButtonText}>Reset to Defaults</Text>
+            <Text style={styles.secondaryButtonText}>{t('categoryManager.resetToDefaults')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -217,9 +219,9 @@ export default function CategoryManagerScreen({ navigation }) {
         {categoryArray.length === 0 && (
           <View style={styles.emptyState}>
             <Text style={styles.emptyStateIcon}>📁</Text>
-            <Text style={styles.emptyStateText}>No categories yet</Text>
+            <Text style={styles.emptyStateText}>{t('categoryManager.noCategoriesTitle')}</Text>
             <Text style={styles.emptyStateSubtext}>
-              Add your first category to get started
+              {t('categoryManager.noCategoriesText')}
             </Text>
           </View>
         )}

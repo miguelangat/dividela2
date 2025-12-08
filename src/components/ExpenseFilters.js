@@ -14,12 +14,14 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { COLORS, FONTS, SPACING } from '../constants/theme';
 import { useBudget } from '../contexts/BudgetContext';
 import DateRangePicker, { PRESETS } from './DateRangePicker';
 import { getDefaultFilters, countActiveFilters } from '../utils/reportFilters';
 
 export default function ExpenseFilters({ onFiltersChange, initialFilters }) {
+  const { t } = useTranslation();
   const { categories } = useBudget();
   const [expanded, setExpanded] = useState(false);
   const [filters, setFilters] = useState(initialFilters || getDefaultFilters());
@@ -95,7 +97,7 @@ export default function ExpenseFilters({ onFiltersChange, initialFilters }) {
       >
         <View style={styles.headerLeft}>
           <Ionicons name="filter" size={20} color={COLORS.primary} />
-          <Text style={styles.headerText}>Filters</Text>
+          <Text style={styles.headerText}>{t('components.expenseFilters.filters')}</Text>
           {activeFilterCount > 0 && (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{activeFilterCount}</Text>
@@ -120,7 +122,7 @@ export default function ExpenseFilters({ onFiltersChange, initialFilters }) {
           >
             {/* Date Range Filter */}
             <View style={styles.filterSection}>
-              <Text style={styles.filterLabel}>Date Range</Text>
+              <Text style={styles.filterLabel}>{t('components.expenseFilters.dateRange')}</Text>
               <DateRangePicker
                 onDateRangeChange={handleDateRangeChange}
                 initialPreset={PRESETS.THIS_MONTH}
@@ -129,7 +131,7 @@ export default function ExpenseFilters({ onFiltersChange, initialFilters }) {
 
             {/* Category Filter */}
             <View style={styles.filterSection}>
-              <Text style={styles.filterLabel}>Categories</Text>
+              <Text style={styles.filterLabel}>{t('components.expenseFilters.categories')}</Text>
               <View style={styles.categoryGrid}>
                 {categoryArray.map(category => {
                   const isSelected = filters.categories?.includes(category.key);
@@ -169,7 +171,7 @@ export default function ExpenseFilters({ onFiltersChange, initialFilters }) {
 
             {/* Settlement Status Filter */}
             <View style={styles.filterSection}>
-              <Text style={styles.filterLabel}>Settlement Status</Text>
+              <Text style={styles.filterLabel}>{t('components.expenseFilters.settlementStatus')}</Text>
               <View style={styles.buttonGroup}>
                 {['all', 'settled', 'pending'].map(status => (
                   <TouchableOpacity
@@ -187,7 +189,7 @@ export default function ExpenseFilters({ onFiltersChange, initialFilters }) {
                         filters.settlementStatus === status && styles.filterButtonTextActive,
                       ]}
                     >
-                      {status.charAt(0).toUpperCase() + status.slice(1)}
+                      {t(`components.expenseFilters.${status}`)}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -196,12 +198,12 @@ export default function ExpenseFilters({ onFiltersChange, initialFilters }) {
 
             {/* Paid By Filter */}
             <View style={styles.filterSection}>
-              <Text style={styles.filterLabel}>Paid By</Text>
+              <Text style={styles.filterLabel}>{t('components.expenseFilters.paidBy')}</Text>
               <View style={styles.buttonGroup}>
                 {[
-                  { value: 'all', label: 'All' },
-                  { value: 'me', label: 'Me' },
-                  { value: 'partner', label: 'Partner' },
+                  { value: 'all', labelKey: 'all' },
+                  { value: 'me', labelKey: 'me' },
+                  { value: 'partner', labelKey: 'partner' },
                 ].map(option => (
                   <TouchableOpacity
                     key={option.value}
@@ -218,7 +220,7 @@ export default function ExpenseFilters({ onFiltersChange, initialFilters }) {
                         filters.paidBy === option.value && styles.filterButtonTextActive,
                       ]}
                     >
-                      {option.label}
+                      {t(`components.expenseFilters.${option.labelKey}`)}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -233,7 +235,7 @@ export default function ExpenseFilters({ onFiltersChange, initialFilters }) {
                 activeOpacity={0.7}
               >
                 <Ionicons name="close-circle-outline" size={20} color={COLORS.error} />
-                <Text style={styles.clearButtonText}>Clear All Filters</Text>
+                <Text style={styles.clearButtonText}>{t('components.expenseFilters.clearAllFilters')}</Text>
               </TouchableOpacity>
             )}
           </ScrollView>
@@ -251,7 +253,7 @@ export default function ExpenseFilters({ onFiltersChange, initialFilters }) {
           {filters.categories && filters.categories.length > 0 && (
             <View style={styles.activeFilterChip}>
               <Text style={styles.activeFilterChipText}>
-                {filters.categories.length} {filters.categories.length === 1 ? 'category' : 'categories'}
+                {filters.categories.length} {filters.categories.length === 1 ? t('components.expenseFilters.category') : t('components.expenseFilters.category_plural')}
               </Text>
             </View>
           )}
@@ -259,7 +261,7 @@ export default function ExpenseFilters({ onFiltersChange, initialFilters }) {
           {filters.settlementStatus && filters.settlementStatus !== 'all' && (
             <View style={styles.activeFilterChip}>
               <Text style={styles.activeFilterChipText}>
-                {filters.settlementStatus === 'settled' ? 'Settled' : 'Pending'}
+                {filters.settlementStatus === 'settled' ? t('components.expenseFilters.settled') : t('components.expenseFilters.pending')}
               </Text>
             </View>
           )}
@@ -267,7 +269,7 @@ export default function ExpenseFilters({ onFiltersChange, initialFilters }) {
           {filters.paidBy && filters.paidBy !== 'all' && (
             <View style={styles.activeFilterChip}>
               <Text style={styles.activeFilterChipText}>
-                Paid by {filters.paidBy === 'me' ? 'Me' : 'Partner'}
+                {filters.paidBy === 'me' ? t('components.expenseFilters.paidByMe') : t('components.expenseFilters.paidByPartner')}
               </Text>
             </View>
           )}

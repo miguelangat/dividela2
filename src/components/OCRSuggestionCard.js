@@ -17,6 +17,7 @@ import {
   TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { COLORS, FONTS, SPACING, SIZES, SHADOWS } from '../constants/theme';
 import { formatCurrency } from '../utils/currencyUtils';
 
@@ -47,6 +48,7 @@ export default function OCRSuggestionCard({
   onDismiss,
   onCreateAlias,
 }) {
+  const { t } = useTranslation();
   const [selectedCategory, setSelectedCategory] = useState(
     suggestions?.category?.category || null
   );
@@ -133,12 +135,12 @@ export default function OCRSuggestionCard({
         {/* Header: AI Suggestions */}
         <View style={styles.header}>
           <Ionicons name="bulb" size={20} color={COLORS.primary} />
-          <Text style={styles.headerTitle}>AI Detected Details</Text>
+          <Text style={styles.headerTitle}>{t('components.ocrSuggestion.aiDetected')}</Text>
         </View>
 
         {/* Amount with Currency */}
         <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Amount</Text>
+          <Text style={styles.detailLabel}>{t('components.ocrSuggestion.amount')}</Text>
           <Text style={styles.amountValue}>{formatCurrency(amount, currency)}</Text>
         </View>
 
@@ -146,22 +148,22 @@ export default function OCRSuggestionCard({
         <View style={styles.noteRow}>
           <Ionicons name="information-circle-outline" size={14} color={COLORS.textSecondary} />
           <Text style={styles.noteText}>
-            Using {currency} • You can change currency and edit all fields after accepting
+            {t('components.ocrSuggestion.currencyNote', { currency })}
           </Text>
         </View>
 
         {/* Merchant with alias button */}
         <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Merchant</Text>
+          <Text style={styles.detailLabel}>{t('components.ocrSuggestion.merchant')}</Text>
           <View style={styles.merchantContainer}>
             <Text style={styles.detailValue}>
-              {merchant || 'Unknown Merchant'}
+              {merchant || t('components.ocrSuggestion.unknownMerchant')}
             </Text>
             <TouchableOpacity
               onPress={handleOpenAliasDialog}
               style={styles.aliasButton}
               testID="ocr-alias-button"
-              accessibilityLabel="Create merchant alias"
+              accessibilityLabel={t('components.ocrSuggestion.createAliasTitle')}
             >
               <Ionicons name="pencil" size={16} color={COLORS.primary} />
             </TouchableOpacity>
@@ -170,14 +172,14 @@ export default function OCRSuggestionCard({
 
         {/* Date */}
         <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Date</Text>
+          <Text style={styles.detailLabel}>{t('components.ocrSuggestion.date')}</Text>
           <Text style={styles.detailValue}>{date}</Text>
         </View>
 
         {/* Category with confidence */}
         <View style={styles.categorySection}>
           <View style={styles.categoryHeader}>
-            <Text style={styles.detailLabel}>Category</Text>
+            <Text style={styles.detailLabel}>{t('components.ocrSuggestion.category')}</Text>
             <View style={styles.confidenceContainer}>
               <Ionicons
                 name={isHighConfidence ? 'checkmark-circle' : 'information-circle'}
@@ -246,19 +248,19 @@ export default function OCRSuggestionCard({
             style={styles.dismissButton}
             onPress={onDismiss}
             testID="ocr-dismiss-button"
-            accessibilityLabel="Dismiss AI suggestions"
+            accessibilityLabel={t('components.ocrSuggestion.dismiss')}
           >
-            <Text style={styles.dismissButtonText}>Dismiss</Text>
+            <Text style={styles.dismissButtonText}>{t('components.ocrSuggestion.dismiss')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.acceptButton}
             onPress={handleAccept}
             testID="ocr-accept-button"
-            accessibilityLabel="Accept AI suggestions"
+            accessibilityLabel={t('components.ocrSuggestion.useTheseDetails')}
           >
             <Ionicons name="checkmark" size={20} color={COLORS.textWhite} />
-            <Text style={styles.acceptButtonText}>Use These Details</Text>
+            <Text style={styles.acceptButtonText}>{t('components.ocrSuggestion.useTheseDetails')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -272,9 +274,9 @@ export default function OCRSuggestionCard({
       >
         <View style={styles.modalOverlay}>
           <View style={styles.aliasDialog} testID="ocr-alias-dialog">
-            <Text style={styles.aliasDialogTitle}>Create Merchant Alias</Text>
+            <Text style={styles.aliasDialogTitle}>{t('components.ocrSuggestion.createAliasTitle')}</Text>
             <Text style={styles.aliasDialogSubtitle}>
-              Create a short name for "{merchant}"
+              {t('components.ocrSuggestion.createAliasSubtitle', { merchant })}
             </Text>
 
             <TextInput
@@ -293,7 +295,7 @@ export default function OCRSuggestionCard({
                 onPress={handleCancelAlias}
                 testID="ocr-alias-cancel-button"
               >
-                <Text style={styles.aliasDialogCancelText}>Cancel</Text>
+                <Text style={styles.aliasDialogCancelText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -302,7 +304,7 @@ export default function OCRSuggestionCard({
                 testID="ocr-alias-save-button"
                 disabled={!aliasValue.trim()}
               >
-                <Text style={styles.aliasDialogSaveText}>Save</Text>
+                <Text style={styles.aliasDialogSaveText}>{t('common.save')}</Text>
               </TouchableOpacity>
             </View>
           </View>

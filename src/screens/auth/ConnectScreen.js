@@ -4,11 +4,13 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { useTranslation } from 'react-i18next';
 import { COLORS, FONTS, SPACING, SIZES, SHADOWS, COMMON_STYLES } from '../../constants/theme';
 
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function ConnectScreen({ navigation }) {
+  const { t } = useTranslation();
   const { skipConnection } = useAuth();
 
   const handleInvitePartner = () => {
@@ -47,9 +49,9 @@ export default function ConnectScreen({ navigation }) {
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Connect Partner</Text>
+        <Text style={styles.title}>{t('auth.connect.title')}</Text>
         <Text style={styles.subtitle}>
-          Connect with your partner to start tracking shared expenses
+          {t('auth.connect.subtitle')}
         </Text>
       </View>
 
@@ -64,9 +66,9 @@ export default function ConnectScreen({ navigation }) {
           <View style={styles.cardIconContainer}>
             <Text style={styles.cardIcon}>📤</Text>
           </View>
-          <Text style={styles.cardTitle}>Invite Partner</Text>
+          <Text style={styles.cardTitle}>{t('auth.connect.invitePartner')}</Text>
           <Text style={styles.cardDescription}>
-            Generate a code for your partner to join
+            {t('auth.connect.inviteDescription')}
           </Text>
         </TouchableOpacity>
 
@@ -79,9 +81,9 @@ export default function ConnectScreen({ navigation }) {
           <View style={styles.cardIconContainer}>
             <Text style={styles.cardIcon}>📥</Text>
           </View>
-          <Text style={styles.cardTitleSecondary}>Join Partner</Text>
+          <Text style={styles.cardTitleSecondary}>{t('auth.connect.joinPartner')}</Text>
           <Text style={styles.cardDescriptionSecondary}>
-            Enter your partner's invite code
+            {t('auth.connect.joinDescription')}
           </Text>
         </TouchableOpacity>
 
@@ -91,7 +93,7 @@ export default function ConnectScreen({ navigation }) {
           onPress={handleSkip}
           activeOpacity={0.7}
         >
-          <Text style={styles.skipButtonText}>Skip for now (Go to Dashboard)</Text>
+          <Text style={styles.skipButtonText}>{t('auth.connect.skipForNow')}</Text>
         </TouchableOpacity>
       </View>
     </View>

@@ -31,6 +31,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import { updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../config/firebase';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBudget } from '../../contexts/BudgetContext';
 import { useSubscription } from '../../contexts/SubscriptionContext';
@@ -54,6 +55,7 @@ import FieldLabel from '../../components/FieldLabel';
 import SplitPreviewCard from '../../components/SplitPreviewCard';
 
 export default function AddExpenseScreen({ navigation, route }) {
+  const { t } = useTranslation();
   const { user, userDetails } = useAuth();
   const { categories: budgetCategories, budgetProgress, isBudgetEnabled } = useBudget();
   const { isPremium } = useSubscription();
@@ -216,9 +218,9 @@ export default function AddExpenseScreen({ navigation, route }) {
 
       if (status !== 'granted') {
         Alert.alert(
-          'Permission Required',
-          'Camera permission is required to scan receipts. Please enable it in your device settings.',
-          [{ text: 'OK' }]
+          t('addExpense.ocr.permissionTitle'),
+          t('addExpense.ocr.permissionMessage'),
+          [{ text: t('common.ok') }]
         );
         return;
       }
@@ -286,22 +288,22 @@ export default function AddExpenseScreen({ navigation, route }) {
 
       // Show success message
       Alert.alert(
-        'Receipt Scanned',
-        'Receipt information extracted. Please review and edit as needed.',
-        [{ text: 'OK' }]
+        t('addExpense.ocr.successTitle'),
+        t('addExpense.ocr.successMessage'),
+        [{ text: t('common.ok') }]
       );
     } catch (err) {
       console.error('❌ Error processing image receipt:', err);
       setOcrState({
         status: 'failed',
         suggestions: null,
-        error: err.message || 'Failed to process receipt',
+        error: err.message || t('addExpense.ocr.failedMessage'),
       });
 
       Alert.alert(
-        'Processing Failed',
-        err.message || 'Failed to process receipt. Please try again.',
-        [{ text: 'OK' }]
+        t('addExpense.ocr.failedTitle'),
+        err.message || t('addExpense.ocr.failedMessage'),
+        [{ text: t('common.ok') }]
       );
     }
   };
@@ -341,10 +343,10 @@ export default function AddExpenseScreen({ navigation, route }) {
   const handleCreateAlias = async (ocrMerchant, userAlias) => {
     try {
       await createMerchantAlias(ocrMerchant, userAlias, userDetails.coupleId);
-      Alert.alert('Success', 'Merchant alias created successfully');
+      Alert.alert(t('common.success'), t('addExpense.ocr.aliasSuccess'));
     } catch (err) {
       console.error('Error creating alias:', err);
-      Alert.alert('Error', err.message || 'Failed to create merchant alias');
+      Alert.alert(t('common.error'), err.message || t('addExpense.ocr.aliasError'));
     }
   };
 
@@ -356,12 +358,12 @@ export default function AddExpenseScreen({ navigation, route }) {
 
     if (hasData) {
       Alert.alert(
-        'Discard Changes?',
-        'You have unsaved changes. Are you sure you want to cancel?',
+        t('addExpense.discard.title'),
+        t('addExpense.discard.message'),
         [
-          { text: 'Keep Editing', style: 'cancel' },
+          { text: t('addExpense.discard.keepEditing'), style: 'cancel' },
           {
-            text: 'Discard',
+            text: t('addExpense.discard.discard'),
             style: 'destructive',
             onPress: () => navigation.goBack()
           },
@@ -605,8 +607,8 @@ export default function AddExpenseScreen({ navigation, route }) {
               <Ionicons name="arrow-back" size={24} color={COLORS.textWhite} />
             </TouchableOpacity>
             <View style={styles.headerContent}>
-              <Text style={styles.headerTitle}>{isEditMode ? 'Edit Expense' : 'Add Expense'}</Text>
-              <Text style={styles.headerSubtitle}>Track your shared spending</Text>
+              <Text style={styles.headerTitle}>{isEditMode ? t('addExpense.editTitle') : t('addExpense.title')}</Text>
+              <Text style={styles.headerSubtitle}>{t('addExpense.subtitle')}</Text>
             </View>
             <View style={{ width: 24 }} />
           </View>
@@ -614,9 +616,9 @@ export default function AddExpenseScreen({ navigation, route }) {
 
         {/* Description */}
         <View style={styles.section}>
-          <FieldLabel label="Add a note" optional />
+          <FieldLabel label={t('addExpense.addNoteLabel')} optional />
           <Text style={styles.helperText}>
-            Help remember what this was for (e.g., "Dinner at Luigi's")
+            {t('addExpense.noteHelper')}
           </Text>
           <TextInput
             style={[
@@ -625,7 +627,7 @@ export default function AddExpenseScreen({ navigation, route }) {
             ]}
             value={description}
             onChangeText={setDescription}
-            placeholder="Add details here..."
+            placeholder={t('addExpense.notePlaceholder')}
             placeholderTextColor={COLORS.textTertiary}
             multiline
             numberOfLines={3}
@@ -641,7 +643,7 @@ export default function AddExpenseScreen({ navigation, route }) {
           <CurrencyPicker
             selectedCurrency={expenseCurrency}
             onSelect={setExpenseCurrency}
-            label="Expense Currency"
+            label={t('addExpense.expenseCurrency')}
           />
         </View>
 
@@ -655,7 +657,7 @@ export default function AddExpenseScreen({ navigation, route }) {
             style={styles.amountInput}
             value={formatAmountForDisplay(amount)}
             onChangeText={handleAmountChange}
-            placeholder="0.00"
+            placeholder={t('addExpense.amountPlaceholder')}
             placeholderTextColor={COLORS.textSecondary}
             keyboardType="decimal-pad"
             onFocus={() => setFocusStates(s => ({ ...s, amount: true }))}
@@ -682,7 +684,7 @@ export default function AddExpenseScreen({ navigation, route }) {
             {/* Divider */}
             <View style={styles.dividerContainer}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or scan a receipt</Text>
+              <Text style={styles.dividerText}>{t('addExpense.scanDivider')}</Text>
               <View style={styles.dividerLine} />
             </View>
 
@@ -694,7 +696,7 @@ export default function AddExpenseScreen({ navigation, route }) {
               disabled={ocrState.status === 'processing'}
             >
               <Ionicons name="camera" size={24} color={COLORS.primary} />
-              <Text style={styles.scanButtonText}>Scan Receipt</Text>
+              <Text style={styles.scanButtonText}>{t('addExpense.scanReceipt')}</Text>
               {!isPremium && (
                 <Ionicons name="lock-closed" size={16} color={COLORS.warning} style={{ marginLeft: 4 }} />
               )}
@@ -732,7 +734,7 @@ export default function AddExpenseScreen({ navigation, route }) {
 
         {/* Category Selection */}
         <View style={styles.section}>
-          <FieldLabel label="What's this for?" required />
+          <FieldLabel label={t('addExpense.categoryLabel')} required />
           <View style={styles.categoriesGrid}>
             {Object.entries(budgetCategories).map(([key, category]) => {
               const progress = budgetProgress?.categoryProgress[key];
@@ -765,7 +767,7 @@ export default function AddExpenseScreen({ navigation, route }) {
 
         {/* Date Selection */}
         <View style={styles.section}>
-          <FieldLabel label="When was this?" required />
+          <FieldLabel label={t('addExpense.dateLabel')} required />
           <TouchableOpacity
             style={styles.dateInput}
             onPress={() => setShowDatePicker(true)}
@@ -784,7 +786,7 @@ export default function AddExpenseScreen({ navigation, route }) {
               <View style={styles.datePickerContainer}>
                 <View style={styles.datePickerHeader}>
                   <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                    <Text style={styles.datePickerButton}>Done</Text>
+                    <Text style={styles.datePickerButton}>{t('addExpense.dateDone')}</Text>
                   </TouchableOpacity>
                 </View>
                 <DateTimePicker
@@ -814,7 +816,7 @@ export default function AddExpenseScreen({ navigation, route }) {
 
         {/* Paid By */}
         <View style={styles.section}>
-          <FieldLabel label="Who paid for this?" required />
+          <FieldLabel label={t('addExpense.whoPaid')} required />
           <View style={styles.paidByContainer}>
             <Pressable
               style={({ pressed }) => [
@@ -833,7 +835,7 @@ export default function AddExpenseScreen({ navigation, route }) {
                 styles.paidByText,
                 paidBy === user.uid && styles.paidByTextSelected,
               ]}>
-                You
+                {t('addExpense.you')}
               </Text>
             </Pressable>
             <Pressable
@@ -853,7 +855,7 @@ export default function AddExpenseScreen({ navigation, route }) {
                 styles.paidByText,
                 paidBy === userDetails.partnerId && styles.paidByTextSelected,
               ]}>
-                Partner
+                {t('addExpense.partner')}
               </Text>
             </Pressable>
           </View>
@@ -861,7 +863,7 @@ export default function AddExpenseScreen({ navigation, route }) {
 
         {/* Split Options */}
         <View style={styles.section}>
-          <FieldLabel label="How to split this?" required />
+          <FieldLabel label={t('addExpense.splitMethod')} required />
           <View style={styles.splitTypeContainer}>
             <Pressable
               style={({ pressed }) => [
@@ -876,9 +878,9 @@ export default function AddExpenseScreen({ navigation, route }) {
                 styles.splitTypeText,
                 splitType === 'equal' && styles.splitTypeTextSelected,
               ]}>
-                50/50
+                {t('addExpense.splitEqual')}
               </Text>
-              <Text style={styles.splitDescription}>Split equally</Text>
+              <Text style={styles.splitDescription}>{t('addExpense.splitEqually')}</Text>
             </Pressable>
 
             <Pressable
@@ -894,9 +896,9 @@ export default function AddExpenseScreen({ navigation, route }) {
                 styles.splitTypeText,
                 splitType === 'full' && styles.splitTypeTextSelected,
               ]}>
-                {paidBy === user.uid ? 'All Mine' : 'All Theirs'}
+                {paidBy === user.uid ? t('addExpense.splitFull') : t('addExpense.splitFullTheirs')}
               </Text>
-              <Text style={styles.splitDescription}>Payer covers all</Text>
+              <Text style={styles.splitDescription}>{t('addExpense.splitFullDescription')}</Text>
             </Pressable>
 
             <Pressable
@@ -912,16 +914,16 @@ export default function AddExpenseScreen({ navigation, route }) {
                 styles.splitTypeText,
                 splitType === 'custom' && styles.splitTypeTextSelected,
               ]}>
-                Custom
+                {t('addExpense.custom')}
               </Text>
-              <Text style={styles.splitDescription}>Choose %</Text>
+              <Text style={styles.splitDescription}>{t('addExpense.customDescription')}</Text>
             </Pressable>
           </View>
 
           {splitType === 'custom' && (
             <View style={styles.customSplitContainer}>
               <View style={styles.splitInputRow}>
-                <Text style={styles.splitLabel}>Your share:</Text>
+                <Text style={styles.splitLabel}>{t('addExpense.yourShare')}</Text>
                 <View style={styles.splitInputContainer}>
                   <TextInput
                     style={styles.splitInput}
@@ -934,7 +936,7 @@ export default function AddExpenseScreen({ navigation, route }) {
                 </View>
               </View>
               <View style={styles.splitInputRow}>
-                <Text style={styles.splitLabel}>Partner's share:</Text>
+                <Text style={styles.splitLabel}>{t('addExpense.partnerShare')}</Text>
                 <Text style={styles.splitValue}>{partnerPercentage}%</Text>
               </View>
             </View>
@@ -972,7 +974,7 @@ export default function AddExpenseScreen({ navigation, route }) {
             ]}
             onPress={handleCancel}
           >
-            <Text style={styles.cancelButtonText}>Cancel</Text>
+            <Text style={styles.cancelButtonText}>{t('addExpense.cancel')}</Text>
           </Pressable>
 
           <Pressable
@@ -988,7 +990,7 @@ export default function AddExpenseScreen({ navigation, route }) {
               <ActivityIndicator color={COLORS.background} />
             ) : (
               <Text style={styles.submitButtonText}>
-                {isEditMode ? 'Save Changes' : 'Add Expense'}
+                {isEditMode ? t('addExpense.saveChanges') : t('addExpense.create')}
               </Text>
             )}
           </Pressable>

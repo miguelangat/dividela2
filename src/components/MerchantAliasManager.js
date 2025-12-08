@@ -14,10 +14,12 @@ import {
   Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import * as merchantAliasService from '../services/merchantAliasService';
 import { COLORS, FONTS, SPACING } from '../constants/theme';
 
 export default function MerchantAliasManager({ coupleId, onClose }) {
+  const { t } = useTranslation();
   const [aliases, setAliases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -41,7 +43,7 @@ export default function MerchantAliasManager({ coupleId, onClose }) {
       setAliases(data);
     } catch (error) {
       console.error('Error loading aliases:', error);
-      Alert.alert('Error', 'Failed to load merchant aliases. Please try again.');
+      Alert.alert(t('common.error'), t('components.merchantAlias.loadError'));
     } finally {
       setLoading(false);
     }
@@ -61,12 +63,12 @@ export default function MerchantAliasManager({ coupleId, onClose }) {
 
   const handleDelete = (alias) => {
     Alert.alert(
-      'Delete Alias',
-      `Are you sure you want to delete the alias for "${alias.ocrMerchant}"?`,
+      t('components.merchantAlias.deleteTitle'),
+      t('components.merchantAlias.deleteMessage', { merchant: alias.ocrMerchant }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -74,7 +76,7 @@ export default function MerchantAliasManager({ coupleId, onClose }) {
               await loadAliases();
             } catch (error) {
               console.error('Error deleting alias:', error);
-              Alert.alert('Error', 'Failed to delete alias. Please try again.');
+              Alert.alert(t('common.error'), t('components.merchantAlias.deleteError'));
             }
           },
         },
@@ -85,7 +87,7 @@ export default function MerchantAliasManager({ coupleId, onClose }) {
   const handleSave = async () => {
     // Validate inputs
     if (!formData.ocrMerchant.trim() || !formData.userAlias.trim()) {
-      Alert.alert('Validation Error', 'Please fill in both fields');
+      Alert.alert(t('common.error'), t('components.merchantAlias.validationError'));
       return;
     }
 
@@ -104,7 +106,7 @@ export default function MerchantAliasManager({ coupleId, onClose }) {
       });
     } catch (error) {
       console.error('Error saving alias:', error);
-      Alert.alert('Error', error.message || 'Failed to save alias. Please try again.');
+      Alert.alert(t('common.error'), error.message || t('components.merchantAlias.saveError'));
     }
   };
 
@@ -129,19 +131,19 @@ export default function MerchantAliasManager({ coupleId, onClose }) {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>Merchant Aliases</Text>
+          <Text style={styles.title}>{t('components.merchantAlias.title')}</Text>
           {onClose && (
             <TouchableOpacity
               onPress={onClose}
               style={styles.closeButton}
-              accessibilityLabel="Close"
+              accessibilityLabel={t('common.close')}
             >
               <Ionicons name="close" size={24} color={COLORS.text} />
             </TouchableOpacity>
           )}
         </View>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>No couple ID provided</Text>
+          <Text style={styles.errorText}>{t('components.merchantAlias.noCoupleId')}</Text>
         </View>
       </View>
     );
@@ -176,14 +178,14 @@ export default function MerchantAliasManager({ coupleId, onClose }) {
         <TouchableOpacity
           onPress={() => handleEdit(item)}
           style={styles.actionButton}
-          accessibilityLabel="Edit alias"
+          accessibilityLabel={t('common.edit')}
         >
           <Ionicons name="pencil" size={20} color={COLORS.primary} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => handleDelete(item)}
           style={styles.actionButton}
-          accessibilityLabel="Delete alias"
+          accessibilityLabel={t('common.delete')}
         >
           <Ionicons name="trash" size={20} color={COLORS.error} />
         </TouchableOpacity>
@@ -196,7 +198,7 @@ export default function MerchantAliasManager({ coupleId, onClose }) {
       return (
         <View style={styles.emptyState}>
           <Text style={styles.emptyStateIcon}>🔍</Text>
-          <Text style={styles.emptyStateText}>No matching aliases</Text>
+          <Text style={styles.emptyStateText}>{t('components.merchantAlias.noMatchingAliases')}</Text>
         </View>
       );
     }
@@ -205,9 +207,9 @@ export default function MerchantAliasManager({ coupleId, onClose }) {
       return (
         <View style={styles.emptyState}>
           <Text style={styles.emptyStateIcon}>🏪</Text>
-          <Text style={styles.emptyStateText}>No aliases yet</Text>
+          <Text style={styles.emptyStateText}>{t('components.merchantAlias.noAliasesYet')}</Text>
           <Text style={styles.emptyStateSubtext}>
-            Create aliases to normalize merchant names
+            {t('components.merchantAlias.noAliasesDescription')}
           </Text>
         </View>
       );
@@ -220,12 +222,12 @@ export default function MerchantAliasManager({ coupleId, onClose }) {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Merchant Aliases</Text>
+        <Text style={styles.title}>{t('components.merchantAlias.title')}</Text>
         {onClose && (
           <TouchableOpacity
             onPress={onClose}
             style={styles.closeButton}
-            accessibilityLabel="Close"
+            accessibilityLabel={t('common.close')}
           >
             <Ionicons name="close" size={24} color={COLORS.text} />
           </TouchableOpacity>
@@ -235,7 +237,7 @@ export default function MerchantAliasManager({ coupleId, onClose }) {
       {loading ? (
         <View style={styles.loadingContainer} testID="loading-indicator">
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading aliases...</Text>
+          <Text style={styles.loadingText}>{t('components.merchantAlias.loading')}</Text>
         </View>
       ) : (
         <>
@@ -249,7 +251,7 @@ export default function MerchantAliasManager({ coupleId, onClose }) {
             />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search aliases..."
+              placeholder={t('components.merchantAlias.searchPlaceholder')}
               value={searchTerm}
               onChangeText={setSearchTerm}
               placeholderTextColor={COLORS.textSecondary}
@@ -259,7 +261,7 @@ export default function MerchantAliasManager({ coupleId, onClose }) {
           {/* Add New Button */}
           <TouchableOpacity style={styles.addButton} onPress={handleAddNew}>
             <Ionicons name="add" size={20} color={COLORS.background} />
-            <Text style={styles.addButtonText}>Add New</Text>
+            <Text style={styles.addButtonText}>{t('components.merchantAlias.addNew')}</Text>
           </TouchableOpacity>
 
           {/* Aliases List */}
@@ -284,14 +286,14 @@ export default function MerchantAliasManager({ coupleId, onClose }) {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>
-              {editingAlias ? 'Edit Merchant Alias' : 'Create Merchant Alias'}
+              {editingAlias ? t('components.merchantAlias.editTitle') : t('components.merchantAlias.createTitle')}
             </Text>
 
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Original Merchant Name (from OCR)</Text>
+              <Text style={styles.label}>{t('components.merchantAlias.ocrMerchantLabel')}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="OCR Merchant Name"
+                placeholder={t('components.merchantAlias.ocrMerchantPlaceholder')}
                 value={formData.ocrMerchant}
                 onChangeText={(text) => setFormData({ ...formData, ocrMerchant: text })}
                 placeholderTextColor={COLORS.textSecondary}
@@ -300,10 +302,10 @@ export default function MerchantAliasManager({ coupleId, onClose }) {
             </View>
 
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Your Alias</Text>
+              <Text style={styles.label}>{t('components.merchantAlias.aliasLabel')}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Your Alias"
+                placeholder={t('components.merchantAlias.aliasPlaceholder')}
                 value={formData.userAlias}
                 onChangeText={(text) => setFormData({ ...formData, userAlias: text })}
                 placeholderTextColor={COLORS.textSecondary}
@@ -312,10 +314,10 @@ export default function MerchantAliasManager({ coupleId, onClose }) {
 
             <View style={styles.modalButtons}>
               <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-                <Text style={styles.saveButtonText}>Save</Text>
+                <Text style={styles.saveButtonText}>{t('common.save')}</Text>
               </TouchableOpacity>
             </View>
           </View>

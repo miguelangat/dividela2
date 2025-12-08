@@ -26,6 +26,9 @@ const unsubscribe = require('./email/unsubscribe');
 const webhooks = require('./email/webhooks');
 const { sendTestEmail } = require('./email/mailersendService');
 
+// Import push notification functions
+const pushNotifications = require('./push');
+
 // Export OCR function with CORS support (for web browsers)
 exports.processReceiptDirect = functions.https.onRequest((req, res) => {
   return cors(req, res, async () => {
@@ -146,6 +149,49 @@ exports.testEmail = functions.https.onRequest(async (req, res) => {
       success: false,
       error: error.message,
       details: error.toString(),
+    });
+  }
+});
+
+// ============================================================================
+// Push Notification Functions
+// ============================================================================
+
+// Callable Functions (token management)
+exports.registerPushToken = pushNotifications.registerPushToken;
+exports.unregisterPushToken = pushNotifications.unregisterPushToken;
+
+// Scheduled Functions (cleanup)
+exports.cleanupInvalidTokens = pushNotifications.cleanupInvalidTokens;
+
+// Test function to send a push notification to a specific user
+exports.testPushNotification = functions.https.onRequest(async (req, res) => {
+  const userId = req.query.userId;
+
+  if (!userId) {
+    res.status(400).json({
+      error: 'Missing "userId" parameter. Usage: ?userId=your-user-id',
+    });
+    return;
+  }
+
+  try {
+    const result = await pushNotifications.sendPushToUser(
+      userId,
+      'Test Notification',
+      'This is a test push notification from Dividela!',
+      { screen: 'HomeTab', type: 'test' }
+    );
+
+    res.json({
+      success: true,
+      message: `Test push notification sent to user ${userId}`,
+      result,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
     });
   }
 });

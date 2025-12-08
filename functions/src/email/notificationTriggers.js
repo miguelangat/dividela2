@@ -1,8 +1,8 @@
 /**
  * Notification Triggers
  *
- * Cloud Functions that send email notifications based on app events.
- * Uses Mailersend API with templates managed in the Mailersend dashboard.
+ * Cloud Functions that send email and push notifications based on app events.
+ * Uses Mailersend API for emails and Expo Push API + FCM for push notifications.
  *
  * Updated for Firebase Functions v2 (7.0.0+)
  */
@@ -20,6 +20,12 @@ const {
   formatDate,
   TEMPLATE_IDS,
 } = require('./mailersendService');
+const {
+  isPushEnabled,
+  sendPushToCouple,
+  sendPushToPartner,
+  logPushSent,
+} = require('../push/pushNotificationService');
 
 /**
  * Send budget alert when expense is added and threshold is crossed
@@ -178,6 +184,38 @@ exports.checkBudgetOnExpenseAdded = onDocumentCreated('expenses/{expenseId}', as
         });
       }
     }
+
+    // Send push notification to both partners
+    try {
+      const pushEnabled = await isPushEnabled(coupleId, 'monthlyBudgetAlert');
+      if (pushEnabled) {
+        const remainingAmount = budgetAmount - totalSpent;
+        const pushTitle = percentageUsed >= 100
+          ? 'Budget Exceeded!'
+          : `Budget Alert (${percentageUsed}%)`;
+        const pushBody = percentageUsed >= 100
+          ? `You've exceeded your monthly budget by ${formatCurrency(Math.abs(remainingAmount), currency, locale)}`
+          : `You've used ${percentageUsed}% of your monthly budget. ${formatCurrency(remainingAmount, currency, locale)} remaining.`;
+
+        const pushResult = await sendPushToCouple(coupleId, pushTitle, pushBody, {
+          screen: 'BudgetDashboard',
+          type: 'budgetAlert',
+          percentageUsed: percentageUsed.toString(),
+        });
+
+        await logPushSent({
+          coupleId,
+          type: 'monthlyBudgetAlert',
+          success: pushResult.success,
+          sent: pushResult.sent,
+          error: pushResult.error,
+        });
+
+        console.log(`Budget alert push sent to couple ${coupleId}: ${pushResult.sent} notifications`);
+      }
+    } catch (pushError) {
+      console.error('Error sending budget alert push notification:', pushError);
+    }
   } catch (error) {
     console.error('Error in budget check trigger:', error);
   }
@@ -267,6 +305,33 @@ exports.notifyPartnerOnExpenseAdded = onDocumentCreated('expenses/{expenseId}', 
     });
 
     console.log(`Expense notification sent to ${partnerEmail}`);
+
+    // Send push notification to partner
+    try {
+      const pushEnabled = await isPushEnabled(coupleId, 'partnerActivity');
+      if (pushEnabled) {
+        const pushTitle = 'New Expense';
+        const pushBody = `${paidByName} added ${formatCurrency(amount, currency, locale)} for ${description || 'an expense'}`;
+
+        const pushResult = await sendPushToPartner(coupleId, paidBy, pushTitle, pushBody, {
+          screen: 'HomeTab',
+          type: 'expenseAdded',
+        });
+
+        await logPushSent({
+          coupleId,
+          userId: partnerId,
+          type: 'expenseAdded',
+          success: pushResult.success,
+          sent: pushResult.sent,
+          error: pushResult.error,
+        });
+
+        console.log(`Expense push notification sent to partner: ${pushResult.sent} notifications`);
+      }
+    } catch (pushError) {
+      console.error('Error sending expense push notification:', pushError);
+    }
   } catch (error) {
     console.error('Error in expense notification trigger:', error);
     // Don't log failed attempt here to avoid duplicate logs
@@ -441,6 +506,46 @@ exports.checkSavingsGoalMilestone = onDocumentUpdated('savingsGoals/{goalId}', a
           error: error.message,
         });
       }
+    }
+
+    // Send push notification to both partners
+    try {
+      const pushEnabled = await isPushEnabled(coupleId, 'savingsGoalMilestone');
+      if (pushEnabled) {
+        let pushTitle, pushBody;
+
+        if (milestoneCrossed === 100) {
+          pushTitle = 'Goal Achieved!';
+          pushBody = `Congratulations! You've reached your "${name}" savings goal of ${formatCurrency(targetAmount, currency, locale)}!`;
+        } else if (milestoneCrossed === 75) {
+          pushTitle = 'Almost There!';
+          pushBody = `75% of "${name}" saved - ${formatCurrency(currentAmount, currency, locale)} of ${formatCurrency(targetAmount, currency, locale)}`;
+        } else if (milestoneCrossed === 50) {
+          pushTitle = 'Halfway There!';
+          pushBody = `50% of "${name}" saved - keep going!`;
+        } else {
+          pushTitle = 'Savings Progress';
+          pushBody = `25% of "${name}" achieved - great start!`;
+        }
+
+        const pushResult = await sendPushToCouple(coupleId, pushTitle, pushBody, {
+          screen: 'SavingsGoals',
+          type: 'savingsMilestone',
+          milestone: milestoneCrossed.toString(),
+        });
+
+        await logPushSent({
+          coupleId,
+          type: 'savingsGoalMilestone',
+          success: pushResult.success,
+          sent: pushResult.sent,
+          error: pushResult.error,
+        });
+
+        console.log(`Savings milestone push sent to couple ${coupleId}: ${pushResult.sent} notifications`);
+      }
+    } catch (pushError) {
+      console.error('Error sending savings milestone push notification:', pushError);
     }
   } catch (error) {
     console.error('Error in savings goal milestone trigger:', error);

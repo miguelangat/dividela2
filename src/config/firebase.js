@@ -38,6 +38,9 @@ export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const functions = getFunctions(app, 'us-central1');
 
+// Export firebase config for service worker (web only)
+export const firebaseConfigForSW = firebaseConfig;
+
 console.log('Firebase initialized successfully');
 console.log('Functions configured for region: us-central1');
 

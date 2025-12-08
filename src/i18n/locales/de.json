@@ -78,6 +78,13 @@
       "permissionDenied": "Berechtigung verweigert. Bitte überprüfen Sie Ihre Kontoeinstellungen.",
       "navigationErrorTitle": "Navigationsfehler",
       "navigationErrorMessage": "Importbildschirm konnte nicht geöffnet werden. Bitte versuchen Sie es erneut."
+    },
+    "unpaired": {
+      "title": "Du bist derzeit nicht verbunden",
+      "message": "Deine Daten sind sicher, aber du teilst gerade keine Ausgaben mit jemandem.",
+      "findPartner": "Partner Finden",
+      "reconnect": "Mit {{partner}} wieder verbinden",
+      "readOnlyMode": "Du kannst deine Ausgaben einsehen, aber keine neuen hinzufügen, solange du nicht verbunden bist."
     }
   },
   "settleUpModal": {
@@ -111,6 +118,8 @@
     "partner": "Partner",
     "partnerName": "Partnername",
     "coupleId": "coupleId",
+    "noPartner": "Kein Partner verbunden",
+    "noPartnerConnected": "Kein Partner verbunden",
     "preferences": "Einstellungen",
     "language": "Sprache",
     "currency": "Währung",
@@ -149,6 +158,20 @@
       "partnerHasPremium": "Ihr Partner hat auch Premium-Zugang!",
       "bothGetPremium": "Wenn Sie upgraden, erhalten Sie und Ihr Partner Premium-Funktionen."
     },
+    "notifications": {
+      "title": "E-Mail-Benachrichtigungen",
+      "emailEnabled": "E-Mail-Benachrichtigungen aktivieren",
+      "emailEnabledDesc": "E-Mail-Benachrichtigungen für Budget-Updates und Meilensteine erhalten",
+      "monthlyBudget": "Monatliche Budget-Warnungen",
+      "monthlyBudgetDesc": "Benachrichtigt werden, wenn du 80%, 90% oder 100% deines monatlichen Budgets erreichst",
+      "fiscalYearEnd": "Erinnerungen zum Geschäftsjahresende",
+      "fiscalYearEndDesc": "Erinnerung 30 Tage vor Ende deines Geschäftsjahres",
+      "savingsGoal": "Sparziel-Meilensteine",
+      "savingsGoalDesc": "Feiern, wenn du Sparziele erreichst (25%, 50%, 75%, 100%)",
+      "partnerActivity": "Partner-Aktivität",
+      "partnerActivityDesc": "Benachrichtigt werden, wenn dein Partner eine Ausgabe hinzufügt",
+      "infoText": "E-Mail-Benachrichtigungen werden an deine registrierte E-Mail-Adresse gesendet. Du kannst dich jederzeit abmelden."
+    },
     "receiptScanning": {
       "title": "Belegscannen",
       "merchantAliases": "Händleraliase",
@@ -160,6 +183,58 @@
       "note": "Hinweis: Zukünftige Ausgaben werden standardmäßig {{currency}} verwenden. Vergangene Ausgaben behalten ihre ursprüngliche Währung.",
       "change": "Ändern",
       "changeError": "Fehler beim Ändern der Währung. Bitte versuchen Sie es erneut."
+    },
+    "notificationUpdateFailed": "Fehler beim Aktualisieren der Benachrichtigungseinstellungen. Bitte versuche es erneut.",
+    "accountManagement": "Kontoverwaltung",
+    "changePassword": "Passwort Ändern",
+    "changePasswordDescription": "Aktualisiere dein Kontopasswort",
+    "deleteAccount": "Konto Löschen",
+    "deleteAccountDescription": "Dein Konto dauerhaft löschen",
+    "changePasswordModal": {
+      "title": "Passwort Ändern",
+      "currentPassword": "Aktuelles Passwort",
+      "currentPasswordPlaceholder": "Aktuelles Passwort eingeben",
+      "newPassword": "Neues Passwort",
+      "newPasswordPlaceholder": "Neues Passwort eingeben",
+      "confirmPassword": "Neues Passwort Bestätigen",
+      "confirmPasswordPlaceholder": "Neues Passwort erneut eingeben",
+      "change": "Passwort Ändern",
+      "cancel": "Abbrechen",
+      "success": "Passwort erfolgreich geändert!",
+      "error": "Fehler beim Ändern des Passworts",
+      "passwordMismatch": "Passwörter stimmen nicht überein",
+      "passwordTooShort": "Passwort muss mindestens 6 Zeichen haben",
+      "currentPasswordEmpty": "Bitte gib dein aktuelles Passwort ein",
+      "newPasswordEmpty": "Bitte gib ein neues Passwort ein",
+      "oauthAccountError": "Passwortänderung ist nur für E-Mail/Passwort-Konten verfügbar. Du hast dich mit einem sozialen Anbieter angemeldet."
+    },
+    "deleteAccountModal": {
+      "title": "Konto Löschen",
+      "warning": "⚠️ Diese Aktion kann nicht rückgängig gemacht werden",
+      "message": "Bist du absolut sicher, dass du dein Konto löschen möchtest? Dies wird:",
+      "consequence1": "• Alle deine Daten dauerhaft löschen",
+      "consequence2": "• Dich von deiner Partner-Verbindung entfernen",
+      "consequence3": "• Alle deine Ausgabeneinträge löschen",
+      "consequence4": "• Alle aktiven Abonnements kündigen",
+      "passwordLabel": "Gib dein Passwort zur Bestätigung ein",
+      "passwordPlaceholder": "Dein Passwort",
+      "oauthMessage": "Du wirst aufgefordert, dich erneut anzumelden, um die Löschung zu bestätigen",
+      "confirmText": "Gib LÖSCHEN zur Bestätigung ein",
+      "confirmPlaceholder": "Gib LÖSCHEN ein",
+      "delete": "Mein Konto Löschen",
+      "cancel": "Abbrechen",
+      "success": "Konto erfolgreich gelöscht",
+      "error": "Fehler beim Löschen des Kontos",
+      "confirmationMismatch": "Bitte gib LÖSCHEN zur Bestätigung ein",
+      "passwordEmpty": "Bitte gib dein Passwort ein"
+    },
+    "unpair": "Trennen",
+    "unpairModal": {
+      "title": "Von Partner Trennen",
+      "message": "Bist du sicher, dass du dich trennen möchtest? Du wirst keine Ausgaben oder Budget mehr mit deinem Partner teilen.",
+      "confirm": "Trennen",
+      "success": "Erfolgreich getrennt",
+      "error": "Fehler beim Trennen"
     }
   },
   "languages": {
@@ -411,7 +486,10 @@
       "tagline": "Verfolge gemeinsame Ausgaben mit deinem Partner, mühelos",
       "getStarted": "Loslegen",
       "alreadyHaveAccount": "Hast du bereits ein Konto?",
-      "signIn": "Anmelden"
+      "signIn": "Anmelden",
+      "feature1": "Datenschutzorientiert",
+      "feature2": "Perfekt für Paare",
+      "feature3": "Einfache Verfolgung"
     },
     "signIn": {
       "title": "Anmelden",
@@ -438,16 +516,88 @@
       "email": "E-Mail",
       "emailPlaceholder": "deine@email.com",
       "password": "Passwort",
-      "passwordPlaceholder": "Erstelle ein Passwort",
+      "passwordPlaceholder": "Mindestens 8 Zeichen",
       "acceptTerms": "Ich akzeptiere die Bedingungen und Datenschutzrichtlinie",
       "termsRequired": "Du musst die Bedingungen und Datenschutzrichtlinie akzeptieren",
       "signUpButton": "Konto Erstellen",
+      "createAccountButton": "Konto Erstellen",
       "orDivider": "oder",
       "continueWithApple": "Mit Apple Fortfahren",
       "continueWithGoogle": "Mit Google Fortfahren",
       "alreadyHaveAccount": "Hast du bereits ein Konto?",
       "signIn": "Anmelden",
-      "signUpError": "Konto konnte nicht erstellt werden. Bitte versuche es erneut."
+      "signUpError": "Konto konnte nicht erstellt werden. Bitte versuche es erneut.",
+      "googleSignInError": "Anmeldung mit Google fehlgeschlagen. Bitte versuche es erneut.",
+      "appleSignInError": "Anmeldung mit Apple fehlgeschlagen. Bitte versuche es erneut.",
+      "agreeToTerms": "Ich akzeptiere die",
+      "termsOfService": "Nutzungsbedingungen",
+      "and": "und",
+      "privacyPolicy": "Datenschutzrichtlinie"
+    },
+    "connect": {
+      "title": "Partner Verbinden",
+      "subtitle": "Verbinde dich mit deinem Partner, um gemeinsame Ausgaben zu verfolgen",
+      "invitePartner": "Partner Einladen",
+      "inviteDescription": "Generiere einen Code, damit dein Partner beitreten kann",
+      "joinPartner": "Partner Beitreten",
+      "joinDescription": "Gib den Einladungscode deines Partners ein",
+      "skipForNow": "Jetzt überspringen (Zum Dashboard)"
+    },
+    "join": {
+      "title": "Einladungscode Eingeben",
+      "subtitle": "Frag deinen Partner nach seinem 6-stelligen Code",
+      "inputLabel": "Einladungscode",
+      "placeholder": "ABC 123",
+      "hint": "Gib den Code genau so ein, wie dein Partner ihn geteilt hat",
+      "connect": "Verbinden",
+      "noCodeYet": "Noch keinen Code?",
+      "goBackAndInvite": "Geh zurück und lade deinen Partner ein",
+      "invalidCode": "Ungültiger Code. Bitte überprüfe und versuche es erneut.",
+      "ownCodeError": "Du kannst deinen eigenen Einladungscode nicht verwenden.",
+      "codeAlreadyUsed": "Dieser Code wurde bereits verwendet. Bitte deinen Partner um einen neuen Code.",
+      "codeExpired": "Dieser Code ist abgelaufen. Bitte deinen Partner um einen neuen Code.",
+      "validationFailed": "Code-Validierung fehlgeschlagen. Bitte versuche es erneut.",
+      "invalidFormat": "Bitte gib einen gültigen 6-stelligen Code ein",
+      "partnerAccountIncomplete": "Das Konto deines Partners ist unvollständig. Bitte ihn:\n1. Abzumelden\n2. Wieder anzumelden\n3. Einen neuen Einladungscode zu generieren\nDann versuche es erneut.",
+      "invalidUserIds": "Ungültige Benutzer-IDs für die Paarung",
+      "permissionDenied": "Berechtigung verweigert. Die App kann das Konto deines Partners nicht aktualisieren. Bitte kontaktiere den Support.",
+      "databaseError": "Datenbankverbindungsproblem. Bitte überprüfe dein Internet und versuche es erneut.",
+      "networkError": "Netzwerkfehler. Bitte überprüfe deine Internetverbindung.",
+      "createCoupleFailed": "Paar konnte nicht erstellt werden: {{error}}",
+      "connectFailed": "Verbindung fehlgeschlagen. Bitte versuche es erneut."
+    },
+    "invite": {
+      "generating": "Einladungscode wird generiert...",
+      "tryAgain": "Erneut Versuchen",
+      "title": "Teile Deinen Code",
+      "subtitle": "Sende diesen Code an deinen Partner, damit er Dividela beitreten kann",
+      "codeLabel": "Dein Einladungscode",
+      "copied": "Kopiert!",
+      "copyCode": "Code Kopieren",
+      "shareVia": "Per SMS, E-Mail oder Andere teilen",
+      "waiting": "Warte darauf, dass dein Partner beitritt...",
+      "expiresIn": "Code läuft in {{time}} ab",
+      "generateNew": "Neuen Code Generieren",
+      "shareMessage": "Tritt mir auf Dividela bei! Verwende diesen Code zur Verbindung: {{code}}\n\nDividela hilft Paaren, gemeinsame Ausgaben mühelos zu verfolgen.",
+      "shareTitle": "Tritt mir auf Dividela bei",
+      "copySuccess": "Einladungscode in die Zwischenablage kopiert",
+      "copyError": "Code konnte nicht kopiert werden",
+      "shareError": "Einladungscode konnte nicht geteilt werden"
+    },
+    "success": {
+      "title": "Verbunden!",
+      "connectedWith": "Du bist jetzt verbunden mit",
+      "readyMessage": "Bereit, gemeinsam Ausgaben zu verfolgen und eure Finanzen organisiert zu halten!",
+      "nextSteps": "Weiter: Richte Dein Budget Ein",
+      "trackExpenses": "Verfolge gemeinsame Ausgaben",
+      "monitorBudget": "Überwache euer Budget zusammen",
+      "stayOnTrack": "Bleib auf Kurs mit deinen Zielen",
+      "setupBudget": "Budget Einrichten",
+      "skipNote": "Du kannst diesen Schritt später überspringen, wenn du möchtest",
+      "yourPartner": "Dein Partner"
+    },
+    "footer": {
+      "madeInColombia": "Hergestellt in Kolumbien 🇨🇴 mit ♥"
     }
   },
   "errors": {
@@ -458,6 +608,25 @@
     "timeout": "Zeitüberschreitung. Bitte versuche es erneut."
   },
   "budget": {
+    "setup": {
+      "title": "Monatliche Budget-Einrichtung",
+      "subtitle": "Lege deine Budgetgrenzen für jede Kategorie fest",
+      "loading": "Lade Budget...",
+      "enableTracking": "Budget-Verfolgung Aktivieren",
+      "enableTrackingDesc": "Verfolge Ausgaben gegen monatliche Budgets",
+      "categoryBudgets": "Kategoriebudgets",
+      "totalMonthlyBudget": "Gesamtes Monatsbudget",
+      "settlementSettings": "Abrechnungseinstellungen",
+      "includeBudgetSavings": "Budget-Ersparnisse Einbeziehen",
+      "includeBudgetSavingsDesc": "Budget-Ersparnisse bei monatlicher Abrechnung aufteilen",
+      "savingsInfoText": "Wenn aktiviert, werden Ersparnisse gleichmäßig aufgeteilt und zur monatlichen Abrechnungsberechnung hinzugefügt, wenn du unter dem Budget bleibst.",
+      "saveBudgets": "Budgets Speichern",
+      "manageCategories": "Kategorien Verwalten →",
+      "successTitle": "Erfolg",
+      "successMessage": "Budgets erfolgreich gespeichert!",
+      "errorTitle": "Fehler",
+      "errorMessage": "Fehler beim Speichern der Budgets"
+    },
     "dashboard": {
       "title": "Budget-Dashboard",
       "loadingDashboard": "Lade Dashboard...",
@@ -697,13 +866,26 @@
       "title": "Aufteilungsvorschau"
     },
     "merchantAlias": {
+      "title": "Händleraliase",
+      "loading": "Lade Aliase...",
       "searchPlaceholder": "Aliase suchen...",
+      "addNew": "Neu Hinzufügen",
+      "noMatchingAliases": "Keine passenden Aliase",
+      "noAliasesYet": "Noch keine Aliase",
+      "noAliasesDescription": "Erstelle Aliase, um Händlernamen zu normalisieren",
+      "noCoupleId": "Keine Paar-ID vorhanden",
+      "deleteTitle": "Alias Löschen",
+      "deleteMessage": "Möchtest du den Alias für \"{{merchant}}\" wirklich löschen?",
+      "editTitle": "Händleralias Bearbeiten",
+      "createTitle": "Händleralias Erstellen",
+      "ocrMerchantLabel": "Originaler Händlername (von OCR)",
       "ocrMerchantPlaceholder": "OCR-Händlername",
-      "aliasPlaceholder": "Ihr Alias",
-      "validationError": "Bitte füllen Sie beide Felder aus",
-      "loadError": "Fehler beim Laden der Händleraliase. Bitte versuchen Sie es erneut.",
-      "deleteError": "Fehler beim Löschen des Alias. Bitte versuchen Sie es erneut.",
-      "saveError": "Fehler beim Speichern des Alias. Bitte versuchen Sie es erneut."
+      "aliasLabel": "Dein Alias",
+      "aliasPlaceholder": "Dein Alias",
+      "validationError": "Bitte fülle beide Felder aus",
+      "loadError": "Fehler beim Laden der Händleraliase. Bitte versuche es erneut.",
+      "deleteError": "Fehler beim Löschen des Alias. Bitte versuche es erneut.",
+      "saveError": "Fehler beim Speichern des Alias. Bitte versuche es erneut."
     },
     "exchangeRate": {
       "amountPlaceholder": "0,00",
@@ -713,31 +895,116 @@
       "searchPlaceholder": "Währungen suchen..."
     },
     "categoryModal": {
-      "namePlaceholder": "z.B. Gesundheit & Fitness"
+      "editTitle": "Kategorie Bearbeiten",
+      "addTitle": "Benutzerdefinierte Kategorie Hinzufügen",
+      "categoryName": "Kategoriename",
+      "namePlaceholder": "z.B. Gesundheit & Fitness",
+      "nameRequired": "Kategoriename ist erforderlich",
+      "nameTooLong": "Name muss 30 Zeichen oder weniger sein",
+      "iconLabel": "Symbol (Emoji)",
+      "iconRequired": "Symbol ist erforderlich",
+      "iconHint": "Tippe, um ein Emoji zu wählen, das diese Kategorie darstellt",
+      "tapToSelect": "Tippe, um Emoji auszuwählen",
+      "defaultBudget": "Standardbudget",
+      "budgetError": "Budget muss eine positive Zahl sein",
+      "saveFailed": "Fehler beim Speichern der Kategorie"
     },
     "amountRange": {
       "minPlaceholder": "Min",
       "maxPlaceholder": "Max"
     },
     "expenseDetail": {
+      "title": "Ausgabendetails",
+      "description": "Beschreibung",
+      "noDescription": "Keine Beschreibung",
+      "totalAmount": "Gesamtbetrag",
+      "date": "Datum",
+      "unknown": "Unbekannt",
+      "paidBy": "Bezahlt von",
+      "splitBreakdown": "Aufteilungsübersicht",
+      "yourShare": "Dein Anteil",
+      "partnerShare": "Anteil von {{partner}}",
+      "settlementStatus": "Abrechnungsstatus",
+      "settled": "Abgerechnet",
+      "pending": "Ausstehend",
+      "settledOn": "Abgerechnet am {{date}}",
+      "settlementId": "Abrechnungs-ID: {{id}}...",
+      "edit": "Bearbeiten",
+      "delete": "Löschen",
+      "settledWarning": "Diese Ausgabe ist Teil einer Abrechnung und kann nicht bearbeitet werden",
+      "deleteTitle": "Ausgabe Löschen",
+      "deleteWarning": "Möchtest du diese Ausgabe wirklich löschen? Dies kann nicht rückgängig gemacht werden.",
+      "deleteWarningSettled": "Diese Ausgabe ist Teil einer Abrechnung. Das Löschen kann deinen Saldoverlauf beeinflussen.\n\nMöchtest du diese Ausgabe wirklich löschen?",
       "deleteError": "Fehler beim Löschen der Ausgabe"
     },
     "exportButton": {
-      "userDetailsError": "Benutzerdetails nicht verfügbar"
+      "noExpenses": "Keine Ausgaben",
+      "noExpensesMessage": "Es gibt keine Ausgaben zum Exportieren. Füge zuerst Ausgaben hinzu!",
+      "userDetailsError": "Benutzerdetails nicht verfügbar",
+      "successTitle": "Export Erfolgreich!",
+      "successMessage": "{{count}} Ausgabe nach {{filename}} exportiert",
+      "successMessage_plural": "{{count}} Ausgaben nach {{filename}} exportiert",
+      "failedTitle": "Export Fehlgeschlagen",
+      "failedMessage": "Fehler beim Exportieren der Ausgaben. Bitte versuche es erneut.",
+      "exporting": "Exportiere...",
+      "exportToCsv": "Als CSV Exportieren"
+    },
+    "expenseFilters": {
+      "filters": "Filter",
+      "dateRange": "Datumsbereich",
+      "categories": "Kategorien",
+      "settlementStatus": "Abrechnungsstatus",
+      "all": "Alle",
+      "settled": "Abgerechnet",
+      "pending": "Ausstehend",
+      "paidBy": "Bezahlt von",
+      "me": "Mir",
+      "partner": "Partner",
+      "clearAllFilters": "Alle Filter Löschen",
+      "category": "Kategorie",
+      "category_plural": "Kategorien",
+      "paidByMe": "Von mir bezahlt",
+      "paidByPartner": "Vom Partner bezahlt"
+    },
+    "dateRangePicker": {
+      "selectPeriod": "Zeitraum Auswählen",
+      "thisWeek": "Diese Woche",
+      "thisMonth": "Dieser Monat",
+      "lastMonth": "Letzter Monat",
+      "last30Days": "Letzte 30 Tage",
+      "last90Days": "Letzte 90 Tage",
+      "thisYear": "Dieses Jahr",
+      "allTime": "Gesamte Zeit"
+    },
+    "ocrSuggestion": {
+      "aiDetected": "KI-erkannte Details",
+      "amount": "Betrag",
+      "currencyNote": "Verwendet {{currency}} • Du kannst Währung ändern und alle Felder nach Annahme bearbeiten",
+      "merchant": "Händler",
+      "unknownMerchant": "Unbekannter Händler",
+      "date": "Datum",
+      "category": "Kategorie",
+      "dismiss": "Ablehnen",
+      "useTheseDetails": "Diese Details Verwenden",
+      "createAliasTitle": "Händleralias Erstellen",
+      "createAliasSubtitle": "Erstelle einen Kurznamen für \"{{merchant}}\""
     }
   },
   "stats": {
     "title": "Statistiken",
     "subtitle": "Verfolgen Sie Ihre Ausgabenmuster",
     "loading": "Statistiken laden...",
+    "error": "Fehler beim Laden der Statistiken. Ziehen Sie nach unten, um es erneut zu versuchen.",
     "errorMessage": "Fehler beim Laden der Statistiken. Ziehen Sie nach unten, um es erneut zu versuchen.",
     "sorting": {
+      "label": "Sortieren nach:",
       "sortBy": "Sortieren nach:",
       "latest": "Neueste",
       "highest": "Höchste",
       "category": "Kategorie"
     },
     "grouping": {
+      "label": "Gruppieren nach:",
       "groupBy": "Gruppieren nach:",
       "none": "Keine",
       "month": "Monat",
@@ -746,8 +1013,14 @@
     "summary": {
       "totalExpenses": "Gesamtausgaben",
       "expenseCount": "{{count}} Ausgaben",
-      "yourShare": "Ihr Anteil",
-      "partnerShare": "Partneranteil"
+      "yourShare": "Dein Anteil",
+      "partnerShare": "{{partnerName}}s Anteil"
+    },
+    "list": {
+      "title": "Ausgabendetails ({{count}})",
+      "noDescription": "Keine Beschreibung",
+      "youPaid": "Du hast bezahlt",
+      "partnerPaid": "{{partnerName}} hat bezahlt"
     },
     "expenseList": {
       "title": "Ausgabendetails ({{count}})",
@@ -755,10 +1028,19 @@
       "youPaid": "Sie haben bezahlt",
       "partnerPaid": "{{partnerName}} hat bezahlt"
     },
+    "breakdown": {
+      "title": "Kategorieaufschlüsselung",
+      "percentage": "{{percentage}}% der Gesamtsumme",
+      "empty": "Keine Kategorien anzuzeigen"
+    },
     "categoryBreakdown": {
       "title": "Kategorieaufschlüsselung",
       "percentage": "{{percentage}}% der Gesamtsumme",
       "noCategories": "Keine Kategorien anzuzeigen"
+    },
+    "settlement": {
+      "title": "Abrechnungsverlauf",
+      "subtitle": "Aufzeichnung der abgerechneten Salden"
     },
     "settlementHistory": {
       "title": "Abrechnungsverlauf",
@@ -768,12 +1050,32 @@
       "title": "Noch Keine Ausgaben",
       "message": "Beginnen Sie mit dem Hinzufügen von Ausgaben, um Ihre Ausgabenstatistiken zu sehen"
     },
+    "emptyFilter": {
+      "title": "Keine Übereinstimmenden Ausgaben",
+      "message": "Versuchen Sie, Ihre Filter anzupassen, um mehr Ergebnisse zu sehen"
+    },
     "emptyFiltered": {
       "title": "Keine Übereinstimmenden Ausgaben",
       "message": "Versuchen Sie, Ihre Filter anzupassen, um mehr Ergebnisse zu sehen"
     }
   },
   "categoryManager": {
+    "title": "Kategorien Verwalten",
+    "subtitle": "Passe deine Ausgabenkategorien und Standardbudgets an",
+    "loading": "Kategorien werden geladen...",
+    "addCustomCategory": "+ Kategorie Hinzufügen",
+    "resetToDefaults": "Zurücksetzen",
+    "noCategoriesTitle": "Noch keine Kategorien",
+    "noCategoriesText": "Füge deine erste Kategorie hinzu",
+    "cannotDeleteTitle": "Löschen Nicht Möglich",
+    "cannotDeleteMessage": "\"{{name}}\" hat {{count}} Ausgabe. Lösche oder weise diese Ausgaben zuerst neu zu.",
+    "cannotDeleteMessage_plural": "\"{{name}}\" hat {{count}} Ausgaben. Lösche oder weise diese Ausgaben zuerst neu zu.",
+    "deleteTitle": "Kategorie Löschen",
+    "deleteMessage": "Möchtest du \"{{name}}\" wirklich löschen?",
+    "resetTitle": "Kategorien Zurücksetzen",
+    "resetMessage": "Alle Kategorien auf Standard zurücksetzen? Dies entfernt benutzerdefinierte Kategorien (ohne Ausgaben) und stellt Standardbudgets wieder her.",
+    "resetSuccessMessage": "Kategorien zurückgesetzt!",
+    "resetKeptMessage": "{{count}} benutzerdefinierte Kategorien mit Ausgaben behalten.",
     "deleteSuccess": "Kategorie erfolgreich gelöscht!",
     "deleteError": "Fehler beim Löschen der Kategorie",
     "updateSuccess": "Kategorie erfolgreich aktualisiert!",
@@ -782,6 +1084,60 @@
     "resetError": "Fehler beim Zurücksetzen der Kategorien"
   },
   "paywall": {
+    "loading": "Abonnement-Optionen werden geladen...",
+    "premiumBadge": "PREMIUM",
+    "title": "Upgrade auf\nDividela Premium",
+    "subtitle": "Schalte leistungsstarke Funktionen frei, um eure Finanzen als Paar zu verwalten",
+    "requiresPremium": "{{feature}} benötigt Premium",
+    "bestValue": "BESTER WERT",
+    "annual": "Jährlich",
+    "monthly": "Monatlich",
+    "perYear": "/Jahr",
+    "perMonth": "/Monat",
+    "justPerMonth": "Nur {{amount}}€/Monat",
+    "save33": "33% Sparen",
+    "whatsIncluded": "Was Enthalten Ist",
+    "features": {
+      "unlimitedBudgets": "Unbegrenzte Budgets",
+      "unlimitedBudgetsDesc": "Erstelle so viele Budgets wie du brauchst",
+      "receiptScanning": "Beleg-Scan",
+      "receiptScanningDesc": "Scanne Belege mit KI-gestützter OCR",
+      "annualView": "Jahresansicht",
+      "annualViewDesc": "Verfolge Ausgaben über das ganze Jahr",
+      "advancedAnalytics": "Erweiterte Analysen",
+      "advancedAnalyticsDesc": "Einblicke und Trends für klügere Ausgaben",
+      "exportData": "Daten Exportieren",
+      "exportDataDesc": "Lade Ausgaben für Steuern oder Aufzeichnungen herunter",
+      "csvImport": "CSV Import",
+      "csvImportDesc": "Importiere Ausgaben massenweise aus Kontoauszügen",
+      "customCategories": "Benutzerdefinierte Kategorien",
+      "customCategoriesDesc": "Erstelle eigene Ausgabenkategorien",
+      "recurringExpenses": "Wiederkehrende Ausgaben",
+      "recurringExpensesDesc": "Automatisiere regelmäßige Rechnungen und Abos",
+      "relationshipInsights": "Paar-Einblicke",
+      "relationshipInsightsDesc": "Finanzielle Gesundheitswerte für Paare",
+      "prioritySupport": "Prioritäts-Support",
+      "prioritySupportDesc": "Erhalte Hilfe, wenn du sie brauchst"
+    },
+    "featureTitles": {
+      "unlimited_budgets": "Unbegrenzte Budgets",
+      "annual_view": "Jahresansicht",
+      "advanced_analytics": "Erweiterte Analysen",
+      "export_data": "Daten Exportieren",
+      "custom_categories": "Benutzerdefinierte Kategorien",
+      "receipt_scanning": "Beleg-Scan",
+      "import_expenses": "CSV Import"
+    },
+    "finePrint": "Das Abonnement verlängert sich automatisch, es sei denn, die automatische Verlängerung wird mindestens 24 Stunden vor Ende des aktuellen Zeitraums deaktiviert. Die Zahlung wird deinem {{store}}-Konto belastet.",
+    "startPremium": "Premium Starten",
+    "startPremiumWithPrice": "Premium Starten - {{price}}€",
+    "restorePurchases": "Käufe Wiederherstellen",
+    "welcomeTitle": "Willkommen bei Premium! 🎉",
+    "welcomeMessage": "Du hast jetzt Zugang zu allen Premium-Funktionen. Viel Spaß!",
+    "getStarted": "Los Geht's",
+    "purchasesRestored": "Käufe Wiederhergestellt! 🎉",
+    "purchasesRestoredMessage": "Dein Premium-Abonnement wurde wiederhergestellt.",
+    "continue": "Weiter",
     "selectPlanError": "Bitte wählen Sie einen Abonnementplan",
     "purchaseFailed": "Kauf Fehlgeschlagen",
     "purchaseError": "Etwas ist schief gelaufen. Bitte versuchen Sie es erneut.",

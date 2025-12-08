@@ -24,12 +24,14 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { doc, setDoc, onSnapshot, serverTimestamp, getDoc } from 'firebase/firestore';
+import { useTranslation } from 'react-i18next';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { generateInviteCode, calculateExpirationDate, formatTimeRemaining } from '../../utils/inviteCode';
 import { COLORS, FONTS, SPACING, COMMON_STYLES } from '../../constants/theme';
 
 export default function InviteScreen({ navigation }) {
+  const { t } = useTranslation();
   const { user, userDetails, updatePartnerInfo } = useAuth();
   const [inviteCode, setInviteCode] = useState('');
   const [loading, setLoading] = useState(true);
@@ -90,7 +92,7 @@ export default function InviteScreen({ navigation }) {
       // Check if user is authenticated
       if (!user || !user.uid) {
         console.error('No authenticated user found');
-        setError('You must be signed in to generate an invite code.');
+        setError(t('invite.authError'));
         setLoading(false);
         return;
       }
@@ -162,11 +164,11 @@ export default function InviteScreen({ navigation }) {
 
       // Provide more specific error messages
       if (err.code === 'permission-denied') {
-        setError('Permission denied. Please check your Firestore security rules.');
+        setError(t('invite.permissionError'));
       } else if (err.code === 'unavailable') {
-        setError('Network error. Please check your internet connection.');
+        setError(t('invite.networkError'));
       } else {
-        setError(`Failed to generate invite code: ${err.message}`);
+        setError(t('errors.generic'));
       }
     } finally {
       setLoading(false);
@@ -188,11 +190,11 @@ export default function InviteScreen({ navigation }) {
 
       // Show native feedback
       if (Platform.OS === 'ios' || Platform.OS === 'android') {
-        Alert.alert('Copied!', 'Invite code copied to clipboard');
+        Alert.alert(t('auth.invite.copied'), t('auth.invite.copySuccess'));
       }
     } catch (err) {
       console.error('Error copying to clipboard:', err);
-      Alert.alert('Error', 'Failed to copy code');
+      Alert.alert(t('common.error'), t('auth.invite.copyError'));
     }
   };
 
@@ -207,15 +209,15 @@ export default function InviteScreen({ navigation }) {
 
   const handleShare = async () => {
     try {
-      const message = `Join me on Dividela! Use this code to connect: ${inviteCode}\n\nDividela helps couples track shared expenses effortlessly.`;
+      const message = t('auth.invite.shareMessage', { code: inviteCode });
 
       await Share.share({
         message: message,
-        title: 'Join me on Dividela',
+        title: t('auth.invite.shareTitle'),
       });
     } catch (err) {
       console.error('Error sharing:', err);
-      Alert.alert('Error', 'Failed to share invite code');
+      Alert.alert(t('common.error'), t('auth.invite.shareError'));
     }
   };
 
@@ -231,7 +233,7 @@ export default function InviteScreen({ navigation }) {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Generating invite code...</Text>
+        <Text style={styles.loadingText}>{t('auth.invite.generating')}</Text>
       </View>
     );
   }
@@ -242,7 +244,7 @@ export default function InviteScreen({ navigation }) {
         <Ionicons name="alert-circle-outline" size={64} color={COLORS.error} />
         <Text style={styles.errorText}>{error}</Text>
         <TouchableOpacity style={COMMON_STYLES.primaryButton} onPress={generateAndSaveCode}>
-          <Text style={COMMON_STYLES.primaryButtonText}>Try Again</Text>
+          <Text style={COMMON_STYLES.primaryButtonText}>{t('auth.invite.tryAgain')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -262,14 +264,14 @@ export default function InviteScreen({ navigation }) {
         </View>
 
         {/* Title */}
-        <Text style={styles.title}>Share Your Code</Text>
+        <Text style={styles.title}>{t('auth.invite.title')}</Text>
         <Text style={styles.subtitle}>
-          Send this code to your partner so they can join you on Dividela
+          {t('auth.invite.subtitle')}
         </Text>
 
         {/* Invite Code Display */}
         <View style={styles.codeContainer}>
-          <Text style={styles.codeLabel}>Your Invite Code</Text>
+          <Text style={styles.codeLabel}>{t('auth.invite.codeLabel')}</Text>
           <Text style={styles.codeText}>{formatCode(inviteCode)}</Text>
 
           <TouchableOpacity style={styles.copyButton} onPress={handleCopyCode}>
@@ -279,7 +281,7 @@ export default function InviteScreen({ navigation }) {
               color={copied ? COLORS.success : COLORS.primary}
             />
             <Text style={[styles.copyButtonText, copied && styles.copiedText]}>
-              {copied ? 'Copied!' : 'Copy Code'}
+              {copied ? t('auth.invite.copied') : t('auth.invite.copyCode')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -287,13 +289,13 @@ export default function InviteScreen({ navigation }) {
         {/* Share Options */}
         <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
           <Ionicons name="share-outline" size={20} color={COLORS.primary} />
-          <Text style={styles.shareButtonText}>Share via SMS, Email, or More</Text>
+          <Text style={styles.shareButtonText}>{t('auth.invite.shareVia')}</Text>
         </TouchableOpacity>
 
         {/* Status */}
         <View style={styles.statusContainer}>
           <ActivityIndicator size="small" color={COLORS.primary} />
-          <Text style={styles.statusText}>Waiting for your partner to join...</Text>
+          <Text style={styles.statusText}>{t('auth.invite.waiting')}</Text>
         </View>
 
         {/* Expiration Notice */}
@@ -301,7 +303,7 @@ export default function InviteScreen({ navigation }) {
           <View style={styles.expirationNotice}>
             <Ionicons name="time-outline" size={16} color={COLORS.textSecondary} />
             <Text style={styles.expirationText}>
-              Code expires in {formatTimeRemaining(expiresAt)}
+              {t('auth.invite.expiresIn', { time: formatTimeRemaining(expiresAt) })}
             </Text>
           </View>
         )}
@@ -309,7 +311,7 @@ export default function InviteScreen({ navigation }) {
         {/* Generate New Code */}
         <TouchableOpacity style={styles.regenerateButton} onPress={generateAndSaveCode}>
           <Ionicons name="refresh-outline" size={18} color={COLORS.primary} />
-          <Text style={styles.regenerateText}>Generate New Code</Text>
+          <Text style={styles.regenerateText}>{t('auth.invite.generateNew')}</Text>
         </TouchableOpacity>
       </View>
     </View>

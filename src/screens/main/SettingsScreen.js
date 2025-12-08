@@ -42,6 +42,12 @@ import {
 } from '../../services/coupleSettingsService';
 import MerchantAliasManager from '../../components/MerchantAliasManager';
 import { useTranslation } from 'react-i18next';
+import {
+  getPermissionStatus,
+  requestPermissions,
+  isPushNotificationSupported,
+  registerForPushNotifications,
+} from '../../services/pushNotificationService';
 
 const { width: screenWidth } = Dimensions.get('window');
 const isSmallScreen = screenWidth < 375;
@@ -70,6 +76,7 @@ export default function SettingsScreen({ navigation }) {
   const [pendingCurrency, setPendingCurrency] = useState(null);
   const [notifications, setNotifications] = useState({
     emailEnabled: true,
+    pushEnabled: true,
     monthlyBudgetAlert: true,
     annualBudgetAlert: true,
     fiscalYearEndReminder: true,
@@ -77,6 +84,7 @@ export default function SettingsScreen({ navigation }) {
     partnerActivity: false,
   });
   const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [pushPermissionStatus, setPushPermissionStatus] = useState('undetermined');
 
   // Change password modal state
   const [changePasswordModalVisible, setChangePasswordModalVisible] = useState(false);
@@ -127,7 +135,17 @@ export default function SettingsScreen({ navigation }) {
           // Fetch notification preferences
           const settings = await getCoupleSettings(userDetails.coupleId);
           if (settings.notifications) {
-            setNotifications(settings.notifications);
+            setNotifications(prev => ({
+              ...prev,
+              ...settings.notifications,
+              pushEnabled: settings.notifications.pushEnabled !== false, // Default to true
+            }));
+          }
+
+          // Check push notification permission status
+          if (isPushNotificationSupported()) {
+            const status = await getPermissionStatus();
+            setPushPermissionStatus(status);
           }
         } catch (error) {
           console.error('Error fetching settings:', error);
@@ -722,8 +740,67 @@ export default function SettingsScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* Only show other options if email is enabled */}
-        {notifications.emailEnabled && (
+        {/* Push Notifications Toggle */}
+        {isPushNotificationSupported() && (
+          <View style={styles.settingRow}>
+            <View style={styles.settingIcon}>
+              <Ionicons
+                name={notifications.pushEnabled ? "notifications" : "notifications-outline"}
+                size={20}
+                color={notifications.pushEnabled ? COLORS.primary : COLORS.textSecondary}
+              />
+            </View>
+            <View style={styles.settingContent}>
+              <Text style={styles.settingLabel}>{t('settings.notifications.pushEnabled') || 'Push Notifications'}</Text>
+              <Text style={styles.settingDescription}>
+                {pushPermissionStatus === 'granted'
+                  ? (t('settings.notifications.pushEnabledDesc') || 'Receive notifications on this device')
+                  : pushPermissionStatus === 'denied'
+                  ? (t('settings.notifications.pushDenied') || 'Permission denied - enable in device settings')
+                  : (t('settings.notifications.pushUndetermined') || 'Tap to enable push notifications')}
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={async () => {
+                if (pushPermissionStatus !== 'granted') {
+                  console.log('Requesting push notification permission...');
+                  const granted = await requestPermissions();
+                  console.log('Permission request result:', granted);
+                  if (granted) {
+                    setPushPermissionStatus('granted');
+                    handleNotificationToggle('pushEnabled', true);
+                    // Register the push token after permission is granted
+                    if (user?.uid) {
+                      console.log('Registering push token for user:', user.uid);
+                      const result = await registerForPushNotifications(user.uid);
+                      console.log('Push token registration result:', result);
+                    }
+                  } else {
+                    setPushPermissionStatus('denied');
+                  }
+                } else {
+                  handleNotificationToggle('pushEnabled', !notifications.pushEnabled);
+                }
+              }}
+              disabled={notificationsLoading || pushPermissionStatus === 'denied'}
+              activeOpacity={0.7}
+            >
+              <View style={[
+                styles.toggle,
+                notifications.pushEnabled && pushPermissionStatus === 'granted' && styles.toggleActive,
+                pushPermissionStatus === 'denied' && { opacity: 0.5 }
+              ]}>
+                <View style={[
+                  styles.toggleThumb,
+                  notifications.pushEnabled && pushPermissionStatus === 'granted' && styles.toggleThumbActive
+                ]} />
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Only show other options if email or push is enabled */}
+        {(notifications.emailEnabled || notifications.pushEnabled) && (
           <>
             {/* Monthly Budget Alert */}
             <View style={styles.settingRow}>

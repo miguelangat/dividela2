@@ -46,7 +46,7 @@ export default function SignUpScreen({ navigation }) {
     if (!nameValidation.isValid) newErrors.name = nameValidation.error;
     if (!emailValidation.isValid) newErrors.email = emailValidation.error;
     if (!passwordValidation.isValid) newErrors.password = passwordValidation.error;
-    if (!termsAccepted) newErrors.terms = 'You must accept the terms and privacy policy';
+    if (!termsAccepted) newErrors.terms = t('auth.signUp.termsRequired');
 
     // If there are errors, show them and return
     if (Object.keys(newErrors).length > 0) {
@@ -63,7 +63,7 @@ export default function SignUpScreen({ navigation }) {
       navigation.replace('Connect');
     } catch (error) {
       console.error('Sign up error:', error);
-      setErrors({ general: error.message || 'Failed to create account. Please try again.' });
+      setErrors({ general: error.message || t('auth.signUp.signUpError') });
     } finally {
       setLoading(false);
     }
@@ -87,7 +87,7 @@ export default function SignUpScreen({ navigation }) {
     } catch (error) {
       console.error('🔴 Google sign-in error:', error);
       if (error.code !== 'auth/popup-closed-by-user') {
-        setErrors({ general: error.message || 'Failed to sign in with Google' });
+        setErrors({ general: error.message || t('auth.signUp.googleSignInError') });
       }
     } finally {
       setSocialLoading(null);
@@ -105,7 +105,7 @@ export default function SignUpScreen({ navigation }) {
     } catch (error) {
       console.error('Apple sign-in error:', error);
       if (error.code !== 'auth/popup-closed-by-user') {
-        setErrors({ general: error.message || 'Failed to sign in with Apple' });
+        setErrors({ general: error.message || t('auth.signUp.appleSignInError') });
       }
     } finally {
       setSocialLoading(null);

@@ -1,5 +1,5 @@
 /**
- * Scheduled Email Checks
+ * Scheduled Email and Push Notification Checks
  *
  * Cloud Functions that run on a schedule to check for notification triggers.
  * These run daily to check for fiscal year end reminders and other time-based alerts.
@@ -19,6 +19,11 @@ const {
   formatCurrency,
   TEMPLATE_IDS,
 } = require('./mailersendService');
+const {
+  isPushEnabled,
+  sendPushToCouple,
+  logPushSent,
+} = require('../push/pushNotificationService');
 
 /**
  * Check for fiscal year end reminders
@@ -142,6 +147,35 @@ exports.checkFiscalYearEndReminders = onSchedule(
                   error: error.message,
                 });
               }
+            }
+
+            // Send push notification to both partners
+            try {
+              const pushEnabled = await isPushEnabled(coupleId, 'fiscalYearEndReminder');
+              if (pushEnabled) {
+                const pushTitle = 'Year End Reminder';
+                const pushBody = daysUntilEnd === 0
+                  ? 'Your fiscal year ends today! Review your budget summary.'
+                  : `${daysUntilEnd} days until your fiscal year ends. Review your budget.`;
+
+                const pushResult = await sendPushToCouple(coupleId, pushTitle, pushBody, {
+                  screen: 'BudgetDashboard',
+                  type: 'fiscalYearReminder',
+                  daysRemaining: daysUntilEnd.toString(),
+                });
+
+                await logPushSent({
+                  coupleId,
+                  type: 'fiscalYearEndReminder',
+                  success: pushResult.success,
+                  sent: pushResult.sent,
+                  error: pushResult.error,
+                });
+
+                console.log(`Fiscal year reminder push sent to couple ${coupleId}: ${pushResult.sent} notifications`);
+              }
+            } catch (pushError) {
+              console.error('Error sending fiscal year push notification:', pushError);
             }
           } else if (daysUntilEnd < 0) {
             console.log(`Fiscal year has ended for couple: ${coupleId}`);

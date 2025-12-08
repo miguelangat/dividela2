@@ -20,11 +20,13 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { doc, getDoc } from 'firebase/firestore';
+import { useTranslation } from 'react-i18next';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { COLORS, FONTS, SPACING, COMMON_STYLES } from '../../constants/theme';
 
 export default function SuccessScreen({ navigation, route }) {
+  const { t } = useTranslation();
   const { partnerId } = route.params || {};
   const { user } = useAuth();
   const [partnerName, setPartnerName] = useState('');
@@ -51,7 +53,7 @@ export default function SuccessScreen({ navigation, route }) {
 
       if (partnerDoc.exists()) {
         const partnerData = partnerDoc.data();
-        setPartnerName(partnerData.displayName || 'Your Partner');
+        setPartnerName(partnerData.displayName || t('auth.success.yourPartner'));
       }
     } catch (err) {
       console.error('Error fetching partner details:', err);
@@ -113,16 +115,16 @@ export default function SuccessScreen({ navigation, route }) {
         {/* Animated Text Content */}
         <Animated.View style={[styles.textContent, { opacity: fadeAnim }]}>
           {/* Title */}
-          <Text style={styles.title}>Connected! 🎉</Text>
+          <Text style={styles.title}>{t('auth.success.title')} 🎉</Text>
 
           {/* Message */}
           <Text style={styles.message}>
-            You're now connected with{' '}
+            {t('auth.success.connectedWith')}{' '}
             <Text style={styles.partnerName}>{partnerName}</Text>
           </Text>
 
           <Text style={styles.subtitle}>
-            Ready to track expenses together and keep your finances organized!
+            {t('auth.success.readyMessage')}
           </Text>
 
           {/* Visual Representation */}
@@ -142,27 +144,27 @@ export default function SuccessScreen({ navigation, route }) {
 
           {/* Next Steps */}
           <View style={styles.featuresContainer}>
-            <Text style={styles.nextStepsTitle}>Next: Set Up Your Budget</Text>
+            <Text style={styles.nextStepsTitle}>{t('auth.success.nextSteps')}</Text>
             <View style={styles.featureItem}>
               <Ionicons name="wallet-outline" size={20} color={COLORS.primary} />
-              <Text style={styles.featureText}>Track shared expenses</Text>
+              <Text style={styles.featureText}>{t('auth.success.trackExpenses')}</Text>
             </View>
             <View style={styles.featureItem}>
               <Ionicons name="pie-chart-outline" size={20} color={COLORS.primary} />
-              <Text style={styles.featureText}>Monitor your budget together</Text>
+              <Text style={styles.featureText}>{t('auth.success.monitorBudget')}</Text>
             </View>
             <View style={styles.featureItem}>
               <Ionicons name="sync-outline" size={20} color={COLORS.primary} />
-              <Text style={styles.featureText}>Stay on track with goals</Text>
+              <Text style={styles.featureText}>{t('auth.success.stayOnTrack')}</Text>
             </View>
           </View>
         </Animated.View>
 
         {/* Continue Button */}
         <TouchableOpacity style={COMMON_STYLES.primaryButton} onPress={handleContinue}>
-          <Text style={COMMON_STYLES.primaryButtonText}>Set Up Budget</Text>
+          <Text style={COMMON_STYLES.primaryButtonText}>{t('auth.success.setupBudget')}</Text>
         </TouchableOpacity>
-        <Text style={styles.skipText}>You can skip this step later if you prefer</Text>
+        <Text style={styles.skipText}>{t('auth.success.skipNote')}</Text>
       </View>
     </View>
   );

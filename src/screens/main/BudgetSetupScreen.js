@@ -14,10 +14,12 @@ import {
   Switch,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { useTranslation } from 'react-i18next';
 import { useBudget } from '../../contexts/BudgetContext';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES } from '../../constants/theme';
 
 export default function BudgetSetupScreen({ navigation }) {
+  const { t } = useTranslation();
   const {
     categories,
     currentBudget,
@@ -64,10 +66,10 @@ export default function BudgetSetupScreen({ navigation }) {
         enabled: budgetEnabled,
         includeSavings: includeSavings,
       });
-      Alert.alert('Success', 'Budgets saved successfully!');
+      Alert.alert(t('budget.setup.successTitle'), t('budget.setup.successMessage'));
     } catch (error) {
       console.error('Error saving budgets:', error);
-      Alert.alert('Error', error.message || 'Failed to save budgets');
+      Alert.alert(t('budget.setup.errorTitle'), error.message || t('budget.setup.errorMessage'));
     } finally {
       setSaving(false);
     }
@@ -103,7 +105,7 @@ export default function BudgetSetupScreen({ navigation }) {
         <StatusBar style="dark" />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading budget...</Text>
+          <Text style={styles.loadingText}>{t('budget.setup.loading')}</Text>
         </View>
       </View>
     );
@@ -125,9 +127,9 @@ export default function BudgetSetupScreen({ navigation }) {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Monthly Budget Setup</Text>
+          <Text style={styles.title}>{t('budget.setup.title')}</Text>
           <Text style={styles.subtitle}>
-            Set your budget limits for each category
+            {t('budget.setup.subtitle')}
           </Text>
         </View>
 
@@ -135,9 +137,9 @@ export default function BudgetSetupScreen({ navigation }) {
         <View style={styles.card}>
           <View style={styles.toggleRow}>
             <View style={styles.toggleLabel}>
-              <Text style={styles.toggleTitle}>Enable Budget Tracking</Text>
+              <Text style={styles.toggleTitle}>{t('budget.setup.enableTracking')}</Text>
               <Text style={styles.toggleSubtitle}>
-                Track spending against monthly budgets
+                {t('budget.setup.enableTrackingDesc')}
               </Text>
             </View>
             <Switch
@@ -151,7 +153,7 @@ export default function BudgetSetupScreen({ navigation }) {
 
         {/* Category Budgets */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Category Budgets</Text>
+          <Text style={styles.sectionTitle}>{t('budget.setup.categoryBudgets')}</Text>
 
           {categoryArray.map((category) => (
             <View key={category.key} style={styles.budgetRow}>
@@ -175,20 +177,20 @@ export default function BudgetSetupScreen({ navigation }) {
 
           {/* Total Budget */}
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Total Monthly Budget</Text>
+            <Text style={styles.totalLabel}>{t('budget.setup.totalMonthlyBudget')}</Text>
             <Text style={styles.totalAmount}>${getTotalBudget().toFixed(0)}</Text>
           </View>
         </View>
 
         {/* Settlement Settings */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Settlement Settings</Text>
+          <Text style={styles.sectionTitle}>{t('budget.setup.settlementSettings')}</Text>
 
           <View style={styles.toggleRow}>
             <View style={styles.toggleLabel}>
-              <Text style={styles.toggleTitle}>Include Budget Savings</Text>
+              <Text style={styles.toggleTitle}>{t('budget.setup.includeBudgetSavings')}</Text>
               <Text style={styles.toggleSubtitle}>
-                Split budget savings in monthly settlement
+                {t('budget.setup.includeBudgetSavingsDesc')}
               </Text>
             </View>
             <Switch
@@ -202,8 +204,7 @@ export default function BudgetSetupScreen({ navigation }) {
           <View style={styles.infoBox}>
             <Text style={styles.infoIcon}>💡</Text>
             <Text style={styles.infoText}>
-              When enabled, if you stay under budget, the savings will be split
-              equally and added to your monthly settlement calculation.
+              {t('budget.setup.savingsInfoText')}
             </Text>
           </View>
         </View>
@@ -218,7 +219,7 @@ export default function BudgetSetupScreen({ navigation }) {
           {saving ? (
             <ActivityIndicator color={COLORS.textWhite} />
           ) : (
-            <Text style={styles.saveButtonText}>Save Budgets</Text>
+            <Text style={styles.saveButtonText}>{t('budget.setup.saveBudgets')}</Text>
           )}
         </TouchableOpacity>
 
@@ -229,7 +230,7 @@ export default function BudgetSetupScreen({ navigation }) {
           activeOpacity={0.6}
         >
           <Text style={styles.manageCategoriesText}>
-            Manage Categories →
+            {t('budget.setup.manageCategories')}
           </Text>
         </TouchableOpacity>
       </ScrollView>

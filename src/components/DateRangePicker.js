@@ -14,6 +14,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { COLORS, FONTS, SPACING } from '../constants/theme';
 
 // Preset date range options
@@ -27,17 +28,15 @@ const PRESETS = {
   ALL_TIME: 'all_time',
 };
 
-const getPresetLabel = (preset) => {
-  const labels = {
-    [PRESETS.THIS_WEEK]: 'This Week',
-    [PRESETS.THIS_MONTH]: 'This Month',
-    [PRESETS.LAST_MONTH]: 'Last Month',
-    [PRESETS.LAST_30_DAYS]: 'Last 30 Days',
-    [PRESETS.LAST_90_DAYS]: 'Last 90 Days',
-    [PRESETS.THIS_YEAR]: 'This Year',
-    [PRESETS.ALL_TIME]: 'All Time',
-  };
-  return labels[preset] || 'Select Period';
+// Preset key mapping for translations
+const PRESET_KEYS = {
+  [PRESETS.THIS_WEEK]: 'thisWeek',
+  [PRESETS.THIS_MONTH]: 'thisMonth',
+  [PRESETS.LAST_MONTH]: 'lastMonth',
+  [PRESETS.LAST_30_DAYS]: 'last30Days',
+  [PRESETS.LAST_90_DAYS]: 'last90Days',
+  [PRESETS.THIS_YEAR]: 'thisYear',
+  [PRESETS.ALL_TIME]: 'allTime',
 };
 
 /**
@@ -130,8 +129,14 @@ const formatDateRange = (startDate, endDate) => {
 };
 
 export default function DateRangePicker({ onDateRangeChange, initialPreset = PRESETS.THIS_MONTH }) {
+  const { t } = useTranslation();
   const [selectedPreset, setSelectedPreset] = useState(initialPreset);
   const [expanded, setExpanded] = useState(false);
+
+  const getPresetLabel = (preset) => {
+    const key = PRESET_KEYS[preset];
+    return key ? t(`components.dateRangePicker.${key}`) : t('components.dateRangePicker.selectPeriod');
+  };
 
   const handlePresetSelect = (preset) => {
     setSelectedPreset(preset);
