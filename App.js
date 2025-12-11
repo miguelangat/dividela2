@@ -9,6 +9,7 @@ import { AuthProvider } from './src/contexts/AuthContext';
 import { SubscriptionProvider } from './src/contexts/SubscriptionContext';
 import { BudgetProvider } from './src/contexts/BudgetContext';
 import { LanguageProvider } from './src/contexts/LanguageContext';
+import { NudgeProvider } from './src/contexts/NudgeContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import './src/i18n/i18n.config'; // Initialize i18n
 
@@ -19,11 +20,13 @@ export default function App() {
         <PaperProvider>
           <LanguageProvider>
             <AuthProvider>
-              <SubscriptionProvider>
-                <BudgetProvider>
-                  <AppNavigator />
-                </BudgetProvider>
-              </SubscriptionProvider>
+              <NudgeProvider>
+                <SubscriptionProvider>
+                  <BudgetProvider>
+                    <AppNavigator />
+                  </BudgetProvider>
+                </SubscriptionProvider>
+              </NudgeProvider>
             </AuthProvider>
           </LanguageProvider>
         </PaperProvider>

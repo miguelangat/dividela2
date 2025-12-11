@@ -190,6 +190,7 @@
     "changePasswordDescription": "Update your account password",
     "deleteAccount": "Delete Account",
     "deleteAccountDescription": "Permanently delete your account",
+    "deleteAccountLink": "Need to delete your account?",
     "changePasswordModal": {
       "title": "Change Password",
       "currentPassword": "Current Password",
@@ -480,7 +481,41 @@
       "logsExported": "Logs exported successfully"
     }
   },
+  "nudges": {
+    "budget": {
+      "title": "Set Up Your Budget",
+      "description": "Track spending and stay on target together",
+      "cta": "Set Up Now"
+    },
+    "push": {
+      "title": "Stay in the Loop",
+      "description": "Get notified when expenses are added",
+      "cta": "Enable Notifications",
+      "later": "Not Now"
+    },
+    "firstExpense": {
+      "title": "Add Your First Expense",
+      "description": "Tap here to start tracking",
+      "dismiss": "Got it!"
+    },
+    "partnerInvite": {
+      "inviteCta": "Invite Partner",
+      "joinCta": "Join Partner"
+    }
+  },
   "auth": {
+    "forgotPassword": {
+      "title": "Reset Password",
+      "subtitle": "Enter your email to receive a reset link",
+      "email": "Email",
+      "emailPlaceholder": "your@email.com",
+      "sendButton": "Send Reset Link",
+      "successTitle": "Email Sent!",
+      "successMessage": "Check your inbox for the reset link",
+      "backToSignIn": "Back to Sign In",
+      "errorNotFound": "No account found with this email",
+      "errorGeneric": "Failed to send reset email. Please try again."
+    },
     "welcome": {
       "title": "Dividela",
       "tagline": "Track shared expenses with your partner, effortlessly",
@@ -599,6 +634,96 @@
     "footer": {
       "madeInColombia": "Made in Colombia 🇨🇴 with ♥"
     }
+  },
+  "coreSetup": {
+    "title": "Set Up Your Account",
+    "subtitle": "Configure your preferences to get started",
+    "step1": {
+      "title": "Essentials",
+      "subtitle": "Currency and notification preferences"
+    },
+    "step2": {
+      "title": "Calendar",
+      "subtitle": "When does your budget year start?"
+    },
+    "step3": {
+      "title": "Budget",
+      "subtitle": "Set up your spending categories"
+    },
+    "currency": {
+      "title": "Primary Currency",
+      "description": "Choose the currency for tracking expenses and budgets"
+    },
+    "fiscalYear": {
+      "title": "Fiscal Year",
+      "description": "When does your budget year start?",
+      "calendar": "Calendar Year",
+      "calendarDates": "January 1 - December 31",
+      "custom": "Custom Start Date",
+      "customDescription": "Choose your own start date",
+      "startMonth": "Start Month",
+      "startDay": "Start Day"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "description": "Stay informed about your budget progress",
+      "emailAlerts": "Email Alerts",
+      "emailAlertsDesc": "Budget warnings and reminders via email",
+      "budgetAlerts": "Budget Alerts",
+      "budgetAlertsDesc": "Get notified when nearing budget limits",
+      "savingsMilestones": "Savings Milestones",
+      "savingsMilestonesDesc": "Celebrate savings goals and achievements"
+    },
+    "budget": {
+      "title": "Monthly Budget",
+      "optional": "Optional",
+      "description": "Set up your monthly budget categories",
+      "monthlyIncome": "Monthly Income",
+      "monthlyIncomePlaceholder": "Enter your monthly income",
+      "customizeCategories": "Customize your budget categories",
+      "categoryHint": "Tap amount to edit, tap name to customize",
+      "addCategory": "Add Category",
+      "allocated": "Allocated",
+      "of": "of",
+      "monthly": "monthly",
+      "skip": "Skip budget setup",
+      "editCategory": "Edit Category",
+      "categoryName": "Category Name",
+      "categoryNamePlaceholder": "e.g., Health & Fitness",
+      "categoryIcon": "Category Icon",
+      "selectEmoji": "Select an emoji",
+      "save": "Save",
+      "add": "Add",
+      "deleteCategory": "Delete category"
+    },
+    "getStarted": "Get Started",
+    "saving": "Setting up...",
+    "infoText": "You can change all these settings later from the Settings menu.",
+    "errors": {
+      "saveFailed": "Failed to save settings. Please try again.",
+      "categoryNameRequired": "Category name is required",
+      "categoryIconRequired": "Please select an icon"
+    }
+  },
+  "setup": {
+    "title": "Set Up Your Account",
+    "subtitle": "Configure your preferences to get started",
+    "currencySection": "Primary Currency",
+    "currencyDescription": "Choose the currency for tracking expenses and budgets",
+    "fiscalYearSection": "Fiscal Year",
+    "fiscalYearDescription": "When does your budget year start?",
+    "notificationsSection": "Notifications",
+    "notificationsDescription": "Stay informed about your budget progress",
+    "emailAlerts": "Email Alerts",
+    "emailAlertsDesc": "Budget warnings and reminders via email",
+    "budgetAlerts": "Budget Alerts",
+    "budgetAlertsDesc": "Get notified when nearing budget limits",
+    "budgetMilestones": "Budget Milestones",
+    "budgetMilestonesDesc": "Celebrate savings goals and achievements",
+    "continueButton": "Get Started",
+    "skipButton": "Skip Fiscal Year",
+    "infoText": "You can change all these settings later from the Settings menu.",
+    "saveFailed": "Failed to save settings. Please try again."
   },
   "errors": {
     "generic": "An error occurred. Please try again.",
@@ -987,7 +1112,9 @@
       "advancedFeature3": "Advanced features",
       "skipButton": "Skip for Now",
       "recommended": "RECOMMENDED",
-      "skipMessage": "You can always set up budgets later from Settings"
+      "skipMessage": "You can always set up budgets later from Settings",
+      "currencyLabel": "Your Currency",
+      "currencyHint": "Your budget will use this currency for all amounts"
     },
     "simple": {
       "chooseStyle": {

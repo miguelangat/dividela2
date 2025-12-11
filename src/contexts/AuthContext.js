@@ -44,15 +44,7 @@ export const AuthProvider = ({ children }) => {
   const [userDetails, setUserDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [hasSkippedConnect, setHasSkippedConnect] = useState(false);
   const [pushToken, setPushToken] = useState(null);
-
-  // Load skipped state
-  useEffect(() => {
-    AsyncStorage.getItem('hasSkippedConnect').then(value => {
-      if (value === 'true') setHasSkippedConnect(true);
-    });
-  }, []);
 
   // Register for push notifications when user is authenticated
   // Note: On web, permission must be granted via user gesture (Settings screen toggle)
@@ -683,15 +675,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const skipConnection = async () => {
-    try {
-      await AsyncStorage.setItem('hasSkippedConnect', 'true');
-      setHasSkippedConnect(true);
-    } catch (error) {
-      console.error('Error saving skip state:', error);
-    }
-  };
-
   // Value provided to consumers
   const value = {
     user,
@@ -711,8 +694,6 @@ export const AuthProvider = ({ children }) => {
     changePassword,
     deleteAccount,
     unpair,
-    hasSkippedConnect,
-    skipConnection,
   };
 
   return (

@@ -19,6 +19,7 @@ import { MaterialCommunityIcons, AntDesign, Ionicons } from '@expo/vector-icons'
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import LanguageSelectorButton from '../../components/LanguageSelectorButton';
+import AppLogo from '../../components/AppLogo';
 import { validateEmail, validatePassword } from '../../utils/validators';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES, SHADOWS } from '../../constants/theme';
 
@@ -78,8 +79,7 @@ export default function SignInScreen({ navigation }) {
   };
 
   const handleForgotPassword = () => {
-    // TODO: Implement forgot password flow
-    console.log('Forgot password pressed');
+    navigation.navigate('ForgotPassword');
   };
 
   const handleGoogleSignIn = async () => {
@@ -152,12 +152,7 @@ export default function SignInScreen({ navigation }) {
 
             {/* Header Content */}
             <View style={styles.headerContent}>
-              <MaterialCommunityIcons
-                name="finance"
-                size={60}
-                color={COLORS.textWhite}
-                style={styles.headerIcon}
-              />
+              <AppLogo size="medium" variant="light" style={styles.headerLogo} />
               <Text style={styles.headerTitle}>{t('auth.signIn.title')}</Text>
               <Text style={styles.headerSubtitle}>{t('auth.signIn.subtitle')}</Text>
             </View>
@@ -367,7 +362,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: SPACING.medium,
   },
-  headerIcon: {
+  headerLogo: {
     marginBottom: SPACING.small,
   },
   headerTitle: {

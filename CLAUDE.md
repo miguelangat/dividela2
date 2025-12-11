@@ -717,6 +717,122 @@ When creating new auth-related screens:
 
 ---
 
+## Web Scrolling Pattern (React Native Web)
+
+**IMPORTANT**: React Native Web requires specific layout patterns for ScrollView to work properly. Using `flex: 1` alone on parent containers does NOT work reliably on web.
+
+### The Problem
+
+ScrollView in react-native-web requires a parent with **bounded height**. Using just `flex: 1` can cause:
+- ScrollView not scrolling on web browsers
+- Content being cut off
+- Body element scrolling instead of the ScrollView
+
+### The Solution
+
+Use `flexGrow: 1, flexShrink: 1, flexBasis: 0` instead of `flex: 1` on the ScrollView's parent container.
+
+### Correct Pattern (3-part layout with fixed header/footer)
+
+```javascript
+// JSX Structure
+<View style={styles.container}>
+  {/* Fixed Header */}
+  <LinearGradient style={styles.gradientHeader}>
+    {/* Header content */}
+  </LinearGradient>
+
+  {/* Scrollable Content Area */}
+  <View style={styles.formCard}>
+    <ScrollView
+      style={styles.scrollView}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+    >
+      {/* Scrollable content */}
+    </ScrollView>
+  </View>
+
+  {/* Fixed Footer */}
+  <View style={styles.bottomActions}>
+    {/* Footer buttons */}
+  </View>
+</View>
+
+// Styles
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.gradientStart,
+  },
+  gradientHeader: {
+    // Takes natural height, no flex
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingBottom: SPACING.xxlarge,
+    paddingHorizontal: SPACING.screenPadding,
+    alignItems: 'center',
+  },
+  formCard: {
+    // KEY FIX: Use flexGrow/flexBasis instead of flex: 1
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+    backgroundColor: COLORS.background,
+    borderTopLeftRadius: SIZES.borderRadius.xlarge,
+    borderTopRightRadius: SIZES.borderRadius.xlarge,
+    marginTop: -SPACING.large,
+    overflow: 'hidden', // Critical for web scrolling
+    ...SHADOWS.large,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: SPACING.large,
+    paddingBottom: 120, // Space for absolute-positioned footer
+  },
+  bottomActions: {
+    // Absolute positioning works on web (see FiscalYearSetupScreen)
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: COLORS.background,
+    padding: SPACING.large,
+    paddingBottom: Platform.OS === 'ios' ? 34 : SPACING.large,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: SPACING.base,
+  },
+});
+```
+
+### Key Points
+
+1. **Parent container uses `flexGrow: 1, flexShrink: 1, flexBasis: 0`** - NOT just `flex: 1`
+2. **ScrollView has `style={{ flex: 1 }}`** - Ensures it fills its container
+3. **Absolute positioning for footer works** - Use `position: 'absolute', bottom: 0, left: 0, right: 0` (see FiscalYearSetupScreen)
+4. **Keep `overflow: 'hidden'` on the parent** - Critical for web scroll containment
+5. **Do NOT set `flex: 1` on `contentContainerStyle`** - This prevents scrolling
+6. **Add `paddingBottom` to scrollContent** - When using absolute footer, add ~120px padding to prevent content from being hidden
+
+### Reference Implementation
+
+- Working example: `src/screens/onboarding/CoreSetupScreen.js`
+- Also see: `src/screens/auth/FiscalYearSetupScreen.js`
+
+### Resources
+
+- [Solito Scroll Views Recipe](https://solito.dev/recipes/scroll-view)
+- [React Native Web ScrollView Docs](https://necolas.github.io/react-native-web/docs/scroll-view/)
+- [GitHub Issue: overflow style override](https://github.com/necolas/react-native-web/issues/1427)
+
+---
+
 ## Notes for AI Assistants
 
 When working on this project:

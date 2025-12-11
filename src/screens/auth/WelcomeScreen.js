@@ -9,6 +9,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES, SHADOWS } from '../../constants/theme';
 import LanguageSelectorButton from '../../components/LanguageSelectorButton';
+import AppLogo from '../../components/AppLogo';
 
 export default function WelcomeScreen({ navigation }) {
   const { t } = useTranslation();
@@ -40,11 +41,9 @@ export default function WelcomeScreen({ navigation }) {
         <View style={styles.contentWrapper}>
           {/* Top Section - Logo and Title */}
           <View style={styles.topSection}>
-            {/* Logo with gradient border - matches favicon */}
+            {/* Logo - using AppLogo component for consistency */}
             <View style={styles.logoContainer}>
-              <View style={styles.logoCircle}>
-                <Text style={styles.logoSlash}>/</Text>
-              </View>
+              <AppLogo size="large" variant="light" />
             </View>
 
             {/* Title and Tagline */}
@@ -148,23 +147,6 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     marginBottom: SPACING.base,
-  },
-  logoCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    ...SHADOWS.large,
-  },
-  logoSlash: {
-    fontSize: 64,
-    fontWeight: FONTS.weights.bold,
-    color: COLORS.textWhite,
-    marginTop: -4,
   },
   textContainer: {
     alignItems: 'center',

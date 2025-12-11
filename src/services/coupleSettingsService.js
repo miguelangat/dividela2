@@ -7,6 +7,7 @@ import {
   setDoc,
   updateDoc,
   serverTimestamp,
+  onSnapshot,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
@@ -80,6 +81,38 @@ export const getCoupleSettings = async (coupleId) => {
     console.error('Error getting couple settings:', error);
     throw error;
   }
+};
+
+/**
+ * Subscribe to couple settings changes (real-time listener)
+ *
+ * @param {string} coupleId - The couple ID
+ * @param {Function} callback - Called with settings data on each change
+ * @returns {Function} Unsubscribe function
+ */
+export const subscribeToCoupleSettings = (coupleId, callback) => {
+  if (!coupleId) {
+    console.warn('[subscribeToCoupleSettings] No coupleId provided');
+    return () => {};
+  }
+
+  const settingsRef = doc(db, 'coupleSettings', coupleId);
+
+  const unsubscribe = onSnapshot(
+    settingsRef,
+    (doc) => {
+      if (doc.exists()) {
+        callback(doc.data());
+      } else {
+        callback(DEFAULT_COUPLE_SETTINGS);
+      }
+    },
+    (error) => {
+      console.error('[subscribeToCoupleSettings] Error:', error);
+    }
+  );
+
+  return unsubscribe;
 };
 
 /**

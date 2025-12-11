@@ -190,6 +190,7 @@
     "changePasswordDescription": "Mettre à jour le mot de passe de ton compte",
     "deleteAccount": "Supprimer le Compte",
     "deleteAccountDescription": "Supprimer définitivement ton compte",
+    "deleteAccountLink": "Besoin de supprimer ton compte ?",
     "changePasswordModal": {
       "title": "Changer le Mot de Passe",
       "currentPassword": "Mot de Passe Actuel",
@@ -480,7 +481,41 @@
       "logsExported": "Journaux exportés avec succès"
     }
   },
+  "nudges": {
+    "budget": {
+      "title": "Configure Ton Budget",
+      "description": "Suis les dépenses et reste dans les objectifs ensemble",
+      "cta": "Configurer Maintenant"
+    },
+    "push": {
+      "title": "Reste Informé",
+      "description": "Reçois des notifications quand des dépenses sont ajoutées",
+      "cta": "Activer les Notifications",
+      "later": "Pas Maintenant"
+    },
+    "firstExpense": {
+      "title": "Ajoute Ta Première Dépense",
+      "description": "Appuie ici pour commencer le suivi",
+      "dismiss": "Compris !"
+    },
+    "partnerInvite": {
+      "inviteCta": "Inviter Partenaire",
+      "joinCta": "Rejoindre Partenaire"
+    }
+  },
   "auth": {
+    "forgotPassword": {
+      "title": "Réinitialiser le Mot de Passe",
+      "subtitle": "Entre ton e-mail pour recevoir un lien de réinitialisation",
+      "email": "E-mail",
+      "emailPlaceholder": "ton@email.com",
+      "sendButton": "Envoyer le Lien",
+      "successTitle": "E-mail Envoyé !",
+      "successMessage": "Vérifie ta boîte de réception pour le lien de réinitialisation",
+      "backToSignIn": "Retour à la Connexion",
+      "errorNotFound": "Aucun compte trouvé avec cet e-mail",
+      "errorGeneric": "Échec de l'envoi de l'e-mail de réinitialisation. Réessaie."
+    },
     "welcome": {
       "title": "Dividela",
       "tagline": "Suivez vos dépenses partagées avec votre partenaire, sans effort",
@@ -600,6 +635,96 @@
       "madeInColombia": "Fait en Colombie 🇨🇴 avec ♥"
     }
   },
+  "coreSetup": {
+    "title": "Configure Ton Compte",
+    "subtitle": "Configure tes préférences pour commencer",
+    "step1": {
+      "title": "Essentiels",
+      "subtitle": "Devise et préférences de notification"
+    },
+    "step2": {
+      "title": "Calendrier",
+      "subtitle": "Quand commence ton année budgétaire ?"
+    },
+    "step3": {
+      "title": "Budget",
+      "subtitle": "Configure tes catégories de dépenses"
+    },
+    "currency": {
+      "title": "Devise Principale",
+      "description": "Choisis la devise pour suivre les dépenses et budgets"
+    },
+    "fiscalYear": {
+      "title": "Année Fiscale",
+      "description": "Quand commence ton année budgétaire ?",
+      "calendar": "Année Civile",
+      "calendarDates": "1er janvier - 31 décembre",
+      "custom": "Date de Début Personnalisée",
+      "customDescription": "Choisis ta propre date de début",
+      "startMonth": "Mois de Début",
+      "startDay": "Jour de Début"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "description": "Reste informé de ta progression budgétaire",
+      "emailAlerts": "Alertes Email",
+      "emailAlertsDesc": "Avertissements et rappels de budget par email",
+      "budgetAlerts": "Alertes Budget",
+      "budgetAlertsDesc": "Sois notifié quand tu approches des limites",
+      "savingsMilestones": "Étapes d'Épargne",
+      "savingsMilestonesDesc": "Célèbre les objectifs d'épargne et réussites"
+    },
+    "budget": {
+      "title": "Budget Mensuel",
+      "optional": "Optionnel",
+      "description": "Configure tes catégories de budget mensuel",
+      "monthlyIncome": "Revenu Mensuel",
+      "monthlyIncomePlaceholder": "Entre ton revenu mensuel",
+      "customizeCategories": "Personnalise tes catégories de budget",
+      "categoryHint": "Appuie sur le montant pour modifier, appuie sur le nom pour personnaliser",
+      "addCategory": "Ajouter une Catégorie",
+      "allocated": "Alloué",
+      "of": "sur",
+      "monthly": "mensuel",
+      "skip": "Passer la configuration du budget",
+      "editCategory": "Modifier la Catégorie",
+      "categoryName": "Nom de la Catégorie",
+      "categoryNamePlaceholder": "ex., Santé et Fitness",
+      "categoryIcon": "Icône de Catégorie",
+      "selectEmoji": "Sélectionne un emoji",
+      "save": "Enregistrer",
+      "add": "Ajouter",
+      "deleteCategory": "Supprimer la catégorie"
+    },
+    "getStarted": "Commencer",
+    "saving": "Configuration...",
+    "infoText": "Tu peux modifier ces paramètres plus tard dans le menu Paramètres.",
+    "errors": {
+      "saveFailed": "Échec de la sauvegarde. Réessaie.",
+      "categoryNameRequired": "Le nom de la catégorie est requis",
+      "categoryIconRequired": "Sélectionne une icône"
+    }
+  },
+  "setup": {
+    "title": "Configure Ton Compte",
+    "subtitle": "Configure tes préférences pour commencer",
+    "currencySection": "Devise Principale",
+    "currencyDescription": "Choisis la devise pour suivre les dépenses et budgets",
+    "fiscalYearSection": "Année Fiscale",
+    "fiscalYearDescription": "Quand commence ton année budgétaire ?",
+    "notificationsSection": "Notifications",
+    "notificationsDescription": "Reste informé de ta progression budgétaire",
+    "emailAlerts": "Alertes Email",
+    "emailAlertsDesc": "Avertissements et rappels de budget par email",
+    "budgetAlerts": "Alertes Budget",
+    "budgetAlertsDesc": "Sois notifié quand tu approches des limites",
+    "budgetMilestones": "Étapes du Budget",
+    "budgetMilestonesDesc": "Célèbre les objectifs d'épargne et réussites",
+    "continueButton": "Commencer",
+    "skipButton": "Passer l'Année Fiscale",
+    "infoText": "Tu peux modifier ces paramètres plus tard dans le menu Paramètres.",
+    "saveFailed": "Échec de la sauvegarde. Réessaie."
+  },
   "errors": {
     "generic": "Une erreur s'est produite. Réessaie.",
     "network": "Erreur réseau. Vérifie ta connexion Internet.",
@@ -677,7 +802,9 @@
       "advancedFeature3": "Fonctionnalités avancées",
       "skipButton": "Passer pour l'Instant",
       "recommended": "RECOMMANDÉ",
-      "skipMessage": "Tu peux toujours configurer les budgets plus tard depuis les Paramètres"
+      "skipMessage": "Tu peux toujours configurer les budgets plus tard depuis les Paramètres",
+      "currencyLabel": "Ta Devise",
+      "currencyHint": "Ton budget utilisera cette devise pour tous les montants"
     },
     "simple": {
       "chooseStyle": {

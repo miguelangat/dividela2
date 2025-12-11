@@ -6,6 +6,7 @@ import {
   doc,
   getDoc,
   setDoc,
+  deleteDoc,
   query,
   where,
   getDocs,
@@ -143,6 +144,31 @@ export const saveBudget = async (coupleId, month, year, categoryBudgets, options
     return updatedBudget;
   } catch (error) {
     console.error('Error saving budget:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete budget for a specific month
+ * Used when restarting onboarding to clear existing budget
+ * @param {string} coupleId - Couple ID
+ * @param {number} month - Month (1-12)
+ * @param {number} year - Year
+ */
+export const deleteBudgetForMonth = async (coupleId, month, year) => {
+  if (!coupleId) {
+    throw new Error('Couple ID is required');
+  }
+
+  const budgetId = getBudgetDocId(coupleId, month, year);
+  const budgetRef = doc(db, 'budgets', budgetId);
+
+  try {
+    await deleteDoc(budgetRef);
+    console.log(`✅ Budget deleted: ${budgetId}`);
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Error deleting budget:', error);
     throw error;
   }
 };

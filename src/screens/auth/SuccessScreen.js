@@ -81,10 +81,8 @@ export default function SuccessScreen({ navigation, route }) {
   };
 
   const handleContinue = () => {
-    // Since we've updated userDetails.partnerId via updatePartnerInfo(),
-    // AppNavigator will automatically show the budget onboarding or main app
-    // No need to navigate - AppNavigator handles routing based on state
-    // The component will unmount and AppNavigator will show the appropriate screen
+    // Navigate to CoreSetup for currency, fiscal year, notifications, and budget configuration
+    navigation.navigate('CoreSetup');
   };
 
   if (loading) {

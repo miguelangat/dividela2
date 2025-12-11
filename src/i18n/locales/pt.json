@@ -190,6 +190,7 @@
     "changePasswordDescription": "Atualize a senha da sua conta",
     "deleteAccount": "Excluir Conta",
     "deleteAccountDescription": "Excluir permanentemente sua conta",
+    "deleteAccountLink": "Precisa excluir sua conta?",
     "changePasswordModal": {
       "title": "Alterar Senha",
       "currentPassword": "Senha Atual",
@@ -480,7 +481,41 @@
       "logsExported": "Logs exportados com sucesso"
     }
   },
+  "nudges": {
+    "budget": {
+      "title": "Configure Seu Orçamento",
+      "description": "Rastreie gastos e fiquem na meta juntos",
+      "cta": "Configurar Agora"
+    },
+    "push": {
+      "title": "Fique por Dentro",
+      "description": "Receba notificações quando despesas forem adicionadas",
+      "cta": "Ativar Notificações",
+      "later": "Agora Não"
+    },
+    "firstExpense": {
+      "title": "Adicione Sua Primeira Despesa",
+      "description": "Toque aqui para começar a rastrear",
+      "dismiss": "Entendi!"
+    },
+    "partnerInvite": {
+      "inviteCta": "Convidar Parceiro",
+      "joinCta": "Juntar-se ao Parceiro"
+    }
+  },
   "auth": {
+    "forgotPassword": {
+      "title": "Redefinir Senha",
+      "subtitle": "Digite seu e-mail para receber um link de redefinição",
+      "email": "E-mail",
+      "emailPlaceholder": "seu@email.com",
+      "sendButton": "Enviar Link",
+      "successTitle": "E-mail Enviado!",
+      "successMessage": "Verifique sua caixa de entrada para o link de redefinição",
+      "backToSignIn": "Voltar ao Login",
+      "errorNotFound": "Nenhuma conta encontrada com este e-mail",
+      "errorGeneric": "Falha ao enviar e-mail de redefinição. Por favor, tente novamente."
+    },
     "welcome": {
       "title": "Dividela",
       "tagline": "Rastreie despesas compartilhadas com seu parceiro, sem esforço",
@@ -600,6 +635,96 @@
       "madeInColombia": "Feito na Colômbia 🇨🇴 com ♥"
     }
   },
+  "coreSetup": {
+    "title": "Configure Sua Conta",
+    "subtitle": "Configure suas preferências para começar",
+    "step1": {
+      "title": "Essenciais",
+      "subtitle": "Moeda e preferências de notificação"
+    },
+    "step2": {
+      "title": "Calendário",
+      "subtitle": "Quando começa seu ano orçamentário?"
+    },
+    "step3": {
+      "title": "Orçamento",
+      "subtitle": "Configure suas categorias de gastos"
+    },
+    "currency": {
+      "title": "Moeda Principal",
+      "description": "Escolha a moeda para rastrear despesas e orçamentos"
+    },
+    "fiscalYear": {
+      "title": "Ano Fiscal",
+      "description": "Quando começa seu ano orçamentário?",
+      "calendar": "Ano Calendário",
+      "calendarDates": "1 de janeiro - 31 de dezembro",
+      "custom": "Data de Início Personalizada",
+      "customDescription": "Escolha sua própria data de início",
+      "startMonth": "Mês de Início",
+      "startDay": "Dia de Início"
+    },
+    "notifications": {
+      "title": "Notificações",
+      "description": "Fique informado sobre seu progresso orçamentário",
+      "emailAlerts": "Alertas por Email",
+      "emailAlertsDesc": "Avisos e lembretes de orçamento por email",
+      "budgetAlerts": "Alertas de Orçamento",
+      "budgetAlertsDesc": "Receba notificações ao se aproximar dos limites",
+      "savingsMilestones": "Marcos de Economia",
+      "savingsMilestonesDesc": "Celebre metas de economia e conquistas"
+    },
+    "budget": {
+      "title": "Orçamento Mensal",
+      "optional": "Opcional",
+      "description": "Configure suas categorias de orçamento mensal",
+      "monthlyIncome": "Renda Mensal",
+      "monthlyIncomePlaceholder": "Digite sua renda mensal",
+      "customizeCategories": "Personalize suas categorias de orçamento",
+      "categoryHint": "Toque no valor para editar, toque no nome para personalizar",
+      "addCategory": "Adicionar Categoria",
+      "allocated": "Alocado",
+      "of": "de",
+      "monthly": "mensal",
+      "skip": "Pular configuração do orçamento",
+      "editCategory": "Editar Categoria",
+      "categoryName": "Nome da Categoria",
+      "categoryNamePlaceholder": "ex., Saúde e Fitness",
+      "categoryIcon": "Ícone da Categoria",
+      "selectEmoji": "Selecione um emoji",
+      "save": "Salvar",
+      "add": "Adicionar",
+      "deleteCategory": "Excluir categoria"
+    },
+    "getStarted": "Começar",
+    "saving": "Configurando...",
+    "infoText": "Você pode alterar essas configurações depois no menu Configurações.",
+    "errors": {
+      "saveFailed": "Falha ao salvar. Por favor, tente novamente.",
+      "categoryNameRequired": "O nome da categoria é obrigatório",
+      "categoryIconRequired": "Por favor, selecione um ícone"
+    }
+  },
+  "setup": {
+    "title": "Configure Sua Conta",
+    "subtitle": "Configure suas preferências para começar",
+    "currencySection": "Moeda Principal",
+    "currencyDescription": "Escolha a moeda para rastrear despesas e orçamentos",
+    "fiscalYearSection": "Ano Fiscal",
+    "fiscalYearDescription": "Quando começa seu ano orçamentário?",
+    "notificationsSection": "Notificações",
+    "notificationsDescription": "Fique informado sobre seu progresso orçamentário",
+    "emailAlerts": "Alertas por Email",
+    "emailAlertsDesc": "Avisos e lembretes de orçamento por email",
+    "budgetAlerts": "Alertas de Orçamento",
+    "budgetAlertsDesc": "Receba notificações ao se aproximar dos limites",
+    "budgetMilestones": "Marcos do Orçamento",
+    "budgetMilestonesDesc": "Celebre metas de economia e conquistas",
+    "continueButton": "Começar",
+    "skipButton": "Pular Ano Fiscal",
+    "infoText": "Você pode alterar essas configurações depois no menu Configurações.",
+    "saveFailed": "Falha ao salvar. Por favor, tente novamente."
+  },
   "errors": {
     "generic": "Ocorreu um erro. Por favor, tente novamente.",
     "network": "Erro de rede. Por favor, verifique sua conexão com a internet.",
@@ -677,7 +802,9 @@
       "advancedFeature3": "Recursos avançados",
       "skipButton": "Pular por Agora",
       "recommended": "RECOMENDADO",
-      "skipMessage": "Você sempre pode configurar orçamentos mais tarde nas Configurações"
+      "skipMessage": "Você sempre pode configurar orçamentos mais tarde nas Configurações",
+      "currencyLabel": "Sua Moeda",
+      "currencyHint": "Seu orçamento usará esta moeda para todos os valores"
     },
     "simple": {
       "chooseStyle": {

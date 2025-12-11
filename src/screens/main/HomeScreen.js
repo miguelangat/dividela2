@@ -8,7 +8,7 @@
  * - Real-time sync with partner
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -30,8 +30,12 @@ import { db } from '../../config/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBudget } from '../../contexts/BudgetContext';
 import { useSubscription } from '../../contexts/SubscriptionContext';
+import { useNudges, NUDGE_TYPES } from '../../contexts/NudgeContext';
 import { useTranslation } from 'react-i18next';
-import { COLORS, FONTS, SPACING, COMMON_STYLES } from '../../constants/theme';
+import { COLORS, FONTS, SPACING, COMMON_STYLES, SHADOWS } from '../../constants/theme';
+import { onboardingStorage } from '../../utils/storage';
+import { getPermissionStatus, isPushNotificationSupported } from '../../services/pushNotificationService';
+import { BudgetSetupNudge, PushNotificationNudge, FirstExpenseCoachMark } from '../../components/nudges';
 import {
   calculateBalance,
   calculateBalanceWithSettlements,
@@ -45,13 +49,19 @@ import { getExpenseDualDisplay, formatCurrency as formatCurrencyNew } from '../.
 import { getCurrencyFlag } from '../../constants/currencies';
 import ExpenseDetailModal from '../../components/ExpenseDetailModal';
 import * as settlementService from '../../services/settlementService';
-import { getPrimaryCurrency } from '../../services/coupleSettingsService';
+import { getPrimaryCurrency, getCoupleSettings } from '../../services/coupleSettingsService';
 
 export default function HomeScreen({ navigation }) {
   const { user, userDetails, getPartnerDetails } = useAuth();
   const { categories, currentBudget } = useBudget();
   const { isPremium } = useSubscription();
+  const { shouldShowNudge, dismissNudge } = useNudges();
   const { t } = useTranslation();
+
+  // FAB ref for coach mark targeting
+  const fabRef = useRef(null);
+
+  // State
   const [expenses, setExpenses] = useState([]);
   const [settlements, setSettlements] = useState([]); // Track settlements for balance calculation
   const [balance, setBalance] = useState(0);
@@ -66,6 +76,53 @@ export default function HomeScreen({ navigation }) {
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [expenseDetailModalVisible, setExpenseDetailModalVisible] = useState(false);
   const [partnerDetails, setPartnerDetails] = useState(null);
+
+  // Nudge-related state
+  const [onboardingCompleted, setOnboardingCompleted] = useState(true);
+  const [pushPermissionStatus, setPushPermissionStatus] = useState('granted');
+  const [showFirstExpenseCoachMark, setShowFirstExpenseCoachMark] = useState(false);
+
+  // Check onboarding and push notification status for nudges
+  useEffect(() => {
+    const checkNudgeConditions = async () => {
+      // Check onboarding status from Firestore coupleSettings (coreSetupComplete)
+      if (userDetails?.coupleId) {
+        const settings = await getCoupleSettings(userDetails.coupleId);
+        setOnboardingCompleted(settings?.coreSetupComplete || false);
+      }
+
+      // Check push notification permission status
+      if (isPushNotificationSupported()) {
+        const status = await getPermissionStatus();
+        setPushPermissionStatus(status);
+      }
+    };
+
+    checkNudgeConditions();
+  }, [userDetails?.coupleId]);
+
+  // Show first expense coach mark when appropriate
+  useEffect(() => {
+    // Show coach mark if:
+    // 1. User has partner
+    // 2. No expenses yet
+    // 3. Nudge not dismissed
+    // 4. Not loading
+    if (
+      userDetails?.partnerId &&
+      expenses.length === 0 &&
+      shouldShowNudge(NUDGE_TYPES.FIRST_EXPENSE) &&
+      !loading
+    ) {
+      // Small delay to ensure FAB is rendered and measured
+      const timer = setTimeout(() => {
+        setShowFirstExpenseCoachMark(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    } else {
+      setShowFirstExpenseCoachMark(false);
+    }
+  }, [userDetails?.partnerId, expenses.length, shouldShowNudge, loading]);
 
   // Fetch partner's name and details
   useEffect(() => {
@@ -608,24 +665,55 @@ export default function HomeScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* Unpaired User Banner */}
+        {/* Unpaired User Banner - Enhanced */}
         {!userDetails?.partnerId && (
           <View style={styles.unpairedBanner}>
-            <View style={styles.unpairedBannerHeader}>
-              <Ionicons name="alert-circle-outline" size={24} color={COLORS.warning} />
-              <Text style={styles.unpairedBannerTitle}>{t('home.unpaired.title')}</Text>
+            <View style={styles.unpairedBannerIconContainer}>
+              <Ionicons name="people" size={32} color={COLORS.primary} />
             </View>
-            <Text style={styles.unpairedBannerMessage}>{t('home.unpaired.message')}</Text>
-            <Text style={styles.unpairedBannerNote}>{t('home.unpaired.readOnlyMode')}</Text>
-            <TouchableOpacity
-              style={styles.unpairedBannerButton}
-              onPress={() => navigation.navigate('Connect')}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="people-outline" size={18} color={COLORS.primary} />
-              <Text style={styles.unpairedBannerButtonText}>{t('home.unpaired.findPartner')}</Text>
-            </TouchableOpacity>
+            <View style={styles.unpairedBannerContent}>
+              <Text style={styles.unpairedBannerTitle}>{t('home.unpaired.title')}</Text>
+              <Text style={styles.unpairedBannerMessage}>{t('home.unpaired.message')}</Text>
+            </View>
+            <View style={styles.unpairedBannerActions}>
+              <TouchableOpacity
+                style={styles.unpairedBannerButtonPrimary}
+                onPress={() => navigation.navigate('Invite')}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="person-add-outline" size={16} color={COLORS.textWhite} />
+                <Text style={styles.unpairedBannerButtonPrimaryText}>
+                  {t('nudges.partnerInvite.inviteCta', 'Invite Partner')}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.unpairedBannerButtonSecondary}
+                onPress={() => navigation.navigate('Join')}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="enter-outline" size={16} color={COLORS.primary} />
+                <Text style={styles.unpairedBannerButtonSecondaryText}>
+                  {t('nudges.partnerInvite.joinCta', 'Join Partner')}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
+        )}
+
+        {/* Budget Setup Nudge - Show if onboarding not completed */}
+        {userDetails?.partnerId && !onboardingCompleted && shouldShowNudge(NUDGE_TYPES.BUDGET_SETUP) && (
+          <BudgetSetupNudge
+            onSetup={() => navigation.navigate('Onboarding')}
+            style={{ marginTop: 0 }}
+          />
+        )}
+
+        {/* Push Notification Nudge - Show if permission not granted */}
+        {userDetails?.partnerId && pushPermissionStatus === 'undetermined' && shouldShowNudge(NUDGE_TYPES.PUSH_NOTIFICATIONS) && (
+          <PushNotificationNudge
+            mode="banner"
+            style={{ marginTop: 0 }}
+          />
         )}
 
         {/* Balance Card */}
@@ -718,33 +806,48 @@ export default function HomeScreen({ navigation }) {
         </View>
 
         {/* Floating Add Button */}
-        <TouchableOpacity
-          style={[
-            styles.fab,
-            !userDetails?.partnerId && styles.fabDisabled
-          ]}
-          onPress={() => {
-            // Check if user is unpaired
-            if (!userDetails?.partnerId) {
-              Alert.alert(
-                t('home.unpaired.title'),
-                t('home.unpaired.readOnlyMode'),
-                [
-                  { text: t('common.cancel'), style: 'cancel' },
-                  {
-                    text: t('home.unpaired.findPartner'),
-                    onPress: () => navigation.navigate('Connect')
-                  }
-                ]
-              );
-              return;
-            }
-            handleAddExpense();
-          }}
-          disabled={!userDetails?.partnerId}
-        >
-          <Ionicons name="add" size={32} color={COLORS.background} />
-        </TouchableOpacity>
+        <View ref={fabRef} collapsable={false} style={styles.fabContainer}>
+          <TouchableOpacity
+            style={[
+              styles.fab,
+              !userDetails?.partnerId && styles.fabDisabled
+            ]}
+            onPress={() => {
+              // Dismiss coach mark if shown
+              if (showFirstExpenseCoachMark) {
+                setShowFirstExpenseCoachMark(false);
+                dismissNudge(NUDGE_TYPES.FIRST_EXPENSE);
+              }
+              // Check if user is unpaired
+              if (!userDetails?.partnerId) {
+                Alert.alert(
+                  t('home.unpaired.title'),
+                  t('home.unpaired.readOnlyMode'),
+                  [
+                    { text: t('common.cancel'), style: 'cancel' },
+                    {
+                      text: t('home.unpaired.findPartner'),
+                      onPress: () => navigation.navigate('Connect')
+                    }
+                  ]
+                );
+                return;
+              }
+              handleAddExpense();
+            }}
+            disabled={!userDetails?.partnerId}
+          >
+            <Ionicons name="add" size={32} color={COLORS.background} />
+          </TouchableOpacity>
+        </View>
+
+        {/* First Expense Coach Mark */}
+        {showFirstExpenseCoachMark && (
+          <FirstExpenseCoachMark
+            targetRef={fabRef}
+            onDismiss={() => setShowFirstExpenseCoachMark(false)}
+          />
+        )}
 
         {/* Settle Up Modal */}
         {renderSettleUpModal()}
@@ -1096,9 +1199,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.large,
   },
   fab: {
-    position: 'absolute',
-    right: SPACING.screenPadding,
-    bottom: SPACING.screenPadding + (Platform.OS === 'ios' ? 60 : 50), // Account for tab bar
     width: 64,
     height: 64,
     borderRadius: 32,
@@ -1314,37 +1414,63 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   unpairedBanner: {
-    backgroundColor: COLORS.warning + '15',
+    backgroundColor: COLORS.background,
     marginHorizontal: SPACING.screenPadding,
     borderRadius: 12,
     padding: SPACING.base,
     marginBottom: SPACING.base,
-    borderWidth: 1,
-    borderColor: COLORS.warning + '30',
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.primary,
+    ...SHADOWS.medium,
   },
-  unpairedBannerHeader: {
-    flexDirection: 'row',
+  unpairedBannerIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.primary + '15',
     alignItems: 'center',
-    marginBottom: SPACING.small,
-    gap: SPACING.small,
+    justifyContent: 'center',
+    marginBottom: SPACING.medium,
+    alignSelf: 'center',
+  },
+  unpairedBannerContent: {
+    marginBottom: SPACING.medium,
   },
   unpairedBannerTitle: {
     ...FONTS.body,
     fontWeight: '600',
     color: COLORS.text,
+    textAlign: 'center',
+    marginBottom: SPACING.tiny,
   },
   unpairedBannerMessage: {
     ...FONTS.small,
     color: COLORS.textSecondary,
-    marginBottom: SPACING.tiny,
+    textAlign: 'center',
+    lineHeight: 18,
   },
-  unpairedBannerNote: {
+  unpairedBannerActions: {
+    flexDirection: 'row',
+    gap: SPACING.small,
+  },
+  unpairedBannerButtonPrimary: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primary,
+    paddingVertical: SPACING.small,
+    paddingHorizontal: SPACING.base,
+    borderRadius: 8,
+    gap: SPACING.tiny,
+  },
+  unpairedBannerButtonPrimaryText: {
     ...FONTS.small,
-    color: COLORS.textSecondary,
-    fontStyle: 'italic',
-    marginBottom: SPACING.base,
+    color: COLORS.textWhite,
+    fontWeight: '600',
   },
-  unpairedBannerButton: {
+  unpairedBannerButtonSecondary: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1354,10 +1480,15 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     gap: SPACING.tiny,
   },
-  unpairedBannerButtonText: {
-    ...FONTS.body,
+  unpairedBannerButtonSecondaryText: {
+    ...FONTS.small,
     color: COLORS.primary,
     fontWeight: '600',
+  },
+  fabContainer: {
+    position: 'absolute',
+    right: SPACING.screenPadding,
+    bottom: SPACING.screenPadding + (Platform.OS === 'ios' ? 60 : 50),
   },
   fabDisabled: {
     backgroundColor: COLORS.textSecondary,

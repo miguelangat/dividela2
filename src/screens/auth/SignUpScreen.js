@@ -20,6 +20,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { validateEmail, validatePassword, validateDisplayName } from '../../utils/validators';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES, SHADOWS } from '../../constants/theme';
+import AppLogo from '../../components/AppLogo';
+import { PushNotificationNudge } from '../../components/nudges';
 
 export default function SignUpScreen({ navigation }) {
   const { signUp, signInWithGoogle, signInWithApple } = useAuth();
@@ -32,6 +34,7 @@ export default function SignUpScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState(null); // 'google' | 'apple' | null
   const [errors, setErrors] = useState({});
+  const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
 
   const handleSignUp = async () => {
     // Reset errors
@@ -58,15 +61,20 @@ export default function SignUpScreen({ navigation }) {
     try {
       setLoading(true);
       await signUp(email, password, name);
-      // Navigation will happen automatically via AuthContext
-      // User will be redirected to ConnectScreen (to pair with partner)
-      navigation.replace('Connect');
+      // Show notification prompt before navigating
+      setLoading(false);
+      setShowNotificationPrompt(true);
     } catch (error) {
       console.error('Sign up error:', error);
       setErrors({ general: error.message || t('auth.signUp.signUpError') });
-    } finally {
       setLoading(false);
     }
+  };
+
+  const handleNotificationPromptComplete = () => {
+    setShowNotificationPrompt(false);
+    // Navigate to Connect screen after notification prompt
+    navigation.replace('Connect');
   };
 
   const handleBackPress = () => {
@@ -140,12 +148,7 @@ export default function SignUpScreen({ navigation }) {
 
           {/* Header Content */}
           <View style={styles.headerContent}>
-            <MaterialCommunityIcons
-              name="account-plus"
-              size={60}
-              color={COLORS.textWhite}
-              style={styles.headerIcon}
-            />
+            <AppLogo size="medium" variant="light" style={styles.headerLogo} />
             <Text style={styles.headerTitle}>{t('auth.signUp.title', 'Create Account')}</Text>
             <Text style={styles.headerSubtitle}>{t('auth.signUp.subtitle', 'Join Dividela today')}</Text>
           </View>
@@ -333,6 +336,14 @@ export default function SignUpScreen({ navigation }) {
           </Text>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Push Notification Prompt - shown after successful sign up */}
+      {showNotificationPrompt && (
+        <PushNotificationNudge
+          mode="signup"
+          onComplete={handleNotificationPromptComplete}
+        />
+      )}
     </View>
   );
 }
@@ -371,7 +382,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: SPACING.small,
   },
-  headerIcon: {
+  headerLogo: {
     marginBottom: SPACING.tiny,
   },
   headerTitle: {

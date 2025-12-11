@@ -21,14 +21,16 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { useTranslation } from 'react-i18next';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatCodeInput, isValidCodeFormat } from '../../utils/inviteCode';
-import { COLORS, FONTS, SPACING, COMMON_STYLES } from '../../constants/theme';
+import { COLORS, FONTS, SPACING, SIZES, SHADOWS } from '../../constants/theme';
 import { initializeCategoriesForCouple } from '../../services/categoryService';
 
 export default function JoinScreen({ navigation }) {
@@ -40,24 +42,21 @@ export default function JoinScreen({ navigation }) {
   const codeInputRef = useRef(null);
 
   useEffect(() => {
-    // Auto-focus on code input when screen loads
     const timeoutId = setTimeout(() => {
       codeInputRef.current?.focus();
     }, 100);
 
-    // Cleanup: clear timeout if component unmounts
     return () => clearTimeout(timeoutId);
   }, []);
 
   const handleCodeChange = (text) => {
     const formatted = formatCodeInput(text);
     setCode(formatted);
-    setError(''); // Clear error when user types
+    setError('');
   };
 
   const validateCode = async (enteredCode) => {
     try {
-      // Check if code exists
       const codeDoc = await getDoc(doc(db, 'inviteCodes', enteredCode));
 
       if (!codeDoc.exists()) {
@@ -66,12 +65,10 @@ export default function JoinScreen({ navigation }) {
 
       const codeData = codeDoc.data();
 
-      // Check if user is trying to use their own code
       if (codeData.createdBy === user.uid) {
         return { valid: false, error: t('auth.join.ownCodeError') };
       }
 
-      // Check if already used
       if (codeData.isUsed) {
         return {
           valid: false,
@@ -79,7 +76,6 @@ export default function JoinScreen({ navigation }) {
         };
       }
 
-      // Check if expired
       const expiresAt = codeData.expiresAt.toDate();
       if (expiresAt < new Date()) {
         return {
@@ -101,7 +97,6 @@ export default function JoinScreen({ navigation }) {
       console.log('Current user ID:', user.uid);
       console.log('Partner ID:', partnerId);
 
-      // Validate that partner document exists BEFORE starting transaction
       console.log('Validating partner document...');
       const partnerDocRef = doc(db, 'users', partnerId);
       const partnerDoc = await getDoc(partnerDocRef);
@@ -112,24 +107,20 @@ export default function JoinScreen({ navigation }) {
       }
       console.log('✓ Partner document validated');
 
-      // Validate IDs
       if (!partnerId || !user.uid) {
         throw new Error(t('auth.join.invalidUserIds'));
       }
 
-      // Generate couple ID
       const coupleId = `couple_${user.uid}_${partnerId}_${Date.now()}`;
       console.log('Generated couple ID:', coupleId);
 
-      // Use batched write for atomicity - all operations succeed or all fail
       console.log('Creating atomic batch write...');
       const batch = writeBatch(db);
 
-      // Operation 1: Create couple document
       const coupleRef = doc(db, 'couples', coupleId);
       batch.set(coupleRef, {
-        user1Id: partnerId, // Creator of invite code
-        user2Id: user.uid, // User who joined with code
+        user1Id: partnerId,
+        user2Id: user.uid,
         inviteCode: code,
         createdAt: serverTimestamp(),
         currentBalance: 0,
@@ -138,7 +129,6 @@ export default function JoinScreen({ navigation }) {
       });
       console.log('✓ Batch: couple document queued');
 
-      // Operation 2: Update current user's partner reference
       const currentUserRef = doc(db, 'users', user.uid);
       batch.update(currentUserRef, {
         partnerId: partnerId,
@@ -146,15 +136,12 @@ export default function JoinScreen({ navigation }) {
       });
       console.log('✓ Batch: current user update queued');
 
-      // Operation 3: Update partner's document with pairing info
-      // This is the cross-user write that requires special rules
       batch.update(partnerDocRef, {
         partnerId: user.uid,
         coupleId: coupleId,
       });
       console.log('✓ Batch: partner user update queued');
 
-      // Operation 4: Mark invite code as used
       const inviteCodeRef = doc(db, 'inviteCodes', code);
       batch.update(inviteCodeRef, {
         isUsed: true,
@@ -163,12 +150,10 @@ export default function JoinScreen({ navigation }) {
       });
       console.log('✓ Batch: invite code update queued');
 
-      // Commit all operations atomically
       console.log('Committing batch (all or nothing)...');
       await batch.commit();
       console.log('✓ Batch committed successfully!');
 
-      // Initialize default categories for the couple
       console.log('Initializing default categories for couple:', coupleId);
       await initializeCategoriesForCouple(coupleId);
       console.log('✓ Categories initialized');
@@ -180,10 +165,8 @@ export default function JoinScreen({ navigation }) {
       console.error('Error code:', err.code);
       console.error('Error message:', err.message);
 
-      // Log full error object for debugging
       console.log('Full error object:', JSON.stringify(err, null, 2));
 
-      // Provide specific error messages
       if (err.code === 'permission-denied') {
         throw new Error(t('auth.join.permissionDenied'));
       } else if (err.code === 'not-found') {
@@ -191,7 +174,6 @@ export default function JoinScreen({ navigation }) {
       } else if (err.code === 'unavailable') {
         throw new Error(t('auth.join.networkError'));
       } else if (err.message.includes('account is incomplete') || err.message.includes('Invalid user IDs')) {
-        // Re-throw our custom validation error
         throw err;
       } else {
         throw new Error(t('auth.join.createCoupleFailed', { error: err.message }));
@@ -200,7 +182,6 @@ export default function JoinScreen({ navigation }) {
   };
 
   const handleConnect = async () => {
-    // Validate format first
     if (!isValidCodeFormat(code)) {
       setError(t('auth.join.invalidFormat'));
       return;
@@ -210,7 +191,6 @@ export default function JoinScreen({ navigation }) {
     setError('');
 
     try {
-      // Validate code
       const validation = await validateCode(code);
 
       if (!validation.valid) {
@@ -219,16 +199,13 @@ export default function JoinScreen({ navigation }) {
         return;
       }
 
-      // Create couple and update users
       const result = await createCouple(validation.partnerId);
 
       if (result.success) {
-        // Update local auth state with partner info
         console.log('JoinScreen: Updating local state with partnerId:', validation.partnerId, 'coupleId:', result.coupleId);
         await updatePartnerInfo(validation.partnerId, result.coupleId);
         console.log('JoinScreen: Local state updated successfully');
 
-        // Success! Navigate to success screen
         navigation.replace('Success', { partnerId: validation.partnerId });
       }
     } catch (err) {
@@ -240,7 +217,6 @@ export default function JoinScreen({ navigation }) {
   };
 
   const formatCodeDisplay = (inputCode) => {
-    // Display code in groups of 3 for readability: ABC 123
     if (inputCode.length > 3) {
       return `${inputCode.substring(0, 3)} ${inputCode.substring(3, 6)}`;
     }
@@ -254,83 +230,117 @@ export default function JoinScreen({ navigation }) {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      {/* Header */}
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-        <Ionicons name="arrow-back" size={24} color={COLORS.text} />
-      </TouchableOpacity>
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={[COLORS.gradientStart, COLORS.gradientEnd]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradientHeader}
+      >
+        {/* Back Button */}
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color={COLORS.textWhite} />
+        </TouchableOpacity>
 
-      <View style={styles.content}>
         {/* Icon */}
-        <View style={styles.iconContainer}>
-          <Text style={styles.iconEmoji}>📥</Text>
+        <View style={styles.headerIconContainer}>
+          <MaterialCommunityIcons
+            name="download"
+            size={50}
+            color={COLORS.textWhite}
+          />
         </View>
 
         {/* Title */}
-        <Text style={styles.title}>{t('auth.join.title')}</Text>
-        <Text style={styles.subtitle}>
+        <Text style={styles.headerTitle}>{t('auth.join.title')}</Text>
+        <Text style={styles.headerSubtitle}>
           {t('auth.join.subtitle')}
         </Text>
+      </LinearGradient>
 
-        {/* Code Input */}
-        <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>{t('auth.join.inputLabel')}</Text>
-          <TextInput
-            ref={codeInputRef}
-            style={styles.codeInput}
-            value={formatCodeDisplay(code)}
-            onChangeText={handleCodeChange}
-            placeholder={t('auth.join.placeholder')}
-            placeholderTextColor={COLORS.textSecondary}
-            maxLength={7} // 6 chars + 1 space
-            autoCapitalize="characters"
-            autoCorrect={false}
-            autoComplete="off"
-            keyboardType="default"
-            returnKeyType="done"
-            onSubmitEditing={handleConnect}
-            editable={!loading}
-          />
-
-          {/* Hint */}
-          <View style={styles.hintContainer}>
-            <Ionicons name="information-circle-outline" size={16} color={COLORS.textSecondary} />
-            <Text style={styles.hintText}>
-              {t('auth.join.hint')}
-            </Text>
-          </View>
-        </View>
-
-        {/* Error Message */}
-        {error ? (
-          <View style={styles.errorContainer}>
-            <Ionicons name="alert-circle" size={20} color={COLORS.error} />
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        ) : null}
-
-        {/* Connect Button */}
-        <TouchableOpacity
-          style={[
-            COMMON_STYLES.primaryButton,
-            !isConnectEnabled && styles.buttonDisabled,
-          ]}
-          onPress={handleConnect}
-          disabled={!isConnectEnabled}
+      {/* Form Card */}
+      <View style={styles.formCard}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          {loading ? (
-            <ActivityIndicator color={COLORS.background} />
-          ) : (
-            <Text style={COMMON_STYLES.primaryButtonText}>{t('auth.join.connect')}</Text>
-          )}
-        </TouchableOpacity>
+          {/* Error Message */}
+          {error ? (
+            <View style={styles.errorContainer}>
+              <MaterialCommunityIcons name="alert-circle" size={20} color={COLORS.error} />
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          ) : null}
 
-        {/* Help Text */}
-        <View style={styles.helpContainer}>
-          <Text style={styles.helpText}>{t('auth.join.noCodeYet')}</Text>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Text style={styles.helpLink}>{t('auth.join.goBackAndInvite')}</Text>
+          {/* Code Input */}
+          <View style={styles.inputWrapper}>
+            <Text style={styles.inputLabel}>{t('auth.join.inputLabel')}</Text>
+            <View style={[styles.inputContainer, error && styles.inputError]}>
+              <MaterialCommunityIcons
+                name="key-variant"
+                size={24}
+                color={error ? COLORS.error : COLORS.primary}
+                style={styles.inputIcon}
+              />
+              <TextInput
+                ref={codeInputRef}
+                style={styles.codeInput}
+                value={formatCodeDisplay(code)}
+                onChangeText={handleCodeChange}
+                placeholder={t('auth.join.placeholder')}
+                placeholderTextColor={COLORS.textTertiary}
+                maxLength={7}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                autoComplete="off"
+                keyboardType="default"
+                returnKeyType="done"
+                onSubmitEditing={handleConnect}
+                editable={!loading}
+              />
+            </View>
+
+            {/* Hint */}
+            <View style={styles.hintContainer}>
+              <Ionicons name="information-circle-outline" size={16} color={COLORS.textTertiary} />
+              <Text style={styles.hintText}>
+                {t('auth.join.hint')}
+              </Text>
+            </View>
+          </View>
+
+          {/* Connect Button - Gradient */}
+          <TouchableOpacity
+            style={[styles.connectButton, !isConnectEnabled && styles.buttonDisabled]}
+            onPress={handleConnect}
+            disabled={!isConnectEnabled}
+          >
+            <LinearGradient
+              colors={isConnectEnabled ? [COLORS.gradientStart, COLORS.gradientEnd] : [COLORS.textTertiary, COLORS.textTertiary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.connectButtonGradient}
+            >
+              {loading ? (
+                <ActivityIndicator color={COLORS.textWhite} />
+              ) : (
+                <Text style={styles.connectButtonText}>{t('auth.join.connect')}</Text>
+              )}
+            </LinearGradient>
           </TouchableOpacity>
-        </View>
+
+          {/* Help Text */}
+          <View style={styles.helpContainer}>
+            <Text style={styles.helpText}>{t('auth.join.noCodeYet')}</Text>
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <Text style={styles.helpLink}>{t('auth.join.goBackAndInvite')}</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </View>
     </KeyboardAvoidingView>
   );
@@ -340,110 +350,162 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    padding: SPACING.screenPadding,
+  },
+  gradientHeader: {
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingBottom: SPACING.xxlarge * 2,
+    paddingHorizontal: SPACING.screenPadding,
+    borderBottomLeftRadius: SIZES.borderRadius.xlarge * 2,
+    borderBottomRightRadius: SIZES.borderRadius.xlarge * 2,
+    alignItems: 'center',
   },
   backButton: {
     position: 'absolute',
-    top: 50,
+    top: Platform.OS === 'ios' ? 50 : 30,
     left: SPACING.screenPadding,
-    zIndex: 10,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
-    maxWidth: 400,
-    width: '100%',
-    alignSelf: 'center',
+    justifyContent: 'center',
   },
-  iconContainer: {
+  headerIconContainer: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: SPACING.large,
   },
-  iconEmoji: {
-    fontSize: 80,
-  },
-  title: {
-    ...FONTS.heading,
-    fontSize: 28,
-    color: COLORS.text,
+  headerTitle: {
+    fontSize: FONTS.sizes.xlarge,
+    fontWeight: FONTS.weights.bold,
+    color: COLORS.textWhite,
     marginBottom: SPACING.small,
     textAlign: 'center',
   },
-  subtitle: {
-    ...FONTS.body,
-    color: COLORS.textSecondary,
+  headerSubtitle: {
+    fontSize: FONTS.sizes.body,
+    color: COLORS.textWhite,
+    opacity: 0.9,
     textAlign: 'center',
-    marginBottom: SPACING.xl,
-    paddingHorizontal: SPACING.base,
+    maxWidth: 280,
+    lineHeight: 22,
   },
-  inputContainer: {
-    width: '100%',
+  formCard: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    borderRadius: SIZES.borderRadius.xlarge,
+    marginHorizontal: SPACING.screenPadding,
+    marginTop: -SPACING.xxlarge,
     marginBottom: SPACING.base,
+    ...SHADOWS.large,
+    overflow: 'hidden',
+  },
+  scrollContent: {
+    padding: SPACING.large,
+    paddingTop: SPACING.xlarge,
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.error + '10',
+    padding: SPACING.medium,
+    borderRadius: SIZES.borderRadius.medium,
+    marginBottom: SPACING.large,
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.error,
+    gap: SPACING.small,
+  },
+  errorText: {
+    flex: 1,
+    color: COLORS.error,
+    fontSize: FONTS.sizes.small,
+  },
+  inputWrapper: {
+    marginBottom: SPACING.large,
   },
   inputLabel: {
-    ...FONTS.small,
-    color: COLORS.textSecondary,
+    fontSize: FONTS.sizes.small,
+    color: COLORS.text,
     marginBottom: SPACING.small,
+    fontWeight: FONTS.weights.semibold,
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 0.5,
   },
-  codeInput: {
-    backgroundColor: COLORS.background,
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.backgroundLight,
     borderWidth: 2,
     borderColor: COLORS.border,
-    borderRadius: 12,
-    padding: SPACING.base,
-    fontSize: 32,
-    fontWeight: 'bold',
+    borderRadius: SIZES.borderRadius.medium,
+    paddingHorizontal: SPACING.base,
+    minHeight: 60,
+  },
+  inputError: {
+    borderColor: COLORS.error,
+    backgroundColor: COLORS.error + '08',
+  },
+  inputIcon: {
+    marginRight: SPACING.medium,
+  },
+  codeInput: {
+    flex: 1,
+    fontSize: 28,
+    fontWeight: FONTS.weights.bold,
     color: COLORS.text,
-    textAlign: 'center',
-    letterSpacing: 8,
+    letterSpacing: 6,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    marginBottom: SPACING.small,
+    paddingVertical: SPACING.medium,
   },
   hintContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.small,
-    paddingHorizontal: SPACING.small,
+    marginTop: SPACING.small,
+    paddingHorizontal: SPACING.tiny,
   },
   hintText: {
-    ...FONTS.small,
-    color: COLORS.textSecondary,
+    fontSize: FONTS.sizes.small,
+    color: COLORS.textTertiary,
     flex: 1,
   },
-  errorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.errorLight,
-    paddingVertical: SPACING.small,
-    paddingHorizontal: SPACING.base,
-    borderRadius: 8,
-    marginBottom: SPACING.base,
-    gap: SPACING.small,
-    width: '100%',
-  },
-  errorText: {
-    ...FONTS.body,
-    color: COLORS.error,
-    flex: 1,
+  connectButton: {
+    borderRadius: SIZES.borderRadius.medium,
+    overflow: 'hidden',
+    marginBottom: SPACING.xlarge,
+    ...SHADOWS.medium,
   },
   buttonDisabled: {
-    opacity: 0.5,
+    opacity: 0.7,
+  },
+  connectButtonGradient: {
+    paddingVertical: SPACING.buttonPadding,
+    paddingHorizontal: SPACING.large,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: SIZES.button.height,
+  },
+  connectButtonText: {
+    color: COLORS.textWhite,
+    fontSize: FONTS.sizes.body,
+    fontWeight: FONTS.weights.bold,
+    letterSpacing: 0.5,
   },
   helpContainer: {
-    marginTop: SPACING.large,
     alignItems: 'center',
   },
   helpText: {
-    ...FONTS.body,
+    fontSize: FONTS.sizes.body,
     color: COLORS.textSecondary,
     marginBottom: SPACING.small,
   },
   helpLink: {
-    ...FONTS.body,
+    fontSize: FONTS.sizes.body,
     color: COLORS.primary,
-    fontWeight: '600',
-    textDecorationLine: 'underline',
+    fontWeight: FONTS.weights.semibold,
   },
 });

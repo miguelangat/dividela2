@@ -190,6 +190,7 @@
     "changePasswordDescription": "Actualiza la contraseña de tu cuenta",
     "deleteAccount": "Eliminar Cuenta",
     "deleteAccountDescription": "Eliminar permanentemente tu cuenta",
+    "deleteAccountLink": "¿Necesitas eliminar tu cuenta?",
     "changePasswordModal": {
       "title": "Cambiar Contraseña",
       "currentPassword": "Contraseña Actual",
@@ -480,7 +481,41 @@
       "logsExported": "Registros exportados exitosamente"
     }
   },
+  "nudges": {
+    "budget": {
+      "title": "Configura Tu Presupuesto",
+      "description": "Rastrea gastos y mantente en la meta juntos",
+      "cta": "Configurar Ahora"
+    },
+    "push": {
+      "title": "Mantente Informado",
+      "description": "Recibe notificaciones cuando se agreguen gastos",
+      "cta": "Activar Notificaciones",
+      "later": "Ahora No"
+    },
+    "firstExpense": {
+      "title": "Agrega Tu Primer Gasto",
+      "description": "Toca aquí para empezar a rastrear",
+      "dismiss": "¡Entendido!"
+    },
+    "partnerInvite": {
+      "inviteCta": "Invitar Pareja",
+      "joinCta": "Unirse a Pareja"
+    }
+  },
   "auth": {
+    "forgotPassword": {
+      "title": "Restablecer Contraseña",
+      "subtitle": "Ingresa tu correo para recibir un enlace de restablecimiento",
+      "email": "Correo Electrónico",
+      "emailPlaceholder": "tu@email.com",
+      "sendButton": "Enviar Enlace",
+      "successTitle": "¡Correo Enviado!",
+      "successMessage": "Revisa tu bandeja de entrada para el enlace de restablecimiento",
+      "backToSignIn": "Volver a Iniciar Sesión",
+      "errorNotFound": "No se encontró cuenta con este correo",
+      "errorGeneric": "Error al enviar correo de restablecimiento. Por favor intenta de nuevo."
+    },
     "welcome": {
       "title": "Dividela",
       "tagline": "Rastrea gastos compartidos con tu pareja, sin esfuerzo",
@@ -599,6 +634,96 @@
     "footer": {
       "madeInColombia": "Hecho en Colombia 🇨🇴 con ♥"
     }
+  },
+  "coreSetup": {
+    "title": "Configura Tu Cuenta",
+    "subtitle": "Configura tus preferencias para comenzar",
+    "step1": {
+      "title": "Esenciales",
+      "subtitle": "Moneda y preferencias de notificación"
+    },
+    "step2": {
+      "title": "Calendario",
+      "subtitle": "¿Cuándo comienza tu año presupuestario?"
+    },
+    "step3": {
+      "title": "Presupuesto",
+      "subtitle": "Configura tus categorías de gastos"
+    },
+    "currency": {
+      "title": "Moneda Principal",
+      "description": "Elige la moneda para registrar gastos y presupuestos"
+    },
+    "fiscalYear": {
+      "title": "Año Fiscal",
+      "description": "¿Cuándo comienza tu año presupuestario?",
+      "calendar": "Año Calendario",
+      "calendarDates": "1 de enero - 31 de diciembre",
+      "custom": "Fecha de Inicio Personalizada",
+      "customDescription": "Elige tu propia fecha de inicio",
+      "startMonth": "Mes de Inicio",
+      "startDay": "Día de Inicio"
+    },
+    "notifications": {
+      "title": "Notificaciones",
+      "description": "Mantente informado sobre tu progreso presupuestario",
+      "emailAlerts": "Alertas por Email",
+      "emailAlertsDesc": "Advertencias y recordatorios de presupuesto por email",
+      "budgetAlerts": "Alertas de Presupuesto",
+      "budgetAlertsDesc": "Recibe notificaciones al acercarte a los límites",
+      "savingsMilestones": "Hitos de Ahorro",
+      "savingsMilestonesDesc": "Celebra metas de ahorro y logros"
+    },
+    "budget": {
+      "title": "Presupuesto Mensual",
+      "optional": "Opcional",
+      "description": "Configura tus categorías de presupuesto mensual",
+      "monthlyIncome": "Ingreso Mensual",
+      "monthlyIncomePlaceholder": "Ingresa tu ingreso mensual",
+      "customizeCategories": "Personaliza tus categorías de presupuesto",
+      "categoryHint": "Toca el monto para editar, toca el nombre para personalizar",
+      "addCategory": "Agregar Categoría",
+      "allocated": "Asignado",
+      "of": "de",
+      "monthly": "mensual",
+      "skip": "Saltar configuración de presupuesto",
+      "editCategory": "Editar Categoría",
+      "categoryName": "Nombre de Categoría",
+      "categoryNamePlaceholder": "ej., Salud y Fitness",
+      "categoryIcon": "Ícono de Categoría",
+      "selectEmoji": "Selecciona un emoji",
+      "save": "Guardar",
+      "add": "Agregar",
+      "deleteCategory": "Eliminar categoría"
+    },
+    "getStarted": "Comenzar",
+    "saving": "Configurando...",
+    "infoText": "Puedes cambiar estas configuraciones más tarde desde el menú de Ajustes.",
+    "errors": {
+      "saveFailed": "Error al guardar configuración. Por favor intenta de nuevo.",
+      "categoryNameRequired": "El nombre de categoría es requerido",
+      "categoryIconRequired": "Por favor selecciona un ícono"
+    }
+  },
+  "setup": {
+    "title": "Configura Tu Cuenta",
+    "subtitle": "Configura tus preferencias para comenzar",
+    "currencySection": "Moneda Principal",
+    "currencyDescription": "Elige la moneda para registrar gastos y presupuestos",
+    "fiscalYearSection": "Año Fiscal",
+    "fiscalYearDescription": "¿Cuándo comienza tu año presupuestario?",
+    "notificationsSection": "Notificaciones",
+    "notificationsDescription": "Mantente informado sobre tu progreso presupuestario",
+    "emailAlerts": "Alertas por Email",
+    "emailAlertsDesc": "Advertencias y recordatorios de presupuesto por email",
+    "budgetAlerts": "Alertas de Presupuesto",
+    "budgetAlertsDesc": "Recibe notificaciones al acercarte a los límites",
+    "budgetMilestones": "Hitos del Presupuesto",
+    "budgetMilestonesDesc": "Celebra metas de ahorro y logros",
+    "continueButton": "Comenzar",
+    "skipButton": "Saltar Año Fiscal",
+    "infoText": "Puedes cambiar estas configuraciones más tarde desde el menú de Ajustes.",
+    "saveFailed": "Error al guardar configuración. Por favor intenta de nuevo."
   },
   "errors": {
     "generic": "Ocurrió un error. Por favor intenta de nuevo.",
@@ -1009,7 +1134,9 @@
       "advancedFeature3": "Funciones avanzadas",
       "skipButton": "Omitir por Ahora",
       "recommended": "RECOMENDADO",
-      "skipMessage": "Siempre puedes configurar presupuestos más tarde desde Ajustes"
+      "skipMessage": "Siempre puedes configurar presupuestos más tarde desde Ajustes",
+      "currencyLabel": "Tu Moneda",
+      "currencyHint": "Tu presupuesto usará esta moneda para todos los importes"
     },
     "simple": {
       "chooseStyle": {

@@ -48,6 +48,7 @@ import {
   isPushNotificationSupported,
   registerForPushNotifications,
 } from '../../services/pushNotificationService';
+import { deleteBudgetForMonth } from '../../services/budgetService';
 
 const { width: screenWidth } = Dimensions.get('window');
 const isSmallScreen = screenWidth < 375;
@@ -323,7 +324,7 @@ export default function SettingsScreen({ navigation }) {
         </View>
 
         {/* Email (read-only) */}
-        <View style={[styles.settingRow, styles.settingRowLast]}>
+        <View style={styles.settingRow}>
           <View style={styles.settingIcon}>
             <Ionicons name="mail" size={20} color={COLORS.primary} />
           </View>
@@ -332,6 +333,31 @@ export default function SettingsScreen({ navigation }) {
             <Text style={styles.settingValue}>{user?.email}</Text>
           </View>
         </View>
+
+        {/* Change Password - only for email/password users */}
+        {user?.providerData?.some(p => p.providerId === 'password') && (
+          <TouchableOpacity
+            style={[styles.settingRow, styles.settingRowLast]}
+            onPress={() => setChangePasswordModalVisible(true)}
+            activeOpacity={0.6}
+          >
+            <View style={styles.settingIcon}>
+              <Ionicons name="key" size={20} color={COLORS.primary} />
+            </View>
+            <View style={styles.settingContent}>
+              <Text style={styles.settingLabel}>{t('settings.changePassword')}</Text>
+              <Text style={styles.settingDescription}>
+                {t('settings.changePasswordDescription')}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+          </TouchableOpacity>
+        )}
+
+        {/* Last row if no password provider */}
+        {!user?.providerData?.some(p => p.providerId === 'password') && (
+          <View style={styles.settingRowLast} />
+        )}
       </View>
     </View>
   );
@@ -502,6 +528,19 @@ export default function SettingsScreen({ navigation }) {
         await onboardingStorage.clearCompleted(userDetails.coupleId);
         await onboardingStorage.clearState();
         console.log('✅ Cleared onboarding storage');
+
+        // Delete current month's budget from Firestore so user starts fresh
+        const now = new Date();
+        const month = now.getMonth() + 1; // 1-12
+        const year = now.getFullYear();
+
+        try {
+          await deleteBudgetForMonth(userDetails.coupleId, month, year);
+          console.log('✅ Cleared current month budget');
+        } catch (budgetError) {
+          // Log but don't fail - budget might not exist yet
+          console.log('ℹ️ Could not delete budget (may not exist):', budgetError.message);
+        }
       }
 
       // Log navigation state for debugging
@@ -651,59 +690,6 @@ export default function SettingsScreen({ navigation }) {
     }
   };
 
-  const renderAccountManagementSection = () => {
-    // Check if user signed in with email/password
-    const providerData = user?.providerData || [];
-    const hasEmailProvider = providerData.some(p => p.providerId === 'password');
-
-    return (
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{t('settings.accountManagement')}</Text>
-
-        <View style={styles.card}>
-          {/* Change Password - only for email/password users */}
-          {hasEmailProvider && (
-            <TouchableOpacity
-              style={styles.settingRow}
-              onPress={() => setChangePasswordModalVisible(true)}
-              activeOpacity={0.6}
-            >
-              <View style={styles.settingIcon}>
-                <Ionicons name="key" size={20} color={COLORS.primary} />
-              </View>
-              <View style={styles.settingContent}>
-                <Text style={styles.settingLabel}>{t('settings.changePassword')}</Text>
-                <Text style={styles.settingDescription}>
-                  {t('settings.changePasswordDescription')}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
-            </TouchableOpacity>
-          )}
-
-          {/* Delete Account */}
-          <TouchableOpacity
-            style={[styles.settingRow, styles.settingRowLast, styles.dangerRow]}
-            onPress={() => setDeleteAccountModalVisible(true)}
-            activeOpacity={0.6}
-          >
-            <View style={[styles.settingIcon, styles.dangerIcon]}>
-              <Ionicons name="trash" size={20} color={COLORS.error} />
-            </View>
-            <View style={styles.settingContent}>
-              <Text style={[styles.settingLabel, styles.dangerText]}>
-                {t('settings.deleteAccount')}
-              </Text>
-              <Text style={styles.settingDescription}>
-                {t('settings.deleteAccountDescription')}
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={COLORS.error} />
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  };
 
   const renderNotificationsSection = () => (
     <View style={styles.section}>
@@ -1048,6 +1034,17 @@ export default function SettingsScreen({ navigation }) {
           </View>
         </View>
       </View>
+
+      {/* Subtle delete account link - intentionally low prominence */}
+      <TouchableOpacity
+        style={styles.deleteAccountLink}
+        onPress={() => setDeleteAccountModalVisible(true)}
+        activeOpacity={0.6}
+      >
+        <Text style={styles.deleteAccountLinkText}>
+          {t('settings.deleteAccountLink', { defaultValue: 'Need to delete your account?' })}
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 
@@ -1132,9 +1129,6 @@ export default function SettingsScreen({ navigation }) {
 
         {/* About Section */}
         {renderAboutSection()}
-
-        {/* Account Management Section */}
-        {renderAccountManagementSection()}
 
         {/* Sign Out Button */}
         <View style={styles.section}>
@@ -1890,5 +1884,17 @@ const styles = StyleSheet.create({
     color: COLORS.error,
     marginBottom: SPACING.tiny,
     lineHeight: 20,
+  },
+  // Subtle delete account link styles
+  deleteAccountLink: {
+    marginTop: SPACING.large,
+    alignItems: 'center',
+    paddingVertical: SPACING.small,
+  },
+  deleteAccountLinkText: {
+    ...FONTS.small,
+    fontSize: 12,
+    color: COLORS.textTertiary,
+    textDecorationLine: 'underline',
   },
 });
