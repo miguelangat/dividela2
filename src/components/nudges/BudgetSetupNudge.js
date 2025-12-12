@@ -26,7 +26,7 @@ export default function BudgetSetupNudge({ onSetup, style }) {
     if (onSetup) {
       onSetup();
     } else {
-      navigation.navigate('Onboarding');
+      navigation.navigate('CoreSetup');
     }
   };
 
