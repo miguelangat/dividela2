@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Dimensions,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useBudget } from '../../contexts/BudgetContext';
@@ -21,6 +22,10 @@ import * as expenseService from '../../services/expenseService';
 import * as settlementService from '../../services/settlementService';
 import { Ionicons } from '@expo/vector-icons';
 import { formatCurrency } from '../../utils/calculations';
+
+// Responsive breakpoints
+const screenWidth = Dimensions.get('window').width;
+const isSmallScreen = screenWidth < 375;
 
 export default function BudgetDashboardScreen({ navigation }) {
   const { t } = useTranslation();
@@ -147,17 +152,38 @@ export default function BudgetDashboardScreen({ navigation }) {
         <View style={styles.summaryGrid}>
           <View style={[styles.summaryCard, styles.summaryCardPrimary]}>
             <Text style={styles.summaryLabel}>{t('budget.dashboard.totalBudget')}</Text>
-            <Text style={styles.summaryValue}>{formatCurrency(totalBudget)}</Text>
+            <Text
+              style={styles.summaryValue}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.6}
+            >
+              {formatCurrency(totalBudget)}
+            </Text>
           </View>
 
           <View style={[styles.summaryCard, styles.summaryCardWarning]}>
             <Text style={styles.summaryLabel}>{t('budget.dashboard.totalSpent')}</Text>
-            <Text style={styles.summaryValue}>{formatCurrency(totalSpent)}</Text>
+            <Text
+              style={styles.summaryValue}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.6}
+            >
+              {formatCurrency(totalSpent)}
+            </Text>
           </View>
 
           <View style={[styles.summaryCard, styles.summaryCardSuccess]}>
             <Text style={styles.summaryLabel}>{t('budget.dashboard.remaining')}</Text>
-            <Text style={styles.summaryValue}>{formatCurrency(Math.abs(remaining))}</Text>
+            <Text
+              style={styles.summaryValue}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.6}
+            >
+              {formatCurrency(Math.abs(remaining))}
+            </Text>
           </View>
         </View>
 
@@ -368,9 +394,11 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     flex: 1,
-    padding: SPACING.medium,
+    padding: isSmallScreen ? SPACING.small : SPACING.medium,
+    paddingVertical: SPACING.medium,
     borderRadius: SIZES.borderRadius.medium,
     alignItems: 'center',
+    minWidth: 0,  // Allow flex shrinking for text truncation
   },
   summaryCardPrimary: {
     backgroundColor: COLORS.primary,
@@ -388,7 +416,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.tiny,
   },
   summaryValue: {
-    fontSize: 28,
+    fontSize: isSmallScreen ? 20 : 24,
     fontWeight: FONTS.weights.bold,
     color: COLORS.textWhite,
   },
