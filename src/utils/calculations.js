@@ -10,13 +10,10 @@
  * @throws {Error} If validation fails
  */
 export const calculateSplit = (amount, user1Percentage, user2Percentage = null) => {
-  // Validate amount
+  // Validate amount (large amount warnings are handled at the UI level)
   const total = parseFloat(amount);
   if (isNaN(total) || total <= 0) {
     throw new Error('Invalid amount: must be a positive number');
-  }
-  if (total > 1000000) {
-    throw new Error('Invalid amount: exceeds maximum allowed value');
   }
 
   // Validate user1Percentage
@@ -51,12 +48,10 @@ export const calculateSplit = (amount, user1Percentage, user2Percentage = null) 
  * @throws {Error} If validation fails
  */
 export const calculateEqualSplit = (amount) => {
+  // Large amount warnings are handled at the UI level
   const total = parseFloat(amount);
   if (isNaN(total) || total <= 0) {
     throw new Error('Invalid amount: must be a positive number');
-  }
-  if (total > 1000000) {
-    throw new Error('Invalid amount: exceeds maximum allowed value');
   }
 
   const half = total / 2;
@@ -474,13 +469,9 @@ export const validateSettlement = (settlementData, currentUserId, currentUserCou
     return { valid: false, error: 'settledBy must be one of the couple members' };
   }
 
-  // Validate amount
+  // Validate amount (large amount warnings are handled at the UI level)
   if (typeof amount !== 'number' || amount <= 0) {
     return { valid: false, error: 'Settlement amount must be a positive number' };
-  }
-
-  if (amount > 1000000) {
-    return { valid: false, error: 'Settlement amount exceeds maximum allowed value' };
   }
 
   // All validations passed

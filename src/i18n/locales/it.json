@@ -308,6 +308,11 @@
       "message": "Hai modifiche non salvate. Sei sicuro di voler annullare?",
       "keepEditing": "Continua a Modificare",
       "discard": "Scarta"
+    },
+    "largeAmount": {
+      "title": "Importo Elevato",
+      "message": "Stai per aggiungere una spesa di {{amount}}. È corretto?",
+      "confirm": "Sì, procedi"
     }
   },
   "import": {
@@ -482,10 +487,10 @@
     }
   },
   "nudges": {
-    "budget": {
-      "title": "Configura il Tuo Budget",
-      "description": "Monitora le spese e resta in linea con gli obiettivi insieme",
-      "cta": "Configura Ora"
+    "setup": {
+      "title": "Completa la Configurazione",
+      "description": "Imposta la tua valuta e le preferenze dell'anno fiscale",
+      "cta": "Inizia"
     },
     "push": {
       "title": "Resta Aggiornato",
@@ -671,8 +676,10 @@
       "emailAlertsDesc": "Avvertimenti e promemoria budget via email",
       "budgetAlerts": "Avvisi Budget",
       "budgetAlertsDesc": "Ricevi notifiche quando ti avvicini ai limiti",
-      "savingsMilestones": "Traguardi di Risparmio",
-      "savingsMilestonesDesc": "Celebra obiettivi di risparmio e successi"
+      "milestones": "Traguardi",
+      "milestonesDesc": "Celebra obiettivi di risparmio",
+      "partnerActivity": "Attività del Partner",
+      "partnerActivityDesc": "Notificato quando il partner aggiunge spese"
     },
     "budget": {
       "title": "Budget Mensile",

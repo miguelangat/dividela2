@@ -308,6 +308,11 @@
       "message": "Você tem alterações não salvas. Tem certeza que deseja cancelar?",
       "keepEditing": "Continuar Editando",
       "discard": "Descartar"
+    },
+    "largeAmount": {
+      "title": "Valor Alto",
+      "message": "Você está prestes a adicionar uma despesa de {{amount}}. Está correto?",
+      "confirm": "Sim, continuar"
     }
   },
   "import": {
@@ -482,10 +487,10 @@
     }
   },
   "nudges": {
-    "budget": {
-      "title": "Configure Seu Orçamento",
-      "description": "Rastreie gastos e fiquem na meta juntos",
-      "cta": "Configurar Agora"
+    "setup": {
+      "title": "Complete Sua Configuração",
+      "description": "Defina sua moeda e preferências do ano fiscal",
+      "cta": "Começar"
     },
     "push": {
       "title": "Fique por Dentro",
@@ -671,8 +676,10 @@
       "emailAlertsDesc": "Avisos e lembretes de orçamento por email",
       "budgetAlerts": "Alertas de Orçamento",
       "budgetAlertsDesc": "Receba notificações ao se aproximar dos limites",
-      "savingsMilestones": "Marcos de Economia",
-      "savingsMilestonesDesc": "Celebre metas de economia e conquistas"
+      "milestones": "Marcos",
+      "milestonesDesc": "Celebre metas de economia",
+      "partnerActivity": "Atividade do Parceiro",
+      "partnerActivityDesc": "Notificado quando seu parceiro adiciona despesas"
     },
     "budget": {
       "title": "Orçamento Mensal",

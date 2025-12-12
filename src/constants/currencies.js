@@ -17,6 +17,7 @@ export const SUPPORTED_CURRENCIES = {
     decimals: 2,
     flag: '🇺🇸',
     popular: true,
+    warningThreshold: 10000, // ~$10K USD - unusual for household expense
   },
   EUR: {
     code: 'EUR',
@@ -28,6 +29,7 @@ export const SUPPORTED_CURRENCIES = {
     decimals: 2,
     flag: '🇪🇺',
     popular: true,
+    warningThreshold: 10000, // ~$10K USD equivalent
   },
   MXN: {
     code: 'MXN',
@@ -39,6 +41,7 @@ export const SUPPORTED_CURRENCIES = {
     decimals: 2,
     flag: '🇲🇽',
     popular: true,
+    warningThreshold: 200000, // ~$10K USD equivalent
   },
   COP: {
     code: 'COP',
@@ -50,6 +53,7 @@ export const SUPPORTED_CURRENCIES = {
     decimals: 2,
     flag: '🇨🇴',
     popular: true,
+    warningThreshold: 50000000, // ~$10K USD equivalent
   },
   PEN: {
     code: 'PEN',
@@ -61,6 +65,7 @@ export const SUPPORTED_CURRENCIES = {
     decimals: 2,
     flag: '🇵🇪',
     popular: true,
+    warningThreshold: 40000, // ~$10K USD equivalent
   },
   CNY: {
     code: 'CNY',
@@ -72,6 +77,7 @@ export const SUPPORTED_CURRENCIES = {
     decimals: 2,
     flag: '🇨🇳',
     popular: true,
+    warningThreshold: 75000, // ~$10K USD equivalent
   },
   BRL: {
     code: 'BRL',
@@ -83,6 +89,7 @@ export const SUPPORTED_CURRENCIES = {
     decimals: 2,
     flag: '🇧🇷',
     popular: true,
+    warningThreshold: 60000, // ~$10K USD equivalent
   },
   GBP: {
     code: 'GBP',
@@ -94,6 +101,7 @@ export const SUPPORTED_CURRENCIES = {
     decimals: 2,
     flag: '🇬🇧',
     popular: true,
+    warningThreshold: 8000, // ~$10K USD equivalent
   },
 };
 

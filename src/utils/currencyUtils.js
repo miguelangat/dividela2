@@ -240,6 +240,8 @@ export const roundCurrency = (amount, currencyCode = DEFAULT_CURRENCY) => {
 
 /**
  * Validate currency amount
+ * Note: Large amount warnings are handled at the UI level with currency-aware thresholds
+ * This validator only checks for basic validity (positive number)
  * @param {number} amount - Amount to validate
  * @returns {object} { isValid: boolean, error: string|null }
  */
@@ -250,10 +252,6 @@ export const validateAmount = (amount) => {
 
   if (amount <= 0) {
     return { isValid: false, error: 'Amount must be greater than zero' };
-  }
-
-  if (amount > 1000000) {
-    return { isValid: false, error: 'Amount exceeds maximum allowed value' };
   }
 
   return { isValid: true, error: null };

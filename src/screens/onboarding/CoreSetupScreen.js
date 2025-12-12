@@ -67,6 +67,7 @@ export default function CoreSetupScreen({ navigation }) {
     emailEnabled: true,
     monthlyBudgetAlert: true,
     savingsGoalMilestone: true,
+    partnerActivity: true,
   });
 
   // Step 2: Fiscal year state
@@ -250,7 +251,7 @@ export default function CoreSetupScreen({ navigation }) {
           monthlyBudgetAlert: notifications.monthlyBudgetAlert,
           savingsGoalMilestone: notifications.savingsGoalMilestone,
           fiscalYearEndReminder: true,
-          partnerActivity: false,
+          partnerActivity: notifications.partnerActivity,
         },
         coreSetupComplete: true,
         coreSetupCompletedAt: new Date(),
@@ -433,6 +434,12 @@ export default function CoreSetupScreen({ navigation }) {
             description={t('coreSetup.notifications.milestonesDesc', 'Celebrate savings goals')}
             value={notifications.savingsGoalMilestone}
             onToggle={() => toggleNotification('savingsGoalMilestone')}
+          />
+          <ToggleRow
+            label={t('coreSetup.notifications.partnerActivity', 'Partner Activity')}
+            description={t('coreSetup.notifications.partnerActivityDesc', 'Notified when partner adds expenses')}
+            value={notifications.partnerActivity}
+            onToggle={() => toggleNotification('partnerActivity')}
             showBorder={false}
           />
         </View>

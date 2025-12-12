@@ -15,6 +15,7 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -75,39 +76,39 @@ export default function ExpenseDetailModal({
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     const warningMessage = deleteCheck.isSettled
       ? t('components.expenseDetail.deleteWarningSettled')
       : t('components.expenseDetail.deleteWarning');
 
-    Alert.alert(
-      t('components.expenseDetail.deleteTitle'),
-      warningMessage,
-      [
-        {
-          text: t('common.cancel'),
-          style: 'cancel',
-        },
-        {
-          text: t('common.delete'),
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setDeleting(true);
-              await expenseService.deleteExpense(expense.id);
-              if (onDelete) {
-                onDelete(expense.id);
-              }
-              onClose();
-            } catch (error) {
-              Alert.alert(t('common.error'), error.message || t('components.expenseDetail.deleteError'));
-              setDeleting(false);
-            }
-          },
-        },
-      ],
-      { cancelable: true }
-    );
+    // Use window.confirm on web for better compatibility
+    const confirmed = Platform.OS === 'web'
+      ? window.confirm(`${t('components.expenseDetail.deleteTitle')}\n\n${warningMessage}`)
+      : await new Promise(resolve => {
+          Alert.alert(
+            t('components.expenseDetail.deleteTitle'),
+            warningMessage,
+            [
+              { text: t('common.cancel'), style: 'cancel', onPress: () => resolve(false) },
+              { text: t('common.delete'), style: 'destructive', onPress: () => resolve(true) },
+            ],
+            { cancelable: true }
+          );
+        });
+
+    if (!confirmed) return;
+
+    try {
+      setDeleting(true);
+      await expenseService.deleteExpense(expense.id);
+      if (onDelete) {
+        onDelete(expense.id);
+      }
+      onClose();
+    } catch (error) {
+      Alert.alert(t('common.error'), error.message || t('components.expenseDetail.deleteError'));
+      setDeleting(false);
+    }
   };
 
   return (

@@ -41,7 +41,7 @@ import * as expenseService from '../../services/expenseService';
 import CurrencyPicker from '../../components/CurrencyPicker';
 import ExchangeRateInput from '../../components/ExchangeRateInput';
 import { getCurrencyInfo, getCurrencySymbol } from '../../constants/currencies';
-import { createMultiCurrencyExpense } from '../../utils/currencyUtils';
+import { createMultiCurrencyExpense, formatCurrency } from '../../utils/currencyUtils';
 import {
   getPrimaryCurrency,
   saveRecentExchangeRate,
@@ -72,6 +72,7 @@ export default function AddExpenseScreen({ navigation, route }) {
   const [userSplitPercentage, setUserSplitPercentage] = useState('50');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [confirmedLargeAmount, setConfirmedLargeAmount] = useState(false);
 
   // Multi-currency state
   const [primaryCurrency, setPrimaryCurrency] = useState('USD');
@@ -169,6 +170,8 @@ export default function AddExpenseScreen({ navigation, route }) {
     // Store the raw value (without formatting)
     setAmount(cleaned);
     setError('');
+    // Reset large amount confirmation when amount changes
+    setConfirmedLargeAmount(false);
   };
 
   // Format number with thousands separator for display
@@ -422,9 +425,31 @@ export default function AddExpenseScreen({ navigation, route }) {
     try {
       const expenseAmount = parseFloat(amount);
 
-      // Additional validation: ensure amount is reasonable
-      if (expenseAmount > 1000000) {
-        setError('Amount seems too large. Please check and try again.');
+      // Currency-aware large amount warning (soft validation)
+      const currencyInfo = getCurrencyInfo(expenseCurrency);
+      const warningThreshold = currencyInfo.warningThreshold || 10000;
+
+      if (expenseAmount > warningThreshold && !confirmedLargeAmount) {
+        const formattedAmount = formatCurrency(expenseAmount, expenseCurrency);
+        Alert.alert(
+          t('addExpense.largeAmount.title'),
+          t('addExpense.largeAmount.message', { amount: formattedAmount }),
+          [
+            {
+              text: t('common.cancel'),
+              style: 'cancel',
+              onPress: () => setLoading(false),
+            },
+            {
+              text: t('addExpense.largeAmount.confirm'),
+              onPress: () => {
+                setConfirmedLargeAmount(true);
+                // Re-trigger submit after confirmation
+                setTimeout(() => handleSubmit(), 0);
+              },
+            },
+          ]
+        );
         setLoading(false);
         return;
       }

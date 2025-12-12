@@ -1,5 +1,5 @@
 // src/components/nudges/BudgetSetupNudge.js
-// Nudge banner encouraging users to set up their budget
+// Nudge banner encouraging users to complete core setup (currency + fiscal year)
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -8,10 +8,13 @@ import NudgeBanner from './NudgeBanner';
 import { useNudges, NUDGE_TYPES } from '../../contexts/NudgeContext';
 
 /**
- * BudgetSetupNudge - Dismissible banner prompting budget setup
+ * BudgetSetupNudge - Dismissible banner prompting core setup completion
+ *
+ * Despite the name, this nudge is shown when core setup (currency + fiscal year)
+ * is not complete. Budget setup is optional and can be skipped.
  *
  * @param {Object} props
- * @param {Function} props.onSetup - Optional callback when user taps "Set Up Now"
+ * @param {Function} props.onSetup - Optional callback when user taps "Get Started"
  * @param {Object} props.style - Additional styles
  */
 export default function BudgetSetupNudge({ onSetup, style }) {
@@ -33,10 +36,10 @@ export default function BudgetSetupNudge({ onSetup, style }) {
 
   return (
     <NudgeBanner
-      icon="pie-chart-outline"
-      title={t('nudges.budget.title', 'Set Up Your Budget')}
-      description={t('nudges.budget.description', 'Track spending and stay on target together')}
-      ctaText={t('nudges.budget.cta', 'Set Up Now')}
+      icon="clipboard-check-outline"
+      title={t('nudges.setup.title', 'Complete Your Setup')}
+      description={t('nudges.setup.description', 'Set your currency and fiscal year preferences')}
+      ctaText={t('nudges.setup.cta', 'Get Started')}
       ctaAction={handleSetup}
       onDismiss={handleDismiss}
       variant="primary"

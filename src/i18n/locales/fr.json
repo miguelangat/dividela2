@@ -308,6 +308,11 @@
       "message": "Tu as des modifications non enregistrées. Es-tu sûr de vouloir annuler ?",
       "keepEditing": "Continuer l'Édition",
       "discard": "Abandonner"
+    },
+    "largeAmount": {
+      "title": "Montant Élevé",
+      "message": "Tu es sur le point d'ajouter une dépense de {{amount}}. Est-ce correct ?",
+      "confirm": "Oui, continuer"
     }
   },
   "import": {
@@ -482,10 +487,10 @@
     }
   },
   "nudges": {
-    "budget": {
-      "title": "Configure Ton Budget",
-      "description": "Suis les dépenses et reste dans les objectifs ensemble",
-      "cta": "Configurer Maintenant"
+    "setup": {
+      "title": "Termine Ta Configuration",
+      "description": "Définis ta devise et tes préférences d'année fiscale",
+      "cta": "Commencer"
     },
     "push": {
       "title": "Reste Informé",
@@ -671,8 +676,10 @@
       "emailAlertsDesc": "Avertissements et rappels de budget par email",
       "budgetAlerts": "Alertes Budget",
       "budgetAlertsDesc": "Sois notifié quand tu approches des limites",
-      "savingsMilestones": "Étapes d'Épargne",
-      "savingsMilestonesDesc": "Célèbre les objectifs d'épargne et réussites"
+      "milestones": "Étapes",
+      "milestonesDesc": "Célèbre les objectifs d'épargne",
+      "partnerActivity": "Activité du Partenaire",
+      "partnerActivityDesc": "Notifié quand ton partenaire ajoute des dépenses"
     },
     "budget": {
       "title": "Budget Mensuel",

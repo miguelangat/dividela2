@@ -844,14 +844,29 @@ When working on this project:
 5. **Consider accessibility** - Maintain contrast ratios and touch targets
 6. **Update this document** - When adding new patterns or components
 
-## Notes for missing work
+## Feature Implementation Status
 
-1. Format all numbers when there is currency involvedd using currency format in both input and display
-2. List categories as a dropdown
-3. adding a record should display confirmation (e.g add categories, expenses, etc...
-4. Delete category is not working
-5. Emojis for categories are not vertically scrollable
-6. Use Custom categories for budget onboarding
-7. Navigation when onboarding review
-8. When scanning receipts use default currency or ask customer to clarify it. Also let edit all details read from AI OCR.
-9. Delete account and change password functionality
+### Completed Features
+
+1. ✅ **Currency Formatting** - All numbers with currency involved use proper currency formatting in both input and display (src/utils/currencyUtils.js)
+2. ✅ **Category Deletion** - Fully implemented with validation to prevent deletion of categories with associated expenses (src/services/categoryService.js, src/screens/main/CategoryManagerScreen.js)
+3. ✅ **Receipt Scanning (OCR)** - Complete implementation with:
+   - Image processing and compression (src/services/ocrService.js)
+   - Cloud Function integration for OCR processing
+   - Learning system for user feedback and corrections
+   - Error handling and retry logic
+   - Fully integrated in AddExpenseScreen with OCRSuggestionCard and OCRProcessingBanner components
+4. ✅ **Delete Account Functionality** - Fully implemented in AuthContext.js with support for all auth providers (Email/Password, Google, Apple) and proper UI in SettingsScreen
+5. ✅ **Change Password Functionality** - Fully implemented in AuthContext.js with validation and proper UI in SettingsScreen for email/password users
+6. ✅ **Custom Categories in Budget Onboarding** - Implemented in CoreSetupScreen with ability to add/manage custom categories
+
+### Features Requiring Enhancement
+
+1. ⚠️ **Category Dropdown** - Currently uses grid-based selector (CategorySelector.js). Consider implementing traditional dropdown/picker UI if needed for expense forms.
+2. ⚠️ **Emoji Scrolling** - Emoji picker library (rn-emoji-keyboard) supports vertical scrolling, but may need configuration verification in CategoryModal.js
+3. ⚠️ **Expense/Category Confirmation** - No explicit confirmation dialog after adding expenses or categories. Consider adding toast notifications or modal confirmations.
+4. ⚠️ **Receipt Scanning - Currency Handling** - OCR returns suggested category and amount, but default currency selection and currency clarity in receipt scanning needs review.
+
+### Not Yet Implemented
+
+1. ❌ **Navigation When Onboarding Review** - Unclear requirement; needs clarification on expected behavior during onboarding review/completion

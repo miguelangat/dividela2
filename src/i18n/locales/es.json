@@ -308,6 +308,11 @@
       "message": "Tienes cambios sin guardar. ¿Estás seguro de que quieres cancelar?",
       "keepEditing": "Seguir Editando",
       "discard": "Descartar"
+    },
+    "largeAmount": {
+      "title": "Monto Grande",
+      "message": "Estás por agregar un gasto de {{amount}}. ¿Es correcto?",
+      "confirm": "Sí, continuar"
     }
   },
   "import": {
@@ -482,10 +487,10 @@
     }
   },
   "nudges": {
-    "budget": {
-      "title": "Configura Tu Presupuesto",
-      "description": "Rastrea gastos y mantente en la meta juntos",
-      "cta": "Configurar Ahora"
+    "setup": {
+      "title": "Completa Tu Configuración",
+      "description": "Configura tu moneda y preferencias del año fiscal",
+      "cta": "Comenzar"
     },
     "push": {
       "title": "Mantente Informado",
@@ -671,8 +676,10 @@
       "emailAlertsDesc": "Advertencias y recordatorios de presupuesto por email",
       "budgetAlerts": "Alertas de Presupuesto",
       "budgetAlertsDesc": "Recibe notificaciones al acercarte a los límites",
-      "savingsMilestones": "Hitos de Ahorro",
-      "savingsMilestonesDesc": "Celebra metas de ahorro y logros"
+      "milestones": "Hitos",
+      "milestonesDesc": "Celebra metas de ahorro",
+      "partnerActivity": "Actividad del Socio",
+      "partnerActivityDesc": "Notificado cuando tu pareja agrega gastos"
     },
     "budget": {
       "title": "Presupuesto Mensual",

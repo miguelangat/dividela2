@@ -3,13 +3,15 @@
 
 /**
  * Comprehensive validation for currency input
+ * Note: Large amount warnings are handled at the UI level with currency-aware thresholds
+ * The maxValue here is very high by default to allow any currency's typical values
  * @param {number} value - Numeric value to validate
  * @param {object} options - Validation options
  * @returns {object} Validation result with isValid, errors, warnings, and sanitizedValue
  */
 export const validateCurrencyInput = (value, options = {}) => {
   const {
-    maxValue = 1000000,
+    maxValue = 999999999999, // Very high default to support any currency
     minValue = 0,
     allowNegative = false,
     allowZero = true,

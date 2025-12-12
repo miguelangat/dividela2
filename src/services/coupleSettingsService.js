@@ -39,7 +39,7 @@ export const DEFAULT_COUPLE_SETTINGS = {
     annualBudgetAlert: true,
     fiscalYearEndReminder: true,
     savingsGoalMilestone: true,
-    partnerActivity: false, // Notify when partner adds expenses
+    partnerActivity: true, // Notify when partner adds expenses
     daysBeforeFiscalYearEnd: 30,
   },
   display: {

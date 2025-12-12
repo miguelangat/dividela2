@@ -308,6 +308,11 @@
       "message": "You have unsaved changes. Are you sure you want to cancel?",
       "keepEditing": "Keep Editing",
       "discard": "Discard"
+    },
+    "largeAmount": {
+      "title": "Large Amount",
+      "message": "You're about to add an expense of {{amount}}. Is this correct?",
+      "confirm": "Yes, proceed"
     }
   },
   "import": {
@@ -482,10 +487,10 @@
     }
   },
   "nudges": {
-    "budget": {
-      "title": "Set Up Your Budget",
-      "description": "Track spending and stay on target together",
-      "cta": "Set Up Now"
+    "setup": {
+      "title": "Complete Your Setup",
+      "description": "Set your currency and fiscal year preferences",
+      "cta": "Get Started"
     },
     "push": {
       "title": "Stay in the Loop",
@@ -671,8 +676,10 @@
       "emailAlertsDesc": "Budget warnings and reminders via email",
       "budgetAlerts": "Budget Alerts",
       "budgetAlertsDesc": "Get notified when nearing budget limits",
-      "savingsMilestones": "Savings Milestones",
-      "savingsMilestonesDesc": "Celebrate savings goals and achievements"
+      "milestones": "Milestones",
+      "milestonesDesc": "Celebrate savings goals",
+      "partnerActivity": "Partner Activity",
+      "partnerActivityDesc": "Notified when partner adds expenses"
     },
     "budget": {
       "title": "Monthly Budget",

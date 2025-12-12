@@ -83,23 +83,26 @@ export default function HomeScreen({ navigation }) {
   const [showFirstExpenseCoachMark, setShowFirstExpenseCoachMark] = useState(false);
 
   // Check onboarding and push notification status for nudges
-  useEffect(() => {
-    const checkNudgeConditions = async () => {
-      // Check onboarding status from Firestore coupleSettings (coreSetupComplete)
-      if (userDetails?.coupleId) {
-        const settings = await getCoupleSettings(userDetails.coupleId);
-        setOnboardingCompleted(settings?.coreSetupComplete || false);
-      }
+  // Using useFocusEffect to re-check every time HomeScreen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      const checkNudgeConditions = async () => {
+        // Check onboarding status from Firestore coupleSettings (coreSetupComplete)
+        if (userDetails?.coupleId) {
+          const settings = await getCoupleSettings(userDetails.coupleId);
+          setOnboardingCompleted(settings?.coreSetupComplete || false);
+        }
 
-      // Check push notification permission status
-      if (isPushNotificationSupported()) {
-        const status = await getPermissionStatus();
-        setPushPermissionStatus(status);
-      }
-    };
+        // Check push notification permission status
+        if (isPushNotificationSupported()) {
+          const status = await getPermissionStatus();
+          setPushPermissionStatus(status);
+        }
+      };
 
-    checkNudgeConditions();
-  }, [userDetails?.coupleId]);
+      checkNudgeConditions();
+    }, [userDetails?.coupleId])
+  );
 
   // Show first expense coach mark when appropriate
   useEffect(() => {
@@ -548,7 +551,10 @@ export default function HomeScreen({ navigation }) {
 
         <View style={styles.expenseDetails}>
           <View style={styles.expenseDescriptionRow}>
-            <Text style={[styles.expenseDescription, isSettled && styles.expenseDescriptionSettled]}>
+            <Text
+              style={[styles.expenseDescription, isSettled && styles.expenseDescriptionSettled]}
+              numberOfLines={1}
+            >
               {item.description}
             </Text>
             {isSettled && (
@@ -1106,6 +1112,8 @@ const styles = StyleSheet.create({
   },
   expenseDetails: {
     flex: 1,
+    minWidth: 0,  // Critical for text truncation in flex children
+    overflow: 'hidden',
   },
   expenseDescriptionRow: {
     flexDirection: 'row',
@@ -1127,6 +1135,8 @@ const styles = StyleSheet.create({
   expenseMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: isSmallScreen ? 2 : undefined,
   },
   expenseDate: {
     ...FONTS.small,
@@ -1140,6 +1150,7 @@ const styles = StyleSheet.create({
   expensePaidBy: {
     ...FONTS.small,
     color: COLORS.textSecondary,
+    flexShrink: 1,
   },
   expenseMetaSettled: {
     color: COLORS.textSecondary,
@@ -1152,6 +1163,8 @@ const styles = StyleSheet.create({
   },
   expenseAmountContainer: {
     alignItems: 'flex-end',
+    marginLeft: SPACING.small,
+    flexShrink: 0,  // Don't let amount column shrink
   },
   expenseAmountRow: {
     flexDirection: 'row',

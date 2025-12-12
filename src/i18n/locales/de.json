@@ -308,6 +308,11 @@
       "message": "Sie haben nicht gespeicherte Änderungen. Sind Sie sicher, dass Sie abbrechen möchten?",
       "keepEditing": "Weiter Bearbeiten",
       "discard": "Verwerfen"
+    },
+    "largeAmount": {
+      "title": "Hoher Betrag",
+      "message": "Sie sind dabei, eine Ausgabe von {{amount}} hinzuzufügen. Ist das korrekt?",
+      "confirm": "Ja, fortfahren"
     }
   },
   "import": {
@@ -482,10 +487,10 @@
     }
   },
   "nudges": {
-    "budget": {
-      "title": "Richte Dein Budget Ein",
-      "description": "Verfolge Ausgaben und bleibt gemeinsam auf Kurs",
-      "cta": "Jetzt Einrichten"
+    "setup": {
+      "title": "Schließe Deine Einrichtung Ab",
+      "description": "Lege deine Währung und Geschäftsjahr-Einstellungen fest",
+      "cta": "Loslegen"
     },
     "push": {
       "title": "Bleib Informiert",
@@ -671,8 +676,10 @@
       "emailAlertsDesc": "Budget-Warnungen und Erinnerungen per E-Mail",
       "budgetAlerts": "Budget-Warnungen",
       "budgetAlertsDesc": "Erhalte Benachrichtigungen bei Budgetgrenzen",
-      "savingsMilestones": "Spar-Meilensteine",
-      "savingsMilestonesDesc": "Feiere Sparziele und Erfolge"
+      "milestones": "Meilensteine",
+      "milestonesDesc": "Feiere Sparziele",
+      "partnerActivity": "Partner-Aktivität",
+      "partnerActivityDesc": "Benachrichtigt wenn dein Partner Ausgaben hinzufügt"
     },
     "budget": {
       "title": "Monatliches Budget",
