@@ -16,6 +16,12 @@
           "icon": "./assets/notification-icon.png",
           "color": "#667eea"
         }
+      ],
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.156140614030-dm5esb364f890n4pe4g3qhiks6as1el2"
+        }
       ]
     ],
     "ios": {
@@ -27,8 +33,7 @@
     },
     "android": {
       "package": "com.dividela.app",
-      "useNextNotificationsApi": true,
-      "googleServicesFile": "./google-services.json"
+      "useNextNotificationsApi": true
     },
     "web": {
       "bundler": "metro",

@@ -2,6 +2,7 @@
 // Authentication context for managing user state across the app
 
 import React, { createContext, useState, useEffect, useContext } from 'react';
+import { Platform } from 'react-native';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -10,6 +11,7 @@ import {
   GoogleAuthProvider,
   OAuthProvider,
   signInWithPopup,
+  signInWithCredential,
   updatePassword,
   deleteUser,
   EmailAuthProvider,
@@ -19,6 +21,29 @@ import {
 import { doc, setDoc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Import Google Sign-In for native platforms only
+let GoogleSignin = null;
+let statusCodes = null;
+const WEB_CLIENT_ID = '156140614030-dm5esb364f890n4pe4g3qhiks6as1el2.apps.googleusercontent.com';
+
+if (Platform.OS !== 'web') {
+  try {
+    const googleSignIn = require('@react-native-google-signin/google-signin');
+    GoogleSignin = googleSignIn.GoogleSignin;
+    statusCodes = googleSignIn.statusCodes;
+
+    // Configure Google Sign-In
+    GoogleSignin.configure({
+      webClientId: WEB_CLIENT_ID,
+      offlineAccess: true,
+    });
+    console.log('Google Sign-In configured successfully');
+  } catch (e) {
+    console.log('Google Sign-In module not available:', e.message);
+  }
+}
+
 import {
   registerForPushNotifications,
   unregisterPushToken,
@@ -390,14 +415,47 @@ export const AuthProvider = ({ children }) => {
     return userDetails?.partnerId != null && userDetails?.coupleId != null;
   };
 
-  // Sign in with Google (OAuth)
+  // Sign in with Google (OAuth) - cross-platform support
   const signInWithGoogle = async () => {
     try {
       setError(null);
-      const provider = new GoogleAuthProvider();
+      let firebaseUser;
 
-      const result = await signInWithPopup(auth, provider);
-      const firebaseUser = result.user;
+      if (Platform.OS === 'web') {
+        // Web: Use Firebase popup sign-in
+        const provider = new GoogleAuthProvider();
+        const result = await signInWithPopup(auth, provider);
+        firebaseUser = result.user;
+      } else {
+        // Native (iOS/Android): Use @react-native-google-signin/google-signin
+        if (!GoogleSignin) {
+          throw new Error('Google Sign-In is not configured for this platform');
+        }
+
+        // Check if Google Sign-In is configured
+        try {
+          await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+        } catch (e) {
+          console.error('Play services error:', e);
+          throw new Error('Google Play Services are required for Google Sign-In');
+        }
+
+        // Sign in with Google
+        const signInResult = await GoogleSignin.signIn();
+        console.log('Google Sign-In result:', signInResult);
+
+        // Get the ID token - handle both old and new API formats
+        const idToken = signInResult.data?.idToken || signInResult.idToken;
+
+        if (!idToken) {
+          throw new Error('Failed to get Google ID token');
+        }
+
+        // Create Firebase credential and sign in
+        const googleCredential = GoogleAuthProvider.credential(idToken);
+        const result = await signInWithCredential(auth, googleCredential);
+        firebaseUser = result.user;
+      }
 
       // Check if user document exists, create if not
       const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
@@ -439,12 +497,16 @@ export const AuthProvider = ({ children }) => {
         setError('Google sign-in is not enabled. Please enable it in Firebase Console → Authentication → Sign-in method → Google');
       } else if (err.code === 'auth/popup-blocked') {
         setError('Popup was blocked. Please allow popups for this site.');
-      } else if (err.code === 'auth/popup-closed-by-user') {
+      } else if (err.code === 'auth/popup-closed-by-user' || err.code === statusCodes?.SIGN_IN_CANCELLED) {
         setError('Sign-in cancelled');
       } else if (err.code === 'auth/account-exists-with-different-credential') {
         setError('An account already exists with the same email. Try a different sign-in method.');
       } else if (err.code === 'auth/unauthorized-domain') {
         setError('This domain is not authorized. Add it in Firebase Console → Authentication → Settings → Authorized domains');
+      } else if (err.code === statusCodes?.IN_PROGRESS) {
+        setError('Sign-in already in progress');
+      } else if (err.code === statusCodes?.PLAY_SERVICES_NOT_AVAILABLE) {
+        setError('Google Play Services not available');
       } else {
         setError(err.message || 'Failed to sign in with Google');
       }
