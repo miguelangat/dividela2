@@ -22,6 +22,8 @@ import * as expenseService from '../../services/expenseService';
 import * as settlementService from '../../services/settlementService';
 import { Ionicons } from '@expo/vector-icons';
 import { formatCurrency } from '../../utils/calculations';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Platform } from 'react-native';
 
 // Responsive breakpoints
 const screenWidth = Dimensions.get('window').width;
@@ -29,6 +31,7 @@ const isSmallScreen = screenWidth < 375;
 
 export default function BudgetDashboardScreen({ navigation }) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const {
     categories,
     currentBudget,
@@ -141,7 +144,7 @@ export default function BudgetDashboardScreen({ navigation }) {
         }
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: Platform.OS === 'web' ? SPACING.base : Math.max(insets.top, 10) }]}>
           <Text style={styles.title}>{t('budget.dashboard.title')}</Text>
           <Text style={styles.subtitle}>
             {t('budget.dashboard.subtitle')}
@@ -378,6 +381,8 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: SPACING.large,
+    paddingHorizontal: SPACING.screenPadding,
+    // paddingTop is set dynamically via inline style using safe area insets
   },
   title: {
     ...COMMON_STYLES.heading,

@@ -7,6 +7,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Platform } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONTS } from '../constants/theme';
 
 // Main app screens
@@ -114,6 +115,11 @@ function SettlementStackNavigator() {
 
 export default function TabNavigator() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
+
+  // Calculate Android bottom padding accounting for gesture navigation
+  const androidBottomPadding = Math.max(insets.bottom, 8);
+  const androidTabBarHeight = 60 + insets.bottom;
 
   return (
     <Tab.Navigator
@@ -142,13 +148,12 @@ export default function TabNavigator() {
           backgroundColor: COLORS.background,
           borderTopWidth: 1,
           borderTopColor: COLORS.border || '#E5E5E5',
-          paddingBottom: Platform.OS === 'ios' ? 20 : 5,
+          paddingBottom: Platform.OS === 'ios' ? 20 : androidBottomPadding,
           paddingTop: 5,
-          height: Platform.OS === 'ios' ? 85 : 60,
+          height: Platform.OS === 'ios' ? 85 : androidTabBarHeight,
         },
         tabBarLabelStyle: {
-          ...FONTS.small,
-          fontSize: 12,
+          fontSize: Platform.OS === 'android' ? 10 : 12,
           fontWeight: '600',
         },
       })}

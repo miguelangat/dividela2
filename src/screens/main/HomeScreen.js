@@ -48,6 +48,7 @@ import {
 import { getExpenseDualDisplay, formatCurrency as formatCurrencyNew } from '../../utils/currencyUtils';
 import { getCurrencyFlag } from '../../constants/currencies';
 import ExpenseDetailModal from '../../components/ExpenseDetailModal';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as settlementService from '../../services/settlementService';
 import { getPrimaryCurrency, getCoupleSettings } from '../../services/coupleSettingsService';
 
@@ -57,6 +58,7 @@ export default function HomeScreen({ navigation }) {
   const { isPremium } = useSubscription();
   const { shouldShowNudge, dismissNudge } = useNudges();
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
 
   // FAB ref for coach mark targeting
   const fabRef = useRef(null);
@@ -658,7 +660,7 @@ export default function HomeScreen({ navigation }) {
     <View style={styles.container}>
       <View style={styles.contentContainer}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: Platform.OS === 'web' ? SPACING.base : Math.max(insets.top, 10) }]}>
           <View>
             <Text style={styles.greeting}>{t('home.greeting', { name: userDetails?.displayName || 'there' })}</Text>
             <Text style={styles.subtitle}>{t('home.subtitle', { partnerName })}</Text>
@@ -747,7 +749,7 @@ export default function HomeScreen({ navigation }) {
               style={[styles.historyButtonCard, balanceInfo.status === 'settled' && styles.historyButtonFull]}
               onPress={() => navigation.navigate('SettlementsTab')}
             >
-              <Ionicons name="list-outline" size={18} color={COLORS.primary} />
+              <Ionicons name="list-outline" size={18} color={COLORS.primary} style={{ marginRight: 6 }} />
               <Text style={styles.historyButtonText}>{t('home.viewHistory')}</Text>
             </TouchableOpacity>
           </View>
@@ -805,14 +807,14 @@ export default function HomeScreen({ navigation }) {
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
             }
-            contentContainerStyle={filteredExpenses.length === 0 ? styles.emptyListContent : styles.listContent}
+            contentContainerStyle={filteredExpenses.length === 0 ? styles.emptyListContent : [styles.listContent, { paddingBottom: 100 + insets.bottom }]}
             showsVerticalScrollIndicator={true}
             nestedScrollEnabled={true}
           />
         </View>
 
         {/* Floating Add Button */}
-        <View ref={fabRef} collapsable={false} style={styles.fabContainer}>
+        <View ref={fabRef} collapsable={false} style={[styles.fabContainer, { bottom: SPACING.screenPadding + 60 + insets.bottom }]}>
           <TouchableOpacity
             style={[
               styles.fab,
@@ -902,7 +904,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: SPACING.screenPadding,
-    paddingTop: Platform.OS === 'web' ? SPACING.base : 10,
+    // paddingTop is set dynamically via inline style using safe area insets
     paddingBottom: SPACING.base,
   },
   historyButton: {
@@ -959,17 +961,18 @@ const styles = StyleSheet.create({
   },
   balanceActions: {
     flexDirection: 'row',
-    gap: SPACING.small,
+    alignItems: 'center',
     marginTop: SPACING.base,
     width: '100%',
   },
   settleButton: {
-    flex: 1,
+    width: '48%',
+    height: 44,
+    marginRight: 8,
     backgroundColor: COLORS.primary,
-    paddingVertical: SPACING.small,
-    paddingHorizontal: SPACING.large,
     borderRadius: 8,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   settleButtonText: {
     ...FONTS.body,
@@ -977,21 +980,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   historyButtonCard: {
-    flex: 1,
+    width: '48%',
+    height: 44,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
     backgroundColor: COLORS.background,
-    paddingVertical: SPACING.small,
-    paddingHorizontal: SPACING.base,
     borderRadius: 8,
     borderWidth: 2,
     borderColor: COLORS.primary,
   },
   historyButtonFull: {
-    flex: 0,
-    minWidth: '100%',
+    width: '100%',
+    marginRight: 0,
   },
   historyButtonText: {
     ...FONTS.body,
@@ -1501,7 +1502,7 @@ const styles = StyleSheet.create({
   fabContainer: {
     position: 'absolute',
     right: SPACING.screenPadding,
-    bottom: SPACING.screenPadding + (Platform.OS === 'ios' ? 60 : 50),
+    // bottom is set dynamically via inline style using safe area insets
   },
   fabDisabled: {
     backgroundColor: COLORS.textSecondary,

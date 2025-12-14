@@ -49,6 +49,7 @@ import {
   unregisterPushToken,
   setupNotificationListeners,
   removeNotificationListeners,
+  initializePushNotifications,
 } from '../services/pushNotificationService';
 
 // Create the context
@@ -70,6 +71,13 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [pushToken, setPushToken] = useState(null);
+
+  // Initialize push notification channels on app startup (Android requires this early)
+  useEffect(() => {
+    initializePushNotifications().catch(err => {
+      console.warn('[AuthContext] Failed to initialize push notifications:', err);
+    });
+  }, []);
 
   // Register for push notifications when user is authenticated
   // Note: On web, permission must be granted via user gesture (Settings screen toggle)

@@ -49,6 +49,7 @@ import {
   registerForPushNotifications,
 } from '../../services/pushNotificationService';
 import { deleteBudgetForMonth } from '../../services/budgetService';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width: screenWidth } = Dimensions.get('window');
 const isSmallScreen = screenWidth < 375;
@@ -58,6 +59,7 @@ const isLargeScreen = screenWidth >= 768;
 export default function SettingsScreen({ navigation }) {
   const { user, userDetails, signOut, getPartnerDetails, changePassword, deleteAccount, unpair } = useAuth();
   const { isPremium, subscriptionInfo } = useSubscription();
+  const insets = useSafeAreaInsets();
   const { currentLanguage, changeLanguage, availableLanguages, getCurrentLanguageInfo } = useLanguage();
   const { t } = useTranslation();
   const [editingName, setEditingName] = useState(false);
@@ -1104,7 +1106,7 @@ export default function SettingsScreen({ navigation }) {
         showsVerticalScrollIndicator={true}
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: Platform.OS === 'web' ? SPACING.base : Math.max(insets.top, 10) }]}>
           <Text style={styles.headerTitle}>{t('settings.title')}</Text>
           <Text style={styles.headerSubtitle}>{t('settings.subtitle')}</Text>
         </View>
@@ -1561,7 +1563,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: SPACING.screenPadding,
-    paddingTop: Platform.OS === 'web' ? SPACING.base : 10,
+    // paddingTop is set dynamically via inline style using safe area insets
     paddingBottom: SPACING.base,
   },
   headerTitle: {

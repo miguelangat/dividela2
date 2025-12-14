@@ -49,6 +49,7 @@ import {
 import ExpenseFilters from '../../components/ExpenseFilters';
 import ExportButton from '../../components/ExportButton';
 import ExpenseDetailModal from '../../components/ExpenseDetailModal';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width: screenWidth } = Dimensions.get('window');
 const isSmallScreen = screenWidth < 375;
@@ -58,6 +59,7 @@ const isLargeScreen = screenWidth >= 768;
 export default function StatsScreen() {
   const { t } = useTranslation();
   const { user, userDetails, getPartnerDetails } = useAuth();
+  const insets = useSafeAreaInsets();
   const { categories, budgetProgress } = useBudget();
   const [expenses, setExpenses] = useState([]);
   const [settlements, setSettlements] = useState([]);
@@ -491,7 +493,7 @@ export default function StatsScreen() {
         showsVerticalScrollIndicator={true}
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: Platform.OS === 'web' ? SPACING.base : Math.max(insets.top, 10) }]}>
           <Text style={styles.headerTitle}>{t('stats.title')}</Text>
           <Text style={styles.headerSubtitle}>{t('stats.subtitle')}</Text>
         </View>
@@ -629,7 +631,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: SPACING.screenPadding,
-    paddingTop: Platform.OS === 'web' ? SPACING.base : 10,
+    // paddingTop is set dynamically via inline style using safe area insets
     paddingBottom: SPACING.base,
   },
   headerTitle: {

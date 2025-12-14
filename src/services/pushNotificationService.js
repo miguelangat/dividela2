@@ -47,6 +47,54 @@ function configureMobileNotifications() {
 }
 
 /**
+ * Setup notification channel for Android 8.0+
+ * This is required for notifications to appear on Android
+ */
+async function setupAndroidNotificationChannel() {
+  if (Platform.OS !== 'android' || !Notifications) return;
+
+  try {
+    await Notifications.setNotificationChannelAsync('default', {
+      name: 'Default',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#667eea',
+      sound: 'default',
+      enableVibrate: true,
+      showBadge: true,
+    });
+
+    // Create a channel for expense notifications
+    await Notifications.setNotificationChannelAsync('expenses', {
+      name: 'Expenses',
+      description: 'Notifications about new expenses and settlements',
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#667eea',
+      sound: 'default',
+      enableVibrate: true,
+      showBadge: true,
+    });
+
+    // Create a channel for budget alerts
+    await Notifications.setNotificationChannelAsync('budget', {
+      name: 'Budget Alerts',
+      description: 'Notifications about budget limits and reminders',
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#667eea',
+      sound: 'default',
+      enableVibrate: true,
+      showBadge: true,
+    });
+
+    console.log('[PushService] Android notification channels created');
+  } catch (error) {
+    console.error('[PushService] Error creating notification channels:', error);
+  }
+}
+
+/**
  * Request notification permissions
  * @returns {Promise<boolean>} Whether permissions were granted
  */
@@ -233,6 +281,8 @@ export async function registerForPushNotifications(userId) {
     // Configure mobile notifications
     if (isMobile) {
       configureMobileNotifications();
+      // Setup Android notification channels
+      await setupAndroidNotificationChannel();
     }
 
     return { success: true, token };
@@ -334,11 +384,17 @@ async function setupWebNotificationListener(onNotification) {
  */
 export function removeNotificationListeners() {
   if (notificationListener) {
-    Notifications?.removeNotificationSubscription(notificationListener);
+    // In newer expo-notifications versions, use .remove() on the subscription object
+    if (typeof notificationListener.remove === 'function') {
+      notificationListener.remove();
+    }
     notificationListener = null;
   }
   if (responseListener) {
-    Notifications?.removeNotificationSubscription(responseListener);
+    // In newer expo-notifications versions, use .remove() on the subscription object
+    if (typeof responseListener.remove === 'function') {
+      responseListener.remove();
+    }
     responseListener = null;
   }
 }
@@ -416,6 +472,21 @@ export function isPushNotificationSupported() {
   return false;
 }
 
+/**
+ * Initialize push notifications (call during app startup)
+ * Sets up notification channels on Android
+ */
+export async function initializePushNotifications() {
+  if (Platform.OS === 'android' && Notifications) {
+    await setupAndroidNotificationChannel();
+    configureMobileNotifications();
+    console.log('[PushService] Push notifications initialized for Android');
+  } else if (Platform.OS === 'ios' && Notifications) {
+    configureMobileNotifications();
+    console.log('[PushService] Push notifications initialized for iOS');
+  }
+}
+
 export default {
   requestPermissions,
   getPermissionStatus,
@@ -426,4 +497,5 @@ export default {
   handleNotificationNavigation,
   getCurrentToken,
   isPushNotificationSupported,
+  initializePushNotifications,
 };
