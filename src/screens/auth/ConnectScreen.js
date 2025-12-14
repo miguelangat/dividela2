@@ -1,8 +1,8 @@
 // src/screens/auth/ConnectScreen.js
-// Connect screen - Choose to invite partner or join with code
-// Partner pairing is required for new users
+// Connect screen - Choose to create solo account, invite partner, or join with code
+// Multi-account support: users can start solo or pair with a partner
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -10,15 +10,21 @@ import {
   TouchableOpacity,
   ScrollView,
   Platform,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { COLORS, FONTS, SPACING, SIZES, SHADOWS } from '../../constants/theme';
+import { useAuth } from '../../contexts/AuthContext';
+import { createSoloAccount } from '../../services/accountService';
 
 export default function ConnectScreen({ navigation }) {
   const { t } = useTranslation();
+  const { user, setActiveAccount } = useAuth();
+  const [loading, setLoading] = useState(false);
 
   const handleInvitePartner = () => {
     try {
@@ -33,6 +39,35 @@ export default function ConnectScreen({ navigation }) {
       navigation.navigate('Join');
     } catch (error) {
       console.error('Navigation error:', error);
+    }
+  };
+
+  const handleCreateSoloAccount = async () => {
+    try {
+      setLoading(true);
+      console.log('Creating solo account for user:', user.uid);
+
+      const accountName = t('auth.connect.soloAccountName', 'My Budget');
+      const result = await createSoloAccount(user.uid, accountName);
+
+      if (result.success) {
+        console.log('Solo account created:', result.accountId);
+
+        // Set as active account
+        await setActiveAccount(result.accountId);
+        console.log('Active account set to solo account');
+
+        // Navigate to CoreSetup to configure the account
+        navigation.replace('CoreSetup');
+      }
+    } catch (error) {
+      console.error('Error creating solo account:', error);
+      Alert.alert(
+        t('common.error'),
+        t('auth.connect.soloAccountError', 'Failed to create solo account. Please try again.')
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -57,9 +92,9 @@ export default function ConnectScreen({ navigation }) {
         </View>
 
         {/* Title */}
-        <Text style={styles.headerTitle}>{t('auth.connect.title')}</Text>
+        <Text style={styles.headerTitle}>{t('auth.connect.title', 'Get Started')}</Text>
         <Text style={styles.headerSubtitle}>
-          {t('auth.connect.subtitle')}
+          {t('auth.connect.subtitle', 'Choose how you want to track your budget')}
         </Text>
       </LinearGradient>
 
@@ -71,37 +106,82 @@ export default function ConnectScreen({ navigation }) {
         >
           {/* Option Cards */}
           <View style={styles.optionsContainer}>
-            {/* Invite Partner - Primary Option with Gradient */}
+            {/* Create Solo Account - Primary Option with Gradient */}
             <TouchableOpacity
               style={styles.primaryCardWrapper}
-              onPress={handleInvitePartner}
+              onPress={handleCreateSoloAccount}
               activeOpacity={0.9}
+              disabled={loading}
             >
               <LinearGradient
-                colors={[COLORS.gradientStart, COLORS.gradientEnd]}
+                colors={loading ? [COLORS.textTertiary, COLORS.textTertiary] : [COLORS.gradientStart, COLORS.gradientEnd]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.primaryCard}
               >
                 <View style={styles.cardIconContainer}>
-                  <MaterialCommunityIcons
-                    name="send"
-                    size={40}
-                    color={COLORS.textWhite}
-                  />
+                  {loading ? (
+                    <ActivityIndicator color={COLORS.textWhite} size="large" />
+                  ) : (
+                    <MaterialCommunityIcons
+                      name="account"
+                      size={40}
+                      color={COLORS.textWhite}
+                    />
+                  )}
                 </View>
-                <Text style={styles.cardTitle}>{t('auth.connect.invitePartner')}</Text>
-                <Text style={styles.cardDescription}>
-                  {t('auth.connect.inviteDescription')}
+                <Text style={styles.cardTitle}>
+                  {t('auth.connect.createSolo', 'Start Solo')}
                 </Text>
-                <View style={styles.cardArrow}>
-                  <MaterialCommunityIcons
-                    name="arrow-right"
-                    size={24}
-                    color={COLORS.textWhite}
-                  />
-                </View>
+                <Text style={styles.cardDescription}>
+                  {t('auth.connect.soloDescription', 'Track your personal budget independently')}
+                </Text>
+                {!loading && (
+                  <View style={styles.cardArrow}>
+                    <MaterialCommunityIcons
+                      name="arrow-right"
+                      size={24}
+                      color={COLORS.textWhite}
+                    />
+                  </View>
+                )}
               </LinearGradient>
+            </TouchableOpacity>
+
+            {/* Divider with "OR" */}
+            <View style={styles.dividerContainer}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>{t('common.or', 'OR')}</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {/* Invite Partner - Secondary Option */}
+            <TouchableOpacity
+              style={styles.secondaryCard}
+              onPress={handleInvitePartner}
+              activeOpacity={0.9}
+              disabled={loading}
+            >
+              <View style={styles.cardIconContainerSecondary}>
+                <MaterialCommunityIcons
+                  name="send"
+                  size={40}
+                  color={COLORS.primary}
+                />
+              </View>
+              <Text style={styles.cardTitleSecondary}>
+                {t('auth.connect.invitePartner', 'Invite Partner')}
+              </Text>
+              <Text style={styles.cardDescriptionSecondary}>
+                {t('auth.connect.inviteDescription', 'Send an invite code to your partner')}
+              </Text>
+              <View style={styles.cardArrowSecondary}>
+                <MaterialCommunityIcons
+                  name="arrow-right"
+                  size={24}
+                  color={COLORS.primary}
+                />
+              </View>
             </TouchableOpacity>
 
             {/* Join Partner - Secondary Option */}
@@ -109,6 +189,7 @@ export default function ConnectScreen({ navigation }) {
               style={styles.secondaryCard}
               onPress={handleJoinPartner}
               activeOpacity={0.9}
+              disabled={loading}
             >
               <View style={styles.cardIconContainerSecondary}>
                 <MaterialCommunityIcons
@@ -117,9 +198,11 @@ export default function ConnectScreen({ navigation }) {
                   color={COLORS.primary}
                 />
               </View>
-              <Text style={styles.cardTitleSecondary}>{t('auth.connect.joinPartner')}</Text>
+              <Text style={styles.cardTitleSecondary}>
+                {t('auth.connect.joinPartner', 'Join Partner')}
+              </Text>
               <Text style={styles.cardDescriptionSecondary}>
-                {t('auth.connect.joinDescription')}
+                {t('auth.connect.joinDescription', 'Enter your partner\'s invite code')}
               </Text>
               <View style={styles.cardArrowSecondary}>
                 <MaterialCommunityIcons
@@ -131,11 +214,11 @@ export default function ConnectScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
-          {/* Info Text - partner is required */}
+          {/* Info Text - both solo and couple supported */}
           <View style={styles.infoContainer}>
             <MaterialCommunityIcons name="information-outline" size={18} color={COLORS.primary} />
             <Text style={styles.infoText}>
-              {t('auth.connect.partnerRequired', { defaultValue: 'Dividela is designed for couples. Connect with your partner to start tracking expenses together!' })}
+              {t('auth.connect.multiAccountInfo', 'You can add more accounts later, whether solo or shared with a partner.')}
             </Text>
           </View>
         </ScrollView>
@@ -272,6 +355,23 @@ const styles = StyleSheet.create({
     right: SPACING.base,
     top: '50%',
     marginTop: -12,
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: SPACING.base,
+    gap: SPACING.base,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.border,
+  },
+  dividerText: {
+    fontSize: FONTS.sizes.small,
+    color: COLORS.textTertiary,
+    fontWeight: FONTS.weights.semibold,
+    paddingHorizontal: SPACING.small,
   },
   infoContainer: {
     flexDirection: 'row',

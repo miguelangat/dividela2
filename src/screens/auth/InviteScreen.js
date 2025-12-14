@@ -34,7 +34,7 @@ import { COLORS, FONTS, SPACING, SIZES, SHADOWS } from '../../constants/theme';
 
 export default function InviteScreen({ navigation }) {
   const { t } = useTranslation();
-  const { user, userDetails, updatePartnerInfo } = useAuth();
+  const { user, userDetails, updatePartnerInfo, setActiveAccount } = useAuth();
   const [inviteCode, setInviteCode] = useState('');
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -57,12 +57,35 @@ export default function InviteScreen({ navigation }) {
           const data = docSnapshot.data();
           if (data.isUsed) {
             try {
+              console.log('Partner joined! Invite code used by:', data.usedBy);
+
+              // Fetch updated user data (JoinScreen already added the account to our accounts array)
               const userDocRef = doc(db, 'users', user.uid);
               const userDoc = await getDoc(userDocRef);
 
               if (userDoc.exists()) {
                 const userData = userDoc.data();
-                await updatePartnerInfo(data.usedBy, userData.coupleId);
+                console.log('Updated user data:', userData);
+
+                // Find the newly created couple account in the accounts array
+                // It should be the one with the partner who just joined
+                const newAccount = userData.accounts?.find(
+                  acc => acc.partnerId === data.usedBy && acc.type === 'couple'
+                );
+
+                if (newAccount) {
+                  console.log('Setting active account to:', newAccount.accountId);
+                  await setActiveAccount(newAccount.accountId);
+                } else {
+                  // Fallback to legacy coupleId if accounts array not found
+                  console.warn('New account not found in accounts array, using legacy coupleId');
+                  if (userData.coupleId) {
+                    await setActiveAccount(userData.coupleId);
+                  }
+                }
+
+                // Also update legacy fields for backward compatibility
+                await updatePartnerInfo(data.usedBy, userData.coupleId || newAccount?.accountId);
               }
 
               navigation.replace('Success', { partnerId: data.usedBy });
@@ -103,14 +126,19 @@ export default function InviteScreen({ navigation }) {
           uid: user.uid,
           email: user.email,
           displayName: user.displayName || user.email?.split('@')[0] || 'User',
+          // Legacy fields for backward compatibility
           partnerId: null,
           coupleId: null,
+          // Multi-account fields
+          accounts: [],
+          activeAccountId: null,
           createdAt: new Date().toISOString(),
           settings: {
             notifications: true,
             defaultSplit: 50,
             currency: 'USD',
           },
+          // Subscription fields
           subscriptionStatus: 'free',
           subscriptionPlatform: null,
           subscriptionExpiresAt: null,
