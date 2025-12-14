@@ -1101,7 +1101,10 @@
     "ocrSuggestion": {
       "aiDetected": "IA ha rilevato",
       "amount": "Importo",
-      "currencyNote": "Nota: Valuta rilevata dalla ricevuta",
+      "currencyDetected": "{{currency}} rilevato dalla ricevuta",
+      "currencyUncertain": "{{currency}} rilevato • Verifica per favore",
+      "currencyDefault": "Usando valuta predefinita ({{currency}}) • Modificabile dopo l'accettazione",
+      "categorySuggested": "Suggerito",
       "merchant": "Commerciante",
       "unknownMerchant": "Commerciante sconosciuto",
       "date": "Data",

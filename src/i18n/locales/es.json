@@ -861,7 +861,10 @@
     "ocrSuggestion": {
       "aiDetected": "Detalles Detectados por IA",
       "amount": "Monto",
-      "currencyNote": "Usando {{currency}} • Puedes cambiar la moneda y editar todos los campos después de aceptar",
+      "currencyDetected": "{{currency}} detectado del recibo",
+      "currencyUncertain": "{{currency}} detectado • Por favor verifica",
+      "currencyDefault": "Usando moneda predeterminada ({{currency}}) • Puedes cambiar después de aceptar",
+      "categorySuggested": "Sugerido",
       "merchant": "Comerciante",
       "unknownMerchant": "Comerciante Desconocido",
       "date": "Fecha",

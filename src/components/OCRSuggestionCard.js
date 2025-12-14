@@ -61,9 +61,24 @@ export default function OCRSuggestionCard({
   }
 
   const { amount, merchant, date, category } = suggestions;
-  const { confidence, reasoning, alternatives = [] } = category;
+  // Extract currency detection info (NEW)
+  const detectedCurrency = suggestions.currency;
+  const currencyConfidence = suggestions.currencyConfidence || 0;
+  const currencyDetected = suggestions.currencyDetected || false;
 
-  // Format confidence as percentage
+  const { confidence: rawConfidence, reasoning, alternatives = [] } = category || {};
+
+  // Defensive validation - ensure confidence is a valid number
+  const confidence = typeof rawConfidence === 'number' && !isNaN(rawConfidence)
+    ? rawConfidence
+    : 0;
+
+  // Safe category name extraction (handles both string and object formats)
+  const categoryName = typeof category === 'string'
+    ? category
+    : (category?.category || 'other');
+
+  // Format confidence as percentage (now safe from NaN)
   const confidencePercentage = Math.round(confidence * 100);
 
   // Check if category is high confidence (>=80%)
@@ -71,7 +86,7 @@ export default function OCRSuggestionCard({
 
   // Build list of all categories (main + alternatives)
   const allCategories = [
-    { category: category.category, confidence },
+    { category: categoryName, confidence },
     ...alternatives,
   ];
 
@@ -141,16 +156,33 @@ export default function OCRSuggestionCard({
         {/* Amount with Currency */}
         <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>{t('components.ocrSuggestion.amount')}</Text>
-          <Text style={styles.amountValue}>{formatCurrency(amount, currency)}</Text>
-        </View>
-
-        {/* Currency Note */}
-        <View style={styles.noteRow}>
-          <Ionicons name="information-circle-outline" size={14} color={COLORS.textSecondary} />
-          <Text style={styles.noteText}>
-            {t('components.ocrSuggestion.currencyNote', { currency })}
+          <Text style={styles.amountValue}>
+            {formatCurrency(amount, detectedCurrency || currency)}
           </Text>
         </View>
+
+        {/* Currency Detection Info */}
+        {currencyDetected ? (
+          <View style={[styles.noteRow, currencyConfidence >= 0.9 ? styles.successNoteRow : styles.warningNoteRow]}>
+            <Ionicons
+              name={currencyConfidence >= 0.9 ? 'checkmark-circle' : 'alert-circle'}
+              size={14}
+              color={currencyConfidence >= 0.9 ? COLORS.success : COLORS.warning}
+            />
+            <Text style={styles.noteText}>
+              {currencyConfidence >= 0.9
+                ? t('components.ocrSuggestion.currencyDetected', { currency: detectedCurrency })
+                : t('components.ocrSuggestion.currencyUncertain', { currency: detectedCurrency })}
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.noteRow}>
+            <Ionicons name="information-circle-outline" size={14} color={COLORS.textSecondary} />
+            <Text style={styles.noteText}>
+              {t('components.ocrSuggestion.currencyDefault', { currency })}
+            </Text>
+          </View>
+        )}
 
         {/* Merchant with alias button */}
         <View style={styles.detailRow}>
@@ -193,7 +225,7 @@ export default function OCRSuggestionCard({
                 ]}
                 testID="ocr-confidence-percentage"
               >
-                {confidencePercentage}%
+                {confidence > 0 ? `${confidencePercentage}%` : t('components.ocrSuggestion.categorySuggested')}
               </Text>
             </View>
           </View>
@@ -202,8 +234,12 @@ export default function OCRSuggestionCard({
           <View style={styles.chipsContainer}>
             {allCategories.map((cat, index) => {
               const isSelected = cat.category === selectedCategory;
-              const catConfidence = Math.round(cat.confidence * 100);
-              const isHighConf = cat.confidence >= 0.80;
+              // Defensive validation for chip confidence
+              const validConfidence = typeof cat.confidence === 'number' && !isNaN(cat.confidence)
+                ? cat.confidence
+                : 0;
+              const catConfidence = Math.round(validConfidence * 100);
+              const isHighConf = validConfidence >= 0.80;
 
               return (
                 <TouchableOpacity
@@ -225,7 +261,9 @@ export default function OCRSuggestionCard({
                   >
                     {cat.category}
                   </Text>
-                  <Text style={styles.chipConfidence}>{catConfidence}%</Text>
+                  <Text style={styles.chipConfidence}>
+                    {validConfidence > 0 ? `${catConfidence}%` : t('components.ocrSuggestion.categorySuggested')}
+                  </Text>
                 </TouchableOpacity>
               );
             })}
@@ -381,6 +419,16 @@ const styles = StyleSheet.create({
     borderRadius: SIZES.borderRadius.small,
     marginBottom: SPACING.medium,
     gap: SPACING.tiny,
+  },
+  successNoteRow: {
+    backgroundColor: COLORS.success + '15', // 15% opacity green
+    borderWidth: 1,
+    borderColor: COLORS.success + '30',
+  },
+  warningNoteRow: {
+    backgroundColor: COLORS.warning + '15', // 15% opacity amber
+    borderWidth: 1,
+    borderColor: COLORS.warning + '30',
   },
   noteText: {
     flex: 1,

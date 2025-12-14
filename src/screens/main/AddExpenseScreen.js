@@ -280,9 +280,18 @@ export default function AddExpenseScreen({ navigation, route }) {
           merchant: ocrData.merchant,
           amount: ocrData.amount,
           date: ocrData.date,
-          category: ocrData.suggestedCategory,
-          categoryConfidence: ocrData.categoryConfidence,
-          alternativeCategories: ocrData.alternativeCategories,
+          // Currency detection (NEW)
+          currency: ocrData.currency,
+          currencyConfidence: ocrData.currencyConfidence,
+          currencyDetected: ocrData.currencyDetected,
+          // Category prediction - structured as object for OCRSuggestionCard
+          category: {
+            category: ocrData.suggestedCategory || 'other',
+            confidence: ocrData.categoryConfidence || 0,
+            reasoning: ocrData.categoryReasoning || null,
+            alternatives: ocrData.alternativeCategories || [],
+            belowThreshold: (ocrData.categoryConfidence || 0) < 0.55,
+          },
           confidence: ocrData.ocrConfidence,
           source: 'direct-ocr',
         },
@@ -321,6 +330,11 @@ export default function AddExpenseScreen({ navigation, route }) {
     }
     if (suggestions.category?.category) {
       setSelectedCategory(suggestions.category.category.toLowerCase());
+    }
+    // Set currency if detected with good confidence (>= 70%)
+    // This allows OCR to override the default currency when confident
+    if (suggestions.currency && suggestions.currencyConfidence >= 0.7) {
+      setExpenseCurrency(suggestions.currency);
     }
 
     // Clear OCR state

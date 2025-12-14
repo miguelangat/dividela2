@@ -1113,7 +1113,10 @@
     "ocrSuggestion": {
       "aiDetected": "Détails Détectés par IA",
       "amount": "Montant",
-      "currencyNote": "Utilisation de {{currency}} • Vous pouvez changer la devise et modifier tous les champs après acceptation",
+      "currencyDetected": "{{currency}} détecté du reçu",
+      "currencyUncertain": "{{currency}} détecté • Veuillez vérifier",
+      "currencyDefault": "Utilisation de la devise par défaut ({{currency}}) • Modifiable après acceptation",
+      "categorySuggested": "Suggéré",
       "merchant": "Commerce",
       "unknownMerchant": "Commerce Inconnu",
       "date": "Date",

@@ -121,6 +121,8 @@ export const scanReceiptDirect = async (imageUri, coupleId, userId) => {
       merchant: ocrData.merchant,
       amount: ocrData.amount,
       date: ocrData.date,
+      currency: ocrData.currency,
+      currencyConfidence: ocrData.currencyConfidence,
       category: ocrData.suggestedCategory,
       confidence: ocrData.ocrConfidence
     });
@@ -131,6 +133,11 @@ export const scanReceiptDirect = async (imageUri, coupleId, userId) => {
       date: ocrData.date,
       tax: ocrData.tax,
       subtotal: ocrData.subtotal,
+      // Currency detection (NEW)
+      currency: ocrData.currency,
+      currencyConfidence: ocrData.currencyConfidence,
+      currencyDetected: ocrData.currencyDetected,
+      // Category prediction
       suggestedCategory: ocrData.suggestedCategory,
       categoryConfidence: ocrData.categoryConfidence,
       alternativeCategories: ocrData.alternativeCategories,

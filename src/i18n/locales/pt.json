@@ -1102,7 +1102,10 @@
     "ocrSuggestion": {
       "aiDetected": "Detectado pela IA",
       "amount": "Valor",
-      "currencyNote": "Nota sobre moeda: {{currency}}",
+      "currencyDetected": "{{currency}} detectado do recibo",
+      "currencyUncertain": "{{currency}} detectado • Por favor verifique",
+      "currencyDefault": "Usando moeda padrão ({{currency}}) • Editável após aceitação",
+      "categorySuggested": "Sugerido",
       "merchant": "Comerciante",
       "unknownMerchant": "Comerciante Desconhecido",
       "date": "Data",

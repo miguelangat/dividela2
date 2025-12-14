@@ -341,10 +341,11 @@ function predictCategory(merchant, amount, description = '', userExpenses = []) 
   const belowThreshold = result.confidence < CONFIDENCE_THRESHOLD;
 
   return {
-    category: belowThreshold ? null : result.category,
-    confidence: result.confidence,
+    // Return 'other' instead of null when below threshold or missing
+    category: belowThreshold ? 'other' : (result.category || 'other'),
+    confidence: result.confidence || 0,
     belowThreshold: belowThreshold,
-    alternatives: alternatives,
+    alternatives: alternatives || [],
     source: result.source
   };
 }

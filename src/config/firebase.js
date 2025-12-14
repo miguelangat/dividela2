@@ -2,7 +2,7 @@
 // Firebase configuration and initialization
 
 import { initializeApp } from 'firebase/app';
-import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import { initializeAuth, getReactNativePersistence, getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getFunctions } from 'firebase/functions';
@@ -34,10 +34,14 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId || !firebaseConfig.appId
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase Auth with persistence for React Native
-export const auth = initializeAuth(app, {
-  persistence: Platform.OS !== 'web' ? getReactNativePersistence(AsyncStorage) : undefined,
-});
+// Initialize Firebase Auth with platform-specific persistence
+// - Native: Use AsyncStorage for persistence
+// - Web: Use getAuth which uses browser's default persistence
+export const auth = Platform.OS !== 'web'
+  ? initializeAuth(app, {
+      persistence: getReactNativePersistence(AsyncStorage),
+    })
+  : getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const functions = getFunctions(app, 'us-central1');

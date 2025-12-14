@@ -1113,7 +1113,10 @@
     "ocrSuggestion": {
       "aiDetected": "KI-erkannte Details",
       "amount": "Betrag",
-      "currencyNote": "Verwendet {{currency}} • Du kannst Währung ändern und alle Felder nach Annahme bearbeiten",
+      "currencyDetected": "{{currency}} vom Beleg erkannt",
+      "currencyUncertain": "{{currency}} erkannt • Bitte überprüfen",
+      "currencyDefault": "Verwendet Standardwährung ({{currency}}) • Nach Annahme änderbar",
+      "categorySuggested": "Vorgeschlagen",
       "merchant": "Händler",
       "unknownMerchant": "Unbekannter Händler",
       "date": "Datum",

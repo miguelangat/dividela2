@@ -300,7 +300,9 @@ async function processReceiptDirect(params, context) {
     const duration = Date.now() - startTime;
     console.log('Receipt processing complete', {
       duration: `${duration}ms`,
-      success: true
+      success: true,
+      currency: parsedData.currency,
+      currencyConfidence: parsedData.currencyConfidence
     });
 
     return {
@@ -313,10 +315,17 @@ async function processReceiptDirect(params, context) {
         tax: parsedData.tax,
         subtotal: parsedData.subtotal,
 
-        // Category prediction
-        suggestedCategory: categoryData.suggestedCategory,
-        categoryConfidence: categoryData.confidence,
-        alternativeCategories: categoryData.alternativeCategories,
+        // Currency detection (NEW)
+        currency: parsedData.currency,
+        currencyConfidence: parsedData.currencyConfidence,
+        currencyDetected: parsedData.currencyDetected,
+
+        // Category prediction (with fallback to 'other')
+        suggestedCategory: categoryData.suggestedCategory || 'other',
+        categoryConfidence: typeof categoryData.confidence === 'number' && !isNaN(categoryData.confidence)
+          ? categoryData.confidence
+          : 0,
+        alternativeCategories: categoryData.alternativeCategories || [],
 
         // OCR metadata
         ocrConfidence: ocrData.confidence,

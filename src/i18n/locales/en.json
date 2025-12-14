@@ -861,7 +861,10 @@
     "ocrSuggestion": {
       "aiDetected": "AI Detected Details",
       "amount": "Amount",
-      "currencyNote": "Using {{currency}} • You can change currency and edit all fields after accepting",
+      "currencyDetected": "Detected {{currency}} from receipt",
+      "currencyUncertain": "Detected {{currency}} • Please verify",
+      "currencyDefault": "Using default currency ({{currency}}) • You can change after accepting",
+      "categorySuggested": "Suggested",
       "merchant": "Merchant",
       "unknownMerchant": "Unknown Merchant",
       "date": "Date",

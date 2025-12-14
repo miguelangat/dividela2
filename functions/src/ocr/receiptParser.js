@@ -15,6 +15,24 @@ const MIN_YEAR = 1900;
 const MAX_YEAR = 2100;
 
 /**
+ * Supported currencies with detection patterns
+ * Priority order: unique symbols first, then ambiguous ones
+ */
+const CURRENCY_PATTERNS = [
+  // Unique symbols - high confidence
+  { code: 'EUR', patterns: [/€/, /\bEUR\b/i], confidence: 0.95 },
+  { code: 'GBP', patterns: [/£/, /\bGBP\b/i], confidence: 0.95 },
+  // Multi-char symbols - medium-high confidence
+  { code: 'BRL', patterns: [/R\$/, /\bBRL\b/i], confidence: 0.90 },
+  { code: 'PEN', patterns: [/S\//, /\bPEN\b/i, /\bSOL(?:ES)?\b/i], confidence: 0.90 },
+  { code: 'CNY', patterns: [/¥/, /\bCNY\b/i, /\bRMB\b/i, /\bYUAN\b/i], confidence: 0.85 },
+  { code: 'MXN', patterns: [/MX\$/, /\bMXN\b/i, /\bPESOS?\s+(?:MEXICANOS?)?\b/i], confidence: 0.85 },
+  { code: 'COP', patterns: [/COL\$/, /\bCOP\b/i, /\bPESOS?\s+COLOMBIANOS?\b/i], confidence: 0.85 },
+  // USD is last - $ alone is ambiguous (could be MXN, COP, USD)
+  { code: 'USD', patterns: [/\$(?![\/R])/, /\bUSD\b/i], confidence: 0.70 },
+];
+
+/**
  * Extract text from OCR result object or return as-is if already a string
  */
 function extractTextFromOCR(ocrResult) {
@@ -27,6 +45,34 @@ function extractTextFromOCR(ocrResult) {
   }
 
   return '';
+}
+
+/**
+ * Detect currency from receipt text
+ * Checks for currency symbols and codes in order of uniqueness
+ * @param {string} text - OCR text to analyze
+ * @returns {{code: string|null, confidence: number, detected: boolean}}
+ */
+function detectCurrency(text) {
+  if (!text || typeof text !== 'string') {
+    return { code: null, confidence: 0, detected: false };
+  }
+
+  // Truncate for safety
+  const processedText = text.length > MAX_TEXT_LENGTH
+    ? text.substring(0, MAX_TEXT_LENGTH)
+    : text;
+
+  // Check each currency pattern in priority order
+  for (const { code, patterns, confidence } of CURRENCY_PATTERNS) {
+    for (const pattern of patterns) {
+      if (pattern.test(processedText)) {
+        return { code, confidence, detected: true };
+      }
+    }
+  }
+
+  return { code: null, confidence: 0, detected: false };
 }
 
 /**
@@ -63,6 +109,7 @@ function extractMerchantName(ocrResultOrText) {
 
 /**
  * Extract amount/total from receipt text
+ * Supports multiple currency symbols: $, €, £, ¥, R$, S/, MX$, COL$
  */
 function extractAmount(ocrResultOrText) {
   let text = extractTextFromOCR(ocrResultOrText);
@@ -74,13 +121,19 @@ function extractAmount(ocrResultOrText) {
     text = text.substring(0, MAX_TEXT_LENGTH);
   }
 
+  // Currency symbols pattern - covers all supported currencies
+  // Order matters: check multi-char symbols first (R$, S/, MX$, COL$)
+  const currencySymbol = '(?:R\\$|S\\/|MX\\$|COL\\$|[$€£¥])?';
+
   // Look for common total patterns with BOUNDED quantifiers to prevent ReDoS
-  // Use negative lookbehind (?<!-) to exclude negative amounts
+  // Support both period (1,234.56) and comma (1.234,56) decimal formats
   const patterns = [
-    /total[:\s]{0,3}(?!-)\$?\s{0,3}(\d{1,8}\.?\d{0,2})/i,
-    /amount[:\s]{0,3}(?!-)\$?\s{0,3}(\d{1,8}\.?\d{0,2})/i,
-    /balance[:\s]{0,3}(?!-)\$?\s{0,3}(\d{1,8}\.?\d{0,2})/i,
-    /grand\s{1,3}total[:\s]{0,3}(?!-)\$?\s{0,3}(\d{1,8}\.?\d{0,2})/i
+    new RegExp(`total[:\\s]{0,3}(?!-)${currencySymbol}\\s{0,3}(\\d{1,3}(?:[,.]\\d{3})*(?:[,.]\\d{1,2})?)`, 'i'),
+    new RegExp(`amount[:\\s]{0,3}(?!-)${currencySymbol}\\s{0,3}(\\d{1,3}(?:[,.]\\d{3})*(?:[,.]\\d{1,2})?)`, 'i'),
+    new RegExp(`balance[:\\s]{0,3}(?!-)${currencySymbol}\\s{0,3}(\\d{1,3}(?:[,.]\\d{3})*(?:[,.]\\d{1,2})?)`, 'i'),
+    new RegExp(`grand\\s{1,3}total[:\\s]{0,3}(?!-)${currencySymbol}\\s{0,3}(\\d{1,3}(?:[,.]\\d{3})*(?:[,.]\\d{1,2})?)`, 'i'),
+    new RegExp(`subtotal[:\\s]{0,3}(?!-)${currencySymbol}\\s{0,3}(\\d{1,3}(?:[,.]\\d{3})*(?:[,.]\\d{1,2})?)`, 'i'),
+    new RegExp(`sum[:\\s]{0,3}(?!-)${currencySymbol}\\s{0,3}(\\d{1,3}(?:[,.]\\d{3})*(?:[,.]\\d{1,2})?)`, 'i'),
   ];
 
   for (const pattern of patterns) {
@@ -91,7 +144,7 @@ function extractAmount(ocrResultOrText) {
         continue;
       }
 
-      const amount = parseFloat(match[1]);
+      const amount = parseAmountString(match[1]);
 
       // Validate amount is within reasonable range
       if (amount >= MIN_AMOUNT && amount <= MAX_AMOUNT) {
@@ -100,21 +153,23 @@ function extractAmount(ocrResultOrText) {
     }
   }
 
-  // Fallback: find the largest dollar amount (excluding negative amounts)
-  // More thorough check for negative signs
-  const amounts = text.match(/\$?\s{0,2}\d{1,8}\.\d{2}/g);
-  if (amounts && amounts.length > 0) {
+  // Fallback: find the largest amount (excluding negative amounts)
+  // Pattern for amounts with various currency symbols
+  const amountPattern = /(?:R\$|S\/|MX\$|COL\$|[$€£¥])?\s{0,2}(\d{1,3}(?:[,.]\d{3})*(?:[,.]\d{1,2})?)/g;
+  const matches = [...text.matchAll(amountPattern)];
+
+  if (matches.length > 0) {
     const validAmounts = [];
 
-    for (const amountStr of amounts) {
-      // Find the position of this amount in the text
-      const index = text.indexOf(amountStr);
+    for (const match of matches) {
+      const fullMatch = match[0];
+      const index = match.index;
 
       // Check if there's a minus sign within 3 characters before this amount
       const beforeText = text.substring(Math.max(0, index - 3), index);
 
       if (!beforeText.includes('-')) {
-        const num = parseFloat(amountStr.replace(/[$\s]/g, ''));
+        const num = parseAmountString(match[1]);
         if (num >= MIN_AMOUNT && num <= MAX_AMOUNT) {
           validAmounts.push(num);
         }
@@ -127,6 +182,56 @@ function extractAmount(ocrResultOrText) {
   }
 
   return null;
+}
+
+/**
+ * Parse amount string handling both decimal formats:
+ * - US/UK format: 1,234.56 (comma as thousands, period as decimal)
+ * - EU format: 1.234,56 (period as thousands, comma as decimal)
+ * @param {string} amountStr - Amount string to parse
+ * @returns {number} Parsed amount
+ */
+function parseAmountString(amountStr) {
+  if (!amountStr) return 0;
+
+  // Remove currency symbols and spaces
+  let cleaned = amountStr.replace(/[R$S\/MX$COL$€£¥\s]/g, '');
+
+  // Detect format by checking the last separator
+  const lastComma = cleaned.lastIndexOf(',');
+  const lastPeriod = cleaned.lastIndexOf('.');
+
+  if (lastComma > lastPeriod) {
+    // EU format: 1.234,56 - comma is decimal separator
+    cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+  } else if (lastPeriod > lastComma) {
+    // US format: 1,234.56 - period is decimal separator
+    cleaned = cleaned.replace(/,/g, '');
+  } else if (lastComma === -1 && lastPeriod === -1) {
+    // No separators, return as-is
+    return parseFloat(cleaned) || 0;
+  } else if (lastComma !== -1 && lastPeriod === -1) {
+    // Only comma - check if it's decimal or thousands
+    const afterComma = cleaned.split(',')[1];
+    if (afterComma && afterComma.length <= 2) {
+      // Likely decimal: 123,45 -> 123.45
+      cleaned = cleaned.replace(',', '.');
+    } else {
+      // Likely thousands: 1,234 -> 1234
+      cleaned = cleaned.replace(/,/g, '');
+    }
+  } else if (lastPeriod !== -1 && lastComma === -1) {
+    // Only period - check if it's decimal or thousands
+    const afterPeriod = cleaned.split('.')[1];
+    if (afterPeriod && afterPeriod.length <= 2) {
+      // Already decimal format: 123.45
+    } else {
+      // Likely thousands: 1.234 -> 1234
+      cleaned = cleaned.replace(/\./g, '');
+    }
+  }
+
+  return parseFloat(cleaned) || 0;
 }
 
 /**
@@ -201,6 +306,8 @@ function parseReceipt(ocrResult) {
       merchantName: null,
       merchant: null,
       amount: null,
+      currency: null,
+      currencyConfidence: 0,
       date: new Date(),
       rawText: text,
       confidence: 0
@@ -217,6 +324,7 @@ function parseReceipt(ocrResult) {
   const merchantName = extractMerchantName(processedText);
   const amount = extractAmount(processedText);
   const date = extractDate(processedText);
+  const currencyInfo = detectCurrency(processedText);
 
   // Calculate confidence score based on what we extracted
   let confidence = 0;
@@ -228,6 +336,9 @@ function parseReceipt(ocrResult) {
     merchantName,
     merchant: merchantName, // Alias for compatibility
     amount,
+    currency: currencyInfo.code,
+    currencyConfidence: currencyInfo.confidence,
+    currencyDetected: currencyInfo.detected,
     date,
     rawText: processedText,
     confidence
@@ -290,6 +401,8 @@ module.exports = {
   extractAmount,
   extractMerchantName,
   extractDate,
+  detectCurrency,
+  parseAmountString,
   parseReceipt,
   suggestCategory
 };
