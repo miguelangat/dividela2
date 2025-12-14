@@ -41,6 +41,7 @@ import {
   getCoupleSettings,
 } from '../../services/coupleSettingsService';
 import MerchantAliasManager from '../../components/MerchantAliasManager';
+import AccountSwitcher from '../../components/AccountSwitcher';
 import { useTranslation } from 'react-i18next';
 import {
   getPermissionStatus,
@@ -102,6 +103,9 @@ export default function SettingsScreen({ navigation }) {
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [deletingAccount, setDeletingAccount] = useState(false);
 
+  // Account management modal state
+  const [addAccountModalVisible, setAddAccountModalVisible] = useState(false);
+
   // Fetch partner details
   useEffect(() => {
     const fetchPartner = async () => {
@@ -129,14 +133,14 @@ export default function SettingsScreen({ navigation }) {
   // Fetch primary currency and notification settings
   useEffect(() => {
     const fetchSettings = async () => {
-      if (userDetails?.coupleId) {
+      if (userDetails?.activeAccountId) {
         try {
           // Fetch currency
-          const currency = await getPrimaryCurrency(userDetails.coupleId);
+          const currency = await getPrimaryCurrency(userDetails.activeAccountId);
           setPrimaryCurrency(currency.code);
 
           // Fetch notification preferences
-          const settings = await getCoupleSettings(userDetails.coupleId);
+          const settings = await getCoupleSettings(userDetails.activeAccountId);
           if (settings.notifications) {
             setNotifications(prev => ({
               ...prev,
@@ -156,7 +160,7 @@ export default function SettingsScreen({ navigation }) {
       }
     };
     fetchSettings();
-  }, [userDetails?.coupleId]);
+  }, [userDetails?.activeAccountId]);
 
   const handleSaveName = async () => {
     if (!displayName.trim()) {
@@ -194,10 +198,10 @@ export default function SettingsScreen({ navigation }) {
   const handleCurrencyChange = async (newCurrency) => {
     console.log('🔍 handleCurrencyChange called with:', newCurrency);
     console.log('🔍 Current primaryCurrency:', primaryCurrency);
-    console.log('🔍 userDetails?.coupleId:', userDetails?.coupleId);
+    console.log('🔍 userDetails?.activeAccountId:', userDetails?.activeAccountId);
 
-    if (!userDetails?.coupleId) {
-      console.log('❌ No coupleId, returning early');
+    if (!userDetails?.activeAccountId) {
+      console.log('❌ No activeAccountId, returning early');
       return;
     }
 
@@ -225,7 +229,7 @@ export default function SettingsScreen({ navigation }) {
 
       console.log('🔄 Calling updatePrimaryCurrency...');
       await updatePrimaryCurrency(
-        userDetails.coupleId,
+        userDetails.activeAccountId,
         pendingCurrency,
         currencyInfo.symbol,
         currencyInfo.locale
@@ -435,6 +439,18 @@ export default function SettingsScreen({ navigation }) {
     </View>
   );
 
+  const renderAccountsSection = () => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>{t('settings.accounts.title', { defaultValue: 'Accounts' })}</Text>
+
+      <View style={styles.card}>
+        <View style={styles.accountSwitcherContainer}>
+          <AccountSwitcher onAddAccount={() => setAddAccountModalVisible(true)} />
+        </View>
+      </View>
+    </View>
+  );
+
   const renderSubscriptionSection = () => (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{t('settings.subscription.title')}</Text>
@@ -526,8 +542,8 @@ export default function SettingsScreen({ navigation }) {
       console.log('🔄 Restarting onboarding...');
 
       // Clear the onboarding completion flag using storage utility
-      if (userDetails?.coupleId) {
-        await onboardingStorage.clearCompleted(userDetails.coupleId);
+      if (userDetails?.activeAccountId) {
+        await onboardingStorage.clearCompleted(userDetails.activeAccountId);
         await onboardingStorage.clearState();
         console.log('✅ Cleared onboarding storage');
 
@@ -537,7 +553,7 @@ export default function SettingsScreen({ navigation }) {
         const year = now.getFullYear();
 
         try {
-          await deleteBudgetForMonth(userDetails.coupleId, month, year);
+          await deleteBudgetForMonth(userDetails.activeAccountId, month, year);
           console.log('✅ Cleared current month budget');
         } catch (budgetError) {
           // Log but don't fail - budget might not exist yet
@@ -576,7 +592,7 @@ export default function SettingsScreen({ navigation }) {
   };
 
   const handleNotificationToggle = async (key, value) => {
-    if (!userDetails?.coupleId) return;
+    if (!userDetails?.activeAccountId) return;
 
     setNotificationsLoading(true);
     try {
@@ -586,7 +602,7 @@ export default function SettingsScreen({ navigation }) {
       };
       setNotifications(updatedNotifications);
 
-      await updateNotificationPreferences(userDetails.coupleId, updatedNotifications);
+      await updateNotificationPreferences(userDetails.activeAccountId, updatedNotifications);
       console.log(`✅ Updated ${key} to ${value}`);
     } catch (error) {
       console.error('Error updating notification preferences:', error);
@@ -1114,7 +1130,10 @@ export default function SettingsScreen({ navigation }) {
         {/* Profile Section */}
         {renderProfileSection()}
 
-        {/* Partner Section */}
+        {/* Accounts Section */}
+        {renderAccountsSection()}
+
+        {/* Partner Section - Legacy, kept for backward compatibility */}
         {renderPartnerSection()}
 
         {/* Subscription Section */}
@@ -1328,7 +1347,7 @@ export default function SettingsScreen({ navigation }) {
         onRequestClose={() => setShowAliasManager(false)}
       >
         <MerchantAliasManager
-          coupleId={userDetails?.coupleId}
+          coupleId={userDetails?.activeAccountId}
           onClose={() => setShowAliasManager(false)}
         />
       </Modal>
@@ -1542,6 +1561,90 @@ export default function SettingsScreen({ navigation }) {
                 )}
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Add Account Modal */}
+      <Modal
+        visible={addAccountModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setAddAccountModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="add-circle" size={32} color={COLORS.primary} />
+            </View>
+
+            <Text style={styles.modalTitle}>
+              {t('settings.accounts.addAccountTitle', { defaultValue: 'Add New Account' })}
+            </Text>
+            <Text style={styles.modalMessage}>
+              {t('settings.accounts.addAccountMessage', {
+                defaultValue: 'Create a new budget account. You can add solo or shared accounts.'
+              })}
+            </Text>
+
+            {/* Option: Create Solo Account */}
+            <TouchableOpacity
+              style={styles.accountTypeOption}
+              onPress={() => {
+                setAddAccountModalVisible(false);
+                navigation.navigate('Connect');
+              }}
+              activeOpacity={0.7}
+            >
+              <View style={styles.accountTypeIcon}>
+                <Ionicons name="person" size={24} color={COLORS.primary} />
+              </View>
+              <View style={styles.accountTypeInfo}>
+                <Text style={styles.accountTypeTitle}>
+                  {t('settings.accounts.createSolo', { defaultValue: 'Create Solo Account' })}
+                </Text>
+                <Text style={styles.accountTypeDescription}>
+                  {t('settings.accounts.createSoloDesc', {
+                    defaultValue: 'Track your personal budget independently'
+                  })}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+            </TouchableOpacity>
+
+            {/* Option: Create Couple Account */}
+            <TouchableOpacity
+              style={styles.accountTypeOption}
+              onPress={() => {
+                setAddAccountModalVisible(false);
+                navigation.navigate('Connect');
+              }}
+              activeOpacity={0.7}
+            >
+              <View style={styles.accountTypeIcon}>
+                <Ionicons name="people" size={24} color={COLORS.primary} />
+              </View>
+              <View style={styles.accountTypeInfo}>
+                <Text style={styles.accountTypeTitle}>
+                  {t('settings.accounts.createCouple', { defaultValue: 'Create Shared Account' })}
+                </Text>
+                <Text style={styles.accountTypeDescription}>
+                  {t('settings.accounts.createCoupleDesc', {
+                    defaultValue: 'Invite or join a partner to share a budget'
+                  })}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.modalButton, styles.modalButtonSecondary, { width: '100%', marginTop: SPACING.base }]}
+              onPress={() => setAddAccountModalVisible(false)}
+            >
+              <Text style={styles.modalButtonTextSecondary}>
+                {t('common.cancel')}
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -1898,5 +2001,45 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.textTertiary,
     textDecorationLine: 'underline',
+  },
+  // Account switcher styles
+  accountSwitcherContainer: {
+    padding: SPACING.base,
+  },
+  // Account type option styles (for add account modal)
+  accountTypeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.backgroundSecondary,
+    borderRadius: 12,
+    padding: SPACING.base,
+    marginBottom: SPACING.small,
+    borderWidth: 1,
+    borderColor: COLORS.border || '#E5E5E5',
+    width: '100%',
+  },
+  accountTypeIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.primary + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: SPACING.base,
+  },
+  accountTypeInfo: {
+    flex: 1,
+    marginRight: SPACING.small,
+  },
+  accountTypeTitle: {
+    ...FONTS.body,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  accountTypeDescription: {
+    ...FONTS.small,
+    color: COLORS.textSecondary,
+    lineHeight: 18,
   },
 });
