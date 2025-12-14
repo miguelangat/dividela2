@@ -1,14 +1,26 @@
 // src/screens/auth/ConnectScreen.js
 // Connect screen - Choose to invite partner or join with code
+// Partner pairing is required for new users
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Platform,
+} from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { COLORS, FONTS, SPACING, SIZES, SHADOWS, COMMON_STYLES } from '../../constants/theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
+import { COLORS, FONTS, SPACING, SIZES, SHADOWS } from '../../constants/theme';
 
 export default function ConnectScreen({ navigation }) {
+  const { t } = useTranslation();
+
   const handleInvitePartner = () => {
-    // Check if navigation is possible (screen exists in current stack)
     try {
       navigation.navigate('Invite');
     } catch (error) {
@@ -17,7 +29,6 @@ export default function ConnectScreen({ navigation }) {
   };
 
   const handleJoinPartner = () => {
-    // Check if navigation is possible (screen exists in current stack)
     try {
       navigation.navigate('Join');
     } catch (error) {
@@ -27,47 +38,107 @@ export default function ConnectScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Connect Partner</Text>
-        <Text style={styles.subtitle}>
-          Connect with your partner to start tracking shared expenses
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={[COLORS.gradientStart, COLORS.gradientEnd]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradientHeader}
+      >
+        {/* Icon */}
+        <View style={styles.headerIconContainer}>
+          <MaterialCommunityIcons
+            name="account-group"
+            size={60}
+            color={COLORS.textWhite}
+          />
+        </View>
+
+        {/* Title */}
+        <Text style={styles.headerTitle}>{t('auth.connect.title')}</Text>
+        <Text style={styles.headerSubtitle}>
+          {t('auth.connect.subtitle')}
         </Text>
-      </View>
+      </LinearGradient>
 
-      {/* Option Cards */}
-      <View style={styles.optionsContainer}>
-        {/* Invite Partner - Primary Option */}
-        <TouchableOpacity
-          style={styles.primaryCard}
-          onPress={handleInvitePartner}
-          activeOpacity={0.9}
+      {/* Form Card */}
+      <View style={styles.formCard}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
         >
-          <View style={styles.cardIconContainer}>
-            <Text style={styles.cardIcon}>📤</Text>
-          </View>
-          <Text style={styles.cardTitle}>Invite Partner</Text>
-          <Text style={styles.cardDescription}>
-            Generate a code for your partner to join
-          </Text>
-        </TouchableOpacity>
+          {/* Option Cards */}
+          <View style={styles.optionsContainer}>
+            {/* Invite Partner - Primary Option with Gradient */}
+            <TouchableOpacity
+              style={styles.primaryCardWrapper}
+              onPress={handleInvitePartner}
+              activeOpacity={0.9}
+            >
+              <LinearGradient
+                colors={[COLORS.gradientStart, COLORS.gradientEnd]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.primaryCard}
+              >
+                <View style={styles.cardIconContainer}>
+                  <MaterialCommunityIcons
+                    name="send"
+                    size={40}
+                    color={COLORS.textWhite}
+                  />
+                </View>
+                <Text style={styles.cardTitle}>{t('auth.connect.invitePartner')}</Text>
+                <Text style={styles.cardDescription}>
+                  {t('auth.connect.inviteDescription')}
+                </Text>
+                <View style={styles.cardArrow}>
+                  <MaterialCommunityIcons
+                    name="arrow-right"
+                    size={24}
+                    color={COLORS.textWhite}
+                  />
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
 
-        {/* Join Partner - Secondary Option */}
-        <TouchableOpacity
-          style={styles.secondaryCard}
-          onPress={handleJoinPartner}
-          activeOpacity={0.9}
-        >
-          <View style={styles.cardIconContainer}>
-            <Text style={styles.cardIcon}>📥</Text>
+            {/* Join Partner - Secondary Option */}
+            <TouchableOpacity
+              style={styles.secondaryCard}
+              onPress={handleJoinPartner}
+              activeOpacity={0.9}
+            >
+              <View style={styles.cardIconContainerSecondary}>
+                <MaterialCommunityIcons
+                  name="download"
+                  size={40}
+                  color={COLORS.primary}
+                />
+              </View>
+              <Text style={styles.cardTitleSecondary}>{t('auth.connect.joinPartner')}</Text>
+              <Text style={styles.cardDescriptionSecondary}>
+                {t('auth.connect.joinDescription')}
+              </Text>
+              <View style={styles.cardArrowSecondary}>
+                <MaterialCommunityIcons
+                  name="arrow-right"
+                  size={24}
+                  color={COLORS.primary}
+                />
+              </View>
+            </TouchableOpacity>
           </View>
-          <Text style={styles.cardTitleSecondary}>Join Partner</Text>
-          <Text style={styles.cardDescriptionSecondary}>
-            Enter your partner's invite code
-          </Text>
-        </TouchableOpacity>
+
+          {/* Info Text - partner is required */}
+          <View style={styles.infoContainer}>
+            <MaterialCommunityIcons name="information-outline" size={18} color={COLORS.primary} />
+            <Text style={styles.infoText}>
+              {t('auth.connect.partnerRequired', { defaultValue: 'Dividela is designed for couples. Connect with your partner to start tracking expenses together!' })}
+            </Text>
+          </View>
+        </ScrollView>
       </View>
     </View>
   );
@@ -75,49 +146,95 @@ export default function ConnectScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: {
-    ...COMMON_STYLES.container,
-    padding: SPACING.screenPadding,
-    justifyContent: 'center',
+    flex: 1,
+    backgroundColor: COLORS.background,
   },
-  header: {
+  gradientHeader: {
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingBottom: SPACING.xxlarge * 2,
+    paddingHorizontal: SPACING.screenPadding,
+    borderBottomLeftRadius: SIZES.borderRadius.xlarge * 2,
+    borderBottomRightRadius: SIZES.borderRadius.xlarge * 2,
     alignItems: 'center',
-    marginBottom: SPACING.huge,
   },
-  title: {
-    ...COMMON_STYLES.heading,
-    marginBottom: SPACING.medium,
+  headerIconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.large,
   },
-  subtitle: {
-    fontSize: FONTS.sizes.body,
-    color: COLORS.textSecondary,
+  headerTitle: {
+    fontSize: FONTS.sizes.xlarge,
+    fontWeight: FONTS.weights.bold,
+    color: COLORS.textWhite,
+    marginBottom: SPACING.small,
     textAlign: 'center',
-    maxWidth: 300,
+  },
+  headerSubtitle: {
+    fontSize: FONTS.sizes.body,
+    color: COLORS.textWhite,
+    opacity: 0.9,
+    textAlign: 'center',
+    maxWidth: 280,
     lineHeight: 22,
   },
+  formCard: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    borderRadius: SIZES.borderRadius.xlarge,
+    marginHorizontal: SPACING.screenPadding,
+    marginTop: -SPACING.xxlarge,
+    marginBottom: SPACING.base,
+    ...SHADOWS.large,
+    overflow: 'hidden',
+  },
+  scrollContent: {
+    padding: SPACING.large,
+    paddingTop: SPACING.xlarge,
+  },
   optionsContainer: {
-    width: '100%',
+    gap: SPACING.base,
+    marginBottom: SPACING.xlarge,
+  },
+  primaryCardWrapper: {
+    borderRadius: SIZES.borderRadius.large,
+    overflow: 'hidden',
+    ...SHADOWS.medium,
   },
   primaryCard: {
-    backgroundColor: COLORS.primary,
-    borderRadius: SIZES.borderRadius.large,
-    padding: SPACING.xxlarge,
+    padding: SPACING.xlarge,
     alignItems: 'center',
-    marginBottom: SPACING.large,
-    ...SHADOWS.large,
+    position: 'relative',
   },
   secondaryCard: {
     backgroundColor: COLORS.background,
     borderRadius: SIZES.borderRadius.large,
     borderWidth: 2,
     borderColor: COLORS.border,
-    padding: SPACING.xxlarge,
+    padding: SPACING.xlarge,
     alignItems: 'center',
+    position: 'relative',
   },
   cardIconContainer: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: SPACING.base,
   },
-  cardIcon: {
-    fontSize: 48,
+  cardIconContainerSecondary: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: COLORS.primaryLight + '30',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.base,
   },
   cardTitle: {
     fontSize: FONTS.sizes.title,
@@ -130,6 +247,7 @@ const styles = StyleSheet.create({
     color: COLORS.textWhite,
     textAlign: 'center',
     opacity: 0.9,
+    lineHeight: 20,
   },
   cardTitleSecondary: {
     fontSize: FONTS.sizes.title,
@@ -141,5 +259,34 @@ const styles = StyleSheet.create({
     fontSize: FONTS.sizes.body,
     color: COLORS.textSecondary,
     textAlign: 'center',
+    lineHeight: 20,
+  },
+  cardArrow: {
+    position: 'absolute',
+    right: SPACING.base,
+    top: '50%',
+    marginTop: -12,
+  },
+  cardArrowSecondary: {
+    position: 'absolute',
+    right: SPACING.base,
+    top: '50%',
+    marginTop: -12,
+  },
+  infoContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: COLORS.primary + '10',
+    padding: SPACING.base,
+    borderRadius: SIZES.borderRadius.medium,
+    gap: SPACING.small,
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.primary,
+  },
+  infoText: {
+    flex: 1,
+    fontSize: FONTS.sizes.small,
+    color: COLORS.primary,
+    lineHeight: 20,
   },
 });

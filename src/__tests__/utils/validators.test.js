@@ -274,10 +274,11 @@ describe('validators.js - Input Validation Tests', () => {
       expect(result.error).toBe('Please enter a valid number');
     });
 
-    it('should reject amount exceeding maximum', () => {
+    it('should accept large amounts (UI handles warnings)', () => {
+      // Large amount warnings are now handled at the UI level with currency-aware thresholds
       const result = validateExpenseAmount('1000000');
-      expect(result.isValid).toBe(false);
-      expect(result.error).toBe('Amount is too large');
+      expect(result.isValid).toBe(true);
+      expect(result.error).toBe(null);
     });
 
     it('should accept numeric value without quotes', () => {

@@ -100,8 +100,11 @@ describe('calculations.js - Math Behavior Tests', () => {
       expect(() => calculateSplit('abc', 50, 50)).toThrow('Invalid amount: must be a positive number');
     });
 
-    it('should throw error for amount exceeding maximum', () => {
-      expect(() => calculateSplit(1000001, 50, 50)).toThrow('Invalid amount: exceeds maximum allowed value');
+    it('should accept large amounts (UI handles warnings)', () => {
+      // Large amount warnings are now handled at the UI level with currency-aware thresholds
+      const result = calculateSplit(1000001, 50, 50);
+      expect(result.user1Amount).toBe(500000.5);
+      expect(result.user2Amount).toBe(500000.5);
     });
 
     it('should throw error for negative percentage', () => {
@@ -166,8 +169,11 @@ describe('calculations.js - Math Behavior Tests', () => {
       expect(() => calculateEqualSplit(0)).toThrow('Invalid amount: must be a positive number');
     });
 
-    it('should throw error for amount exceeding maximum', () => {
-      expect(() => calculateEqualSplit(1000001)).toThrow('Invalid amount: exceeds maximum allowed value');
+    it('should accept large amounts (UI handles warnings)', () => {
+      // Large amount warnings are now handled at the UI level with currency-aware thresholds
+      const result = calculateEqualSplit(1000001);
+      expect(result.user1Amount).toBe(500000.5);
+      expect(result.user2Amount).toBe(500000.5);
     });
   });
 
@@ -834,7 +840,8 @@ describe('calculations.js - Math Behavior Tests', () => {
       expect(result.error).toBe('Settlement amount must be a positive number');
     });
 
-    it('should reject amount exceeding maximum', () => {
+    it('should accept large amounts (UI handles warnings)', () => {
+      // Large amount warnings are now handled at the UI level with currency-aware thresholds
       const settlementData = {
         coupleId: currentUserCoupleId,
         user1Id: currentUserId,
@@ -844,8 +851,8 @@ describe('calculations.js - Math Behavior Tests', () => {
       };
 
       const result = validateSettlement(settlementData, currentUserId, currentUserCoupleId);
-      expect(result.valid).toBe(false);
-      expect(result.error).toBe('Settlement amount exceeds maximum allowed value');
+      expect(result.valid).toBe(true);
+      expect(result.error).toBe(null);
     });
   });
 

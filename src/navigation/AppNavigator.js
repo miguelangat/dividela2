@@ -1,250 +1,93 @@
 // src/navigation/AppNavigator.js
 // Main navigation structure for the app
+// Updated: Streamlined onboarding - partner required, then CoreSetup before main app
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useAuth } from '../contexts/AuthContext';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { onboardingStorage } from '../utils/storage';
+import { subscribeToCoupleSettings } from '../services/coupleSettingsService';
 import { COLORS } from '../constants/theme';
 
 // Auth screens
 import WelcomeScreen from '../screens/auth/WelcomeScreen';
 import SignUpScreen from '../screens/auth/SignUpScreen';
 import SignInScreen from '../screens/auth/SignInScreen';
+import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 import ConnectScreen from '../screens/auth/ConnectScreen';
 import InviteScreen from '../screens/auth/InviteScreen';
 import JoinScreen from '../screens/auth/JoinScreen';
 import SuccessScreen from '../screens/auth/SuccessScreen';
 import FiscalYearSetupScreen from '../screens/auth/FiscalYearSetupScreen';
-
-// Onboarding
-import OnboardingNavigator from './OnboardingNavigator';
+import CoreSetupScreen from '../screens/onboarding/CoreSetupScreen';
 
 // Main app screens
 import TabNavigator from './TabNavigator';
 import AddExpenseScreen from '../screens/main/AddExpenseScreen';
+import ImportExpensesScreen from '../screens/main/ImportExpensesScreen';
+import PaywallScreen from '../screens/main/PaywallScreen';
 
 const Stack = createStackNavigator();
 
 export default function AppNavigator() {
   const { user, userDetails, loading } = useAuth();
-  const [onboardingCompleted, setOnboardingCompleted] = useState(null);
-  const [checkingOnboarding, setCheckingOnboarding] = useState(true);
-  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
-  const [forceCheckCounter, setForceCheckCounter] = useState(0);
-  const [isRestarting, setIsRestarting] = useState(false);
-  const checkTimeoutRef = React.useRef(null);
+  const [coreSetupComplete, setCoreSetupComplete] = useState(null);
   const navigationRef = useNavigationContainerRef();
-  const hasNavigatedToOnboarding = useRef(false);
 
-  // Debug logging
-  console.log('AppNavigator - user:', user?.uid);
-  console.log('AppNavigator - userDetails:', userDetails);
-  console.log('AppNavigator - loading:', loading);
-  console.log('AppNavigator - onboardingCompleted:', onboardingCompleted);
-
-  // Check if budget onboarding has been completed
-  useEffect(() => {
-    checkOnboardingStatus();
-  }, [user, userDetails?.coupleId, forceCheckCounter]);
-
-  // Poll for onboarding status changes (for when completeOnboarding is called)
-  // Using a more efficient polling strategy with debouncing
+  // Subscribe to couple settings for real-time updates (including coreSetupComplete)
   useEffect(() => {
     if (!user || !userDetails?.coupleId) {
+      setCoreSetupComplete(null);
       return;
     }
 
-    console.log('🔄 Setting up onboarding status polling (every 2 seconds)');
-
-    // Set up interval to check onboarding status (in case it's updated)
-    const interval = setInterval(() => {
-      console.log('⏰ Polling tick - checking onboarding status...');
-      // Only check if not already checking and not restarting (prevents race conditions)
-      if (!isCheckingStatus && !isRestarting) {
-        checkOnboardingStatus();
-      } else {
-        console.log('⏭️  Skipping check - already checking or restarting');
+    // Initial check from AsyncStorage for migration support
+    const checkMigration = async () => {
+      const oldCompleted = await onboardingStorage.getCompleted(userDetails.coupleId);
+      if (oldCompleted) {
+        setCoreSetupComplete(true);
       }
-    }, 2000); // Check every 2 seconds
+    };
+    checkMigration();
+
+    // Subscribe to real-time updates from Firestore
+    const unsubscribe = subscribeToCoupleSettings(userDetails.coupleId, (settings) => {
+      console.log('[AppNavigator] Couple settings updated, coreSetupComplete:', settings?.coreSetupComplete);
+      if (settings?.coreSetupComplete) {
+        setCoreSetupComplete(true);
+      } else {
+        // Only set to false if not already true from migration check
+        setCoreSetupComplete((prev) => prev === true ? true : false);
+      }
+    });
 
     return () => {
-      console.log('🛑 Cleaning up onboarding status polling');
-      clearInterval(interval);
-      // Clear any pending timeout on unmount
-      if (checkTimeoutRef.current) {
-        clearTimeout(checkTimeoutRef.current);
-      }
+      unsubscribe();
     };
-  }, [user, userDetails?.coupleId]); // Removed isCheckingStatus from dependencies!
+  }, [user, userDetails?.coupleId]);
 
-  // Listen for storage events (in case completion happens in same session)
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
+  // Determine which stack to show (calculate early for useEffect)
+  const showMainStack = !!(user && userDetails?.coupleId && coreSetupComplete);
+  const showSetupStack = !!(user && userDetails?.coupleId && !coreSetupComplete);
 
-    const handleStorageChange = (e) => {
-      if (e.key && e.key.includes('onboarding_completed')) {
-        console.log('🔔 Storage change detected! Force checking onboarding status...');
-        setForceCheckCounter(prev => prev + 1);
-      }
-    };
+  // Determine navigation key - forces complete re-mount when stack changes
+  const navKey = showMainStack ? 'main' : showSetupStack ? 'setup' : 'auth';
 
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+  // Debug log current navigation state
+  console.log('[AppNavigator] Render state:', {
+    user: !!user,
+    partnerId: userDetails?.partnerId,
+    coupleId: userDetails?.coupleId,
+    coreSetupComplete,
+    loading,
+    showMainStack,
+    navKey,
+  });
 
-  // Auto-navigate to onboarding modal when user has partner but hasn't completed onboarding
-  useEffect(() => {
-    if (!navigationRef.isReady()) return;
-    if (!user || !userDetails?.partnerId) return;
-    if (loading || checkingOnboarding || isRestarting) return; // Prevent race conditions during restart
-    if (onboardingCompleted === null) return; // Still checking
-
-    // Debug logging for state
-    console.log('🔄 Effect #2 (Auto-navigation) state:', {
-      onboardingCompleted,
-      hasNavigatedToOnboarding: hasNavigatedToOnboarding.current,
-      willOpenModal: !onboardingCompleted && !hasNavigatedToOnboarding.current,
-      willCloseModal: onboardingCompleted && hasNavigatedToOnboarding.current,
-      isRestarting,
-    });
-
-    // Navigate to onboarding modal if not completed and haven't navigated yet
-    if (!onboardingCompleted && !hasNavigatedToOnboarding.current) {
-      console.log('🎯 Auto-navigating to onboarding modal (tabs visible underneath)');
-      hasNavigatedToOnboarding.current = true;
-      setTimeout(() => {
-        navigationRef.navigate('Onboarding');
-      }, 100);
-    }
-
-    // Dismiss modal and navigate to home when onboarding completes
-    if (onboardingCompleted && hasNavigatedToOnboarding.current) {
-      console.log('🎉 Onboarding complete, dismissing modal and navigating to home');
-      hasNavigatedToOnboarding.current = false;
-
-      // Dismiss the onboarding modal and navigate to home tab
-      if (navigationRef.canGoBack()) {
-        // Modal is in stack, go back to dismiss it
-        navigationRef.goBack();
-
-        // Navigate to HomeTab after modal dismisses
-        setTimeout(() => {
-          navigationRef.navigate('MainTabs', {
-            screen: 'HomeTab', // Navigate to home page where users add expenses
-          });
-        }, 100);
-      } else {
-        // Fallback: Navigate directly to MainTabs with HomeTab
-        navigationRef.navigate('MainTabs', {
-          screen: 'HomeTab',
-        });
-      }
-    }
-  }, [user, userDetails?.partnerId, onboardingCompleted, loading, checkingOnboarding, navigationRef]);
-
-  // Listen for navigation to Onboarding with restartMode to force immediate state refresh
-  useEffect(() => {
-    if (!navigationRef.isReady()) return;
-
-    const unsubscribe = navigationRef.addListener('state', () => {
-      const currentRoute = navigationRef.getCurrentRoute();
-
-      // Detect manual restart from Settings
-      if (currentRoute?.name === 'Onboarding' && currentRoute?.params?.restartMode === true) {
-        console.log('🔄 Restart mode detected! Forcing immediate state refresh...');
-
-        // Set restarting flag to prevent polling interference
-        setIsRestarting(true);
-
-        // Reset the navigation flag to allow the onboarding to stay open
-        hasNavigatedToOnboarding.current = true; // Mark as navigated so auto-nav doesn't interfere
-
-        // Force immediate state update (don't wait for polling)
-        setOnboardingCompleted(false);
-
-        // Trigger a forced check to sync with storage
-        setForceCheckCounter(prev => prev + 1);
-
-        console.log('✅ State refreshed for restart');
-
-        // Clear the restartMode param and isRestarting flag
-        // Use setTimeout to avoid mutating during render
-        setTimeout(() => {
-          try {
-            navigationRef.setParams({ restartMode: false });
-            setIsRestarting(false); // Re-enable polling after restart completes
-            console.log('✅ Restart flag cleared, polling re-enabled');
-          } catch (error) {
-            console.log('⚠️  Could not clear restartMode param:', error.message);
-            setIsRestarting(false); // Clear flag even on error
-          }
-        }, 500); // Increased timeout for stability
-      }
-    });
-
-    return unsubscribe;
-  }, [navigationRef]);
-
-  const checkOnboardingStatus = async () => {
-    // Debounce: prevent multiple simultaneous checks
-    if (isCheckingStatus) {
-      console.log('⚠️  Already checking onboarding status, skipping...');
-      return;
-    }
-
-    setIsCheckingStatus(true);
-    console.log('🔍 Checking onboarding status...');
-
-    try {
-      if (!user || !userDetails?.coupleId) {
-        console.log('❌ No user or coupleId, setting onboarding to null');
-        setOnboardingCompleted(null);
-        setCheckingOnboarding(false);
-        return;
-      }
-
-      console.log(`📦 Checking AsyncStorage for key: onboarding_completed_${userDetails.coupleId}`);
-
-      // Check if onboarding was completed or skipped using safe storage utility
-      const completed = await onboardingStorage.getCompleted(userDetails.coupleId);
-
-      console.log(`📦 AsyncStorage result: ${completed}`);
-      console.log(`👤 userDetails.budgetOnboardingCompleted: ${userDetails?.budgetOnboardingCompleted}`);
-
-      // Use AsyncStorage as the source of truth (not Firestore field)
-      // The budgetOnboardingCompleted field in userDetails may be stale or undefined
-      // AsyncStorage is managed by our onboarding flow and is reliable
-      const completedFlag = completed;
-
-      console.log(`✅ Final onboarding completed status: ${completedFlag}`);
-
-      if (completedFlag && !onboardingCompleted) {
-        console.log('🎉 ONBOARDING DETECTED AS COMPLETE! Updating state to navigate to MainTabs');
-      }
-
-      setOnboardingCompleted(completedFlag);
-    } catch (error) {
-      console.error('❌ Error checking onboarding status:', error);
-      console.error('Error details:', error.message, error.stack);
-      // Don't set to false on error - maintain current state to prevent unwanted navigation
-      if (onboardingCompleted === null) {
-        setOnboardingCompleted(false);
-      }
-    } finally {
-      setCheckingOnboarding(false);
-      // Use a timeout to reset the checking flag to prevent rapid successive calls
-      checkTimeoutRef.current = setTimeout(() => {
-        setIsCheckingStatus(false);
-        console.log('✓ Check complete, ready for next poll');
-      }, 100);
-    }
-  };
-
-  // Show loading screen while checking auth state or onboarding status
-  if (loading || checkingOnboarding) {
+  // Show loading screen while checking auth state or core setup status
+  if (loading || (user && userDetails?.coupleId && coreSetupComplete === null)) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
@@ -252,8 +95,14 @@ export default function AppNavigator() {
     );
   }
 
+  // Determine remaining stack decisions
+  const showAuthStack = !user;
+  const showConnectStack = user && !userDetails?.partnerId && !userDetails?.coupleId;
+
+  console.log('[AppNavigator] Stack decision:', { showAuthStack, showConnectStack, showSetupStack, showMainStack });
+
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer ref={navigationRef} key={navKey}>
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
@@ -266,32 +115,29 @@ export default function AppNavigator() {
             <Stack.Screen name="Welcome" component={WelcomeScreen} />
             <Stack.Screen name="SignUp" component={SignUpScreen} />
             <Stack.Screen name="SignIn" component={SignInScreen} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
           </>
-        ) : !userDetails?.partnerId ? (
+        ) : !userDetails?.partnerId && !userDetails?.coupleId ? (
           // Connect Stack - User logged in but no partner
+          // Partner pairing is required (no skip option)
           <>
             <Stack.Screen name="Connect" component={ConnectScreen} />
             <Stack.Screen name="Invite" component={InviteScreen} />
             <Stack.Screen name="Join" component={JoinScreen} />
             <Stack.Screen name="Success" component={SuccessScreen} />
+            <Stack.Screen name="CoreSetup" component={CoreSetupScreen} />
+            <Stack.Screen name="FiscalYearSetup" component={FiscalYearSetupScreen} />
+          </>
+        ) : !coreSetupComplete ? (
+          // Setup Stack - User has partner but hasn't completed core setup
+          <>
+            <Stack.Screen name="CoreSetup" component={CoreSetupScreen} />
             <Stack.Screen name="FiscalYearSetup" component={FiscalYearSetupScreen} />
           </>
         ) : (
-          // Main App Stack - User has partner, always show MainTabs
-          // Onboarding presented as modal overlay when not completed
+          // Main App Stack - User has partner and completed setup
           <>
             <Stack.Screen name="MainTabs" component={TabNavigator} />
-            <Stack.Screen
-              name="Onboarding"
-              component={OnboardingNavigator}
-              options={{
-                presentation: 'transparentModal',
-                headerShown: false,
-                cardStyle: { backgroundColor: 'transparent' },
-                cardOverlayEnabled: true,
-                gestureEnabled: false, // Prevent dismissal by gesture
-              }}
-            />
             <Stack.Screen
               name="AddExpense"
               component={AddExpenseScreen}
@@ -299,6 +145,39 @@ export default function AppNavigator() {
                 presentation: 'modal',
               }}
             />
+            <Stack.Screen
+              name="ImportExpenses"
+              component={ImportExpensesScreen}
+              options={{
+                presentation: 'modal',
+                headerShown: true,
+                title: 'Import Expenses',
+                headerStyle: {
+                  backgroundColor: COLORS.background,
+                },
+                headerTintColor: COLORS.primary,
+              }}
+            />
+            <Stack.Screen
+              name="Paywall"
+              component={PaywallScreen}
+              options={{
+                presentation: 'modal',
+                headerShown: true,
+                title: 'Upgrade to Premium',
+                headerStyle: {
+                  backgroundColor: COLORS.background,
+                },
+                headerTintColor: COLORS.primary,
+              }}
+            />
+            {/* Connect screens - for unpaired users who want to find new partner */}
+            <Stack.Screen name="Connect" component={ConnectScreen} />
+            <Stack.Screen name="Invite" component={InviteScreen} />
+            <Stack.Screen name="Join" component={JoinScreen} />
+            <Stack.Screen name="Success" component={SuccessScreen} />
+            <Stack.Screen name="CoreSetup" component={CoreSetupScreen} />
+            <Stack.Screen name="FiscalYearSetup" component={FiscalYearSetupScreen} />
           </>
         )}
       </Stack.Navigator>

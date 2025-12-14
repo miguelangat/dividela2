@@ -2,8 +2,12 @@
 // Firebase configuration and initialization
 
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
+import { getFunctions } from 'firebase/functions';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 // Firebase configuration from environment variables
 const firebaseConfig = {
@@ -30,10 +34,18 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId || !firebaseConfig.appId
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase services
-export const auth = getAuth(app);
+// Initialize Firebase Auth with persistence for React Native
+export const auth = initializeAuth(app, {
+  persistence: Platform.OS !== 'web' ? getReactNativePersistence(AsyncStorage) : undefined,
+});
 export const db = getFirestore(app);
+export const storage = getStorage(app);
+export const functions = getFunctions(app, 'us-central1');
+
+// Export firebase config for service worker (web only)
+export const firebaseConfigForSW = firebaseConfig;
 
 console.log('Firebase initialized successfully');
+console.log('Functions configured for region: us-central1');
 
 export default app;

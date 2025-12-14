@@ -4,6 +4,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { COLORS, FONTS, SPACING, SIZES } from '../constants/theme';
+import { formatCurrency } from '../utils/calculations';
 
 export default function BudgetProgressCard({
   category,
@@ -34,10 +35,10 @@ export default function BudgetProgressCard({
       {/* Amount */}
       <View style={styles.amountContainer}>
         <Text style={styles.spentAmount}>
-          ${progress.spent.toFixed(0)}
+          {formatCurrency(progress.spent)}
         </Text>
         <Text style={styles.budgetAmount}>
-          {' '}/ ${progress.budget.toFixed(0)}
+          {' '}/ {formatCurrency(progress.budget)}
         </Text>
       </View>
 
@@ -58,7 +59,7 @@ export default function BudgetProgressCard({
 
       {/* Stats */}
       <Text style={styles.statsText}>
-        {progress.percentage.toFixed(0)}% used • ${Math.abs(progress.remaining).toFixed(0)} {progress.remaining >= 0 ? 'left' : 'over'}
+        {progress.percentage.toFixed(0)}% used • {formatCurrency(Math.abs(progress.remaining))} {progress.remaining >= 0 ? 'left' : 'over'}
       </Text>
     </View>
   );

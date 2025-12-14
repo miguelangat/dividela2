@@ -9,19 +9,47 @@
     "assetBundlePatterns": [
       "**/*"
     ],
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#667eea"
+        }
+      ],
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.156140614030-dm5esb364f890n4pe4g3qhiks6as1el2"
+        }
+      ]
+    ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.dividela.app"
+      "bundleIdentifier": "com.dividela.app",
+      "infoPlist": {
+        "UIBackgroundModes": ["remote-notification"]
+      }
     },
     "android": {
-      "package": "com.dividela.app"
+      "package": "com.dividela.app",
+      "googleServicesFile": "./android/app/google-services.json",
+      "useNextNotificationsApi": true,
+      "permissions": [
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.VIBRATE",
+        "android.permission.WAKE_LOCK"
+      ]
     },
     "web": {
       "bundler": "metro",
+      "favicon": "./assets/favicon.png",
       "name": "Dividela - Expense Tracker for Couples",
       "shortName": "Dividela",
       "description": "Track and split expenses with your partner effortlessly",
-      "themeColor": "#6366f1",
+      "themeColor": "#667eea",
       "backgroundColor": "#ffffff"
     }
   }

@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "156140614030",
+    "project_id": "dividela-76aba",
+    "storage_bucket": "dividela-76aba.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:156140614030:android:0a60a5976a2a38f20db4df",
+        "android_client_info": {
+          "package_name": "com.dividela.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "156140614030-dm5esb364f890n4pe4g3qhiks6as1el2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD1IyV7S1JJ_qLOhHVHuAOZ5cm-ZFl8ASo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "156140614030-dm5esb364f890n4pe4g3qhiks6as1el2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

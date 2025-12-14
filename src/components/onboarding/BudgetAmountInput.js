@@ -4,17 +4,15 @@
 import React from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import { COLORS, FONTS, SPACING, SIZES, COMMON_STYLES } from '../../constants/theme';
+import { formatCurrency, getCurrencySymbol } from '../../utils/currencyUtils';
 
 export default function BudgetAmountInput({
   value,
   onChangeValue,
+  currency = 'USD',
   suggestions = [1000, 2000, 3000, 4000],
   placeholder = '0',
 }) {
-  const formatCurrency = (amount) => {
-    if (!amount || amount === 0) return '';
-    return `$${amount.toLocaleString()}`;
-  };
 
   const parseCurrency = (text) => {
     // Remove non-numeric characters
@@ -31,11 +29,13 @@ export default function BudgetAmountInput({
     onChangeValue(amount);
   };
 
+  const currencySymbol = getCurrencySymbol(currency);
+
   return (
     <View style={styles.container}>
       {/* Amount Input */}
       <View style={styles.inputContainer}>
-        <Text style={styles.currencySymbol}>$</Text>
+        <Text style={styles.currencySymbol}>{currencySymbol}</Text>
         <TextInput
           style={styles.input}
           value={value ? value.toLocaleString() : ''}
@@ -65,7 +65,7 @@ export default function BudgetAmountInput({
                 value === amount && styles.suggestionTextSelected,
               ]}
             >
-              {formatCurrency(amount)}
+              {formatCurrency(amount, currency)}
             </Text>
           </TouchableOpacity>
         ))}

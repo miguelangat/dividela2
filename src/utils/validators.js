@@ -71,6 +71,8 @@ export const validateInviteCode = (code) => {
 
 /**
  * Validate expense amount
+ * Note: Large amount warnings are handled at the UI level with currency-aware thresholds
+ * This validator only checks for basic validity (positive number)
  */
 export const validateExpenseAmount = (amount) => {
   if (!amount || amount === '') {
@@ -78,17 +80,13 @@ export const validateExpenseAmount = (amount) => {
   }
 
   const numAmount = parseFloat(amount);
-  
+
   if (isNaN(numAmount)) {
     return { isValid: false, error: 'Please enter a valid number' };
   }
 
   if (numAmount <= 0) {
     return { isValid: false, error: 'Amount must be greater than 0' };
-  }
-
-  if (numAmount > 999999.99) {
-    return { isValid: false, error: 'Amount is too large' };
   }
 
   return { isValid: true, error: null };

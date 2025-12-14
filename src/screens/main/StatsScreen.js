@@ -25,6 +25,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import { useTranslation } from 'react-i18next';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBudget } from '../../contexts/BudgetContext';
@@ -48,6 +49,7 @@ import {
 import ExpenseFilters from '../../components/ExpenseFilters';
 import ExportButton from '../../components/ExportButton';
 import ExpenseDetailModal from '../../components/ExpenseDetailModal';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width: screenWidth } = Dimensions.get('window');
 const isSmallScreen = screenWidth < 375;
@@ -55,8 +57,10 @@ const isMediumScreen = screenWidth >= 375 && screenWidth < 768;
 const isLargeScreen = screenWidth >= 768;
 
 export default function StatsScreen() {
+  const { t } = useTranslation();
   const { user, userDetails, getPartnerDetails } = useAuth();
-  const { categories } = useBudget();
+  const insets = useSafeAreaInsets();
+  const { categories, budgetProgress } = useBudget();
   const [expenses, setExpenses] = useState([]);
   const [settlements, setSettlements] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -123,7 +127,7 @@ export default function StatsScreen() {
       },
       error => {
         console.error('Error fetching expenses for stats:', error);
-        setError('Failed to load statistics. Pull down to retry.');
+        setError(t('stats.error'));
         setLoading(false);
         setRefreshing(false);
       }
@@ -213,7 +217,7 @@ export default function StatsScreen() {
   const renderSortingControls = () => (
     <View style={styles.controlsContainer}>
       <View style={styles.controlRow}>
-        <Text style={styles.controlLabel}>Sort by:</Text>
+        <Text style={styles.controlLabel}>{t('stats.sorting.label')}</Text>
         <View style={styles.sortButtons}>
           <TouchableOpacity
             style={[styles.sortButton, sortBy === 'date-desc' && styles.sortButtonActive]}
@@ -222,7 +226,7 @@ export default function StatsScreen() {
             <Text
               style={[styles.sortButtonText, sortBy === 'date-desc' && styles.sortButtonTextActive]}
             >
-              Latest
+              {t('stats.sorting.latest')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -235,7 +239,7 @@ export default function StatsScreen() {
                 sortBy === 'amount-desc' && styles.sortButtonTextActive,
               ]}
             >
-              Highest
+              {t('stats.sorting.highest')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -245,14 +249,14 @@ export default function StatsScreen() {
             <Text
               style={[styles.sortButtonText, sortBy === 'category' && styles.sortButtonTextActive]}
             >
-              Category
+              {t('stats.sorting.category')}
             </Text>
           </TouchableOpacity>
         </View>
       </View>
 
       <View style={styles.controlRow}>
-        <Text style={styles.controlLabel}>Group by:</Text>
+        <Text style={styles.controlLabel}>{t('stats.grouping.label')}</Text>
         <View style={styles.sortButtons}>
           <TouchableOpacity
             style={[styles.sortButton, groupBy === 'none' && styles.sortButtonActive]}
@@ -261,7 +265,7 @@ export default function StatsScreen() {
             <Text
               style={[styles.sortButtonText, groupBy === 'none' && styles.sortButtonTextActive]}
             >
-              None
+              {t('stats.grouping.none')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -271,7 +275,7 @@ export default function StatsScreen() {
             <Text
               style={[styles.sortButtonText, groupBy === 'month' && styles.sortButtonTextActive]}
             >
-              Month
+              {t('stats.grouping.month')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -281,7 +285,7 @@ export default function StatsScreen() {
             <Text
               style={[styles.sortButtonText, groupBy === 'status' && styles.sortButtonTextActive]}
             >
-              Status
+              {t('stats.grouping.status')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -311,7 +315,7 @@ export default function StatsScreen() {
         <View style={styles.expenseContent}>
           <View style={styles.expenseHeader}>
             <Text style={styles.expenseDescription} numberOfLines={1}>
-              {expense.description || 'No description'}
+              {expense.description || t('stats.list.noDescription')}
             </Text>
             <Text style={styles.expenseAmount}>{formatCurrency(expense.amount)}</Text>
           </View>
@@ -324,7 +328,9 @@ export default function StatsScreen() {
                 color={isPaidByUser ? COLORS.primary : COLORS.textSecondary}
               />
               <Text style={styles.expenseMetaText}>
-                {isPaidByUser ? 'You paid' : `${partnerName} paid`}
+                {isPaidByUser
+                  ? t('stats.list.youPaid')
+                  : t('stats.list.partnerPaid', { partnerName: partnerName })}
               </Text>
             </View>
 
@@ -347,21 +353,25 @@ export default function StatsScreen() {
     <View style={styles.summaryContainer}>
       <View style={[styles.summaryCard, styles.summaryCardPrimary]}>
         <Ionicons name="wallet" size={24} color={COLORS.primary} />
-        <Text style={styles.summaryLabel}>Total Expenses</Text>
+        <Text style={styles.summaryLabel}>{t('stats.summary.totalExpenses')}</Text>
         <Text style={styles.summaryAmount}>{formatCurrency(totalExpenses)}</Text>
-        <Text style={styles.summarySubtext}>{filteredExpenses.length} expenses</Text>
+        <Text style={styles.summarySubtext}>
+          {t('stats.summary.expenseCount', { count: filteredExpenses.length })}
+        </Text>
       </View>
 
       <View style={styles.summaryRow}>
         <View style={styles.summaryCardSmall}>
           <Ionicons name="person" size={20} color={COLORS.success} />
-          <Text style={styles.summaryLabelSmall}>Your Share</Text>
+          <Text style={styles.summaryLabelSmall}>{t('stats.summary.yourShare')}</Text>
           <Text style={styles.summaryAmountSmall}>{formatCurrency(userShare)}</Text>
         </View>
 
         <View style={styles.summaryCardSmall}>
           <Ionicons name="people" size={20} color={COLORS.warning} />
-          <Text style={styles.summaryLabelSmall}>Partner's Share</Text>
+          <Text style={styles.summaryLabelSmall}>
+            {t('stats.summary.partnerShare', { partnerName: partnerName })}
+          </Text>
           <Text style={styles.summaryAmountSmall}>{formatCurrency(partnerShare)}</Text>
         </View>
       </View>
@@ -372,7 +382,18 @@ export default function StatsScreen() {
     const categoryName = categories[categoryKey]?.name || 'Other';
     const categoryIcon = categories[categoryKey]?.icon || '💡';
     const categoryColor = COLORS.primary;
-    const percentage = totalExpenses > 0 ? (amount / totalExpenses) * 100 : 0;
+
+    // Get budget data for this category
+    const categoryProgress = budgetProgress?.categoryProgress?.[categoryKey];
+    const budgetAmount = categoryProgress?.budget || 0;
+
+    // Calculate percentage based on budget if available, otherwise fallback to total expenses share
+    // If budget exists: (spent / budget) * 100
+    // If no budget: (spent / totalExpenses) * 100 (original behavior)
+    const hasBudget = budgetAmount > 0;
+    const percentage = hasBudget
+      ? (amount / budgetAmount) * 100
+      : (totalExpenses > 0 ? (amount / totalExpenses) * 100 : 0);
 
     return (
       <View key={categoryKey} style={styles.categoryItem}>
@@ -383,19 +404,34 @@ export default function StatsScreen() {
         <View style={styles.categoryDetails}>
           <View style={styles.categoryHeader}>
             <Text style={styles.categoryName}>{categoryName}</Text>
-            <Text style={styles.categoryAmount}>{formatCurrency(amount)}</Text>
+            <View style={{ alignItems: 'flex-end' }}>
+              <Text style={styles.categoryAmount}>{formatCurrency(amount)}</Text>
+              {hasBudget && (
+                <Text style={{ ...FONTS.small, color: COLORS.textSecondary }}>
+                  of {formatCurrency(budgetAmount)}
+                </Text>
+              )}
+            </View>
           </View>
 
           <View style={styles.progressBarContainer}>
             <View
               style={[
                 styles.progressBar,
-                { width: `${percentage}%`, backgroundColor: categoryColor },
+                {
+                  width: `${Math.min(percentage, 100)}%`,
+                  backgroundColor: hasBudget && percentage > 100 ? COLORS.error : categoryColor
+                },
               ]}
             />
           </View>
 
-          <Text style={styles.categoryPercentage}>{percentage.toFixed(1)}% of total</Text>
+          <Text style={styles.categoryPercentage}>
+            {hasBudget
+              ? `${percentage.toFixed(0)}% of budget`
+              : t('stats.breakdown.percentage', { percentage: percentage.toFixed(1) })
+            }
+          </Text>
         </View>
       </View>
     );
@@ -432,10 +468,8 @@ export default function StatsScreen() {
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <Text style={styles.emptyStateEmoji}>📊</Text>
-      <Text style={styles.emptyStateTitle}>No Expenses Yet</Text>
-      <Text style={styles.emptyStateText}>
-        Start adding expenses to see your spending statistics
-      </Text>
+      <Text style={styles.emptyStateTitle}>{t('stats.empty.title')}</Text>
+      <Text style={styles.emptyStateText}>{t('stats.empty.message')}</Text>
     </View>
   );
 
@@ -444,7 +478,7 @@ export default function StatsScreen() {
       <View style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading statistics...</Text>
+          <Text style={styles.loadingText}>{t('stats.loading')}</Text>
         </View>
       </View>
     );
@@ -459,9 +493,9 @@ export default function StatsScreen() {
         showsVerticalScrollIndicator={true}
       >
         {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Statistics</Text>
-          <Text style={styles.headerSubtitle}>Track your spending patterns</Text>
+        <View style={[styles.header, { paddingTop: Platform.OS === 'web' ? SPACING.base : Math.max(insets.top, 10) }]}>
+          <Text style={styles.headerTitle}>{t('stats.title')}</Text>
+          <Text style={styles.headerSubtitle}>{t('stats.subtitle')}</Text>
         </View>
 
         {/* Error Message */}
@@ -502,7 +536,7 @@ export default function StatsScreen() {
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                   <Text style={styles.sectionTitle}>
-                    Expense Details ({filteredExpenses.length})
+                    {t('stats.list.title', { count: filteredExpenses.length })}
                   </Text>
                 </View>
 
@@ -514,27 +548,25 @@ export default function StatsScreen() {
                   {groupBy === 'none'
                     ? sortedFilteredExpenses.map(renderExpenseItem)
                     : Object.entries(groupedExpenses || {}).map(([groupKey, groupData]) => {
-                        // Extract expenses array from groupData
-                        const expensesArray = groupData.expenses || [];
-                        const displayLabel = groupData.label || groupKey;
+                      // Extract expenses array from groupData
+                      const expensesArray = groupData.expenses || [];
+                      const displayLabel = groupData.label || groupKey;
 
-                        return (
-                          <View key={groupKey} style={styles.expenseGroup}>
-                            <Text style={styles.groupHeader}>{displayLabel}</Text>
-                            {expensesArray.map(renderExpenseItem)}
-                          </View>
-                        );
-                      })}
+                      return (
+                        <View key={groupKey} style={styles.expenseGroup}>
+                          <Text style={styles.groupHeader}>{displayLabel}</Text>
+                          {expensesArray.map(renderExpenseItem)}
+                        </View>
+                      );
+                    })}
                 </View>
               </View>
             ) : (
               <View style={styles.section}>
                 <View style={styles.emptyFilterState}>
                   <Ionicons name="filter-outline" size={48} color={COLORS.textSecondary} />
-                  <Text style={styles.emptyFilterTitle}>No Matching Expenses</Text>
-                  <Text style={styles.emptyFilterText}>
-                    Try adjusting your filters to see more results
-                  </Text>
+                  <Text style={styles.emptyFilterTitle}>{t('stats.emptyFilter.title')}</Text>
+                  <Text style={styles.emptyFilterText}>{t('stats.emptyFilter.message')}</Text>
                 </View>
               </View>
             )}
@@ -542,11 +574,11 @@ export default function StatsScreen() {
             {/* Category Breakdown */}
             {filteredExpenses.length > 0 && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Category Breakdown</Text>
+                <Text style={styles.sectionTitle}>{t('stats.breakdown.title')}</Text>
                 {sortedCategories.length > 0 ? (
                   sortedCategories.map(renderCategoryItem)
                 ) : (
-                  <Text style={styles.emptyText}>No categories to display</Text>
+                  <Text style={styles.emptyText}>{t('stats.breakdown.empty')}</Text>
                 )}
               </View>
             )}
@@ -554,8 +586,8 @@ export default function StatsScreen() {
             {/* Settlement History */}
             {settlements.length > 0 && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Settlement History</Text>
-                <Text style={styles.sectionSubtitle}>Record of when balances were settled</Text>
+                <Text style={styles.sectionTitle}>{t('stats.settlement.title')}</Text>
+                <Text style={styles.sectionSubtitle}>{t('stats.settlement.subtitle')}</Text>
                 {settlements.map(renderSettlementItem)}
               </View>
             )}
@@ -599,7 +631,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: SPACING.screenPadding,
-    paddingTop: Platform.OS === 'web' ? SPACING.base : 10,
+    // paddingTop is set dynamically via inline style using safe area insets
     paddingBottom: SPACING.base,
   },
   headerTitle: {

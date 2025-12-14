@@ -2,6 +2,7 @@
 // Authentication context for managing user state across the app
 
 import React, { createContext, useState, useEffect, useContext } from 'react';
+import { Platform } from 'react-native';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -9,10 +10,47 @@ import {
   onAuthStateChanged,
   GoogleAuthProvider,
   OAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  signInWithCredential,
+  updatePassword,
+  deleteUser,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  reauthenticateWithPopup
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Import Google Sign-In for native platforms only
+let GoogleSignin = null;
+let statusCodes = null;
+const WEB_CLIENT_ID = '156140614030-dm5esb364f890n4pe4g3qhiks6as1el2.apps.googleusercontent.com';
+
+if (Platform.OS !== 'web') {
+  try {
+    const googleSignIn = require('@react-native-google-signin/google-signin');
+    GoogleSignin = googleSignIn.GoogleSignin;
+    statusCodes = googleSignIn.statusCodes;
+
+    // Configure Google Sign-In
+    GoogleSignin.configure({
+      webClientId: WEB_CLIENT_ID,
+      offlineAccess: true,
+    });
+    console.log('Google Sign-In configured successfully');
+  } catch (e) {
+    console.log('Google Sign-In module not available:', e.message);
+  }
+}
+
+import {
+  registerForPushNotifications,
+  unregisterPushToken,
+  setupNotificationListeners,
+  removeNotificationListeners,
+  initializePushNotifications,
+} from '../services/pushNotificationService';
 
 // Create the context
 const AuthContext = createContext({});
@@ -32,56 +70,180 @@ export const AuthProvider = ({ children }) => {
   const [userDetails, setUserDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [pushToken, setPushToken] = useState(null);
+
+  // Initialize push notification channels on app startup (Android requires this early)
+  useEffect(() => {
+    initializePushNotifications().catch(err => {
+      console.warn('[AuthContext] Failed to initialize push notifications:', err);
+    });
+  }, []);
+
+  // Register for push notifications when user is authenticated
+  // Note: On web, permission must be granted via user gesture (Settings screen toggle)
+  // This effect only registers token if permission is already granted
+  useEffect(() => {
+    if (user && userDetails) {
+      const initPushNotifications = async () => {
+        try {
+          // Import dynamically to check permission status
+          const { getPermissionStatus, isPushNotificationSupported } = await import('../services/pushNotificationService');
+
+          if (!isPushNotificationSupported()) {
+            console.log('Push notifications not supported on this device/browser');
+            return;
+          }
+
+          const status = await getPermissionStatus();
+          console.log('Push notification permission status:', status);
+
+          // Only auto-register if permission is already granted
+          // On web, user must explicitly enable via Settings to trigger permission prompt
+          if (status === 'granted') {
+            const result = await registerForPushNotifications(user.uid);
+            if (result.success) {
+              setPushToken(result.token);
+              console.log('Push notifications registered successfully, token:', result.token?.substring(0, 20) + '...');
+            } else {
+              console.log('Push notifications not registered:', result.error);
+            }
+          } else {
+            console.log('Push notification permission not granted yet - user can enable in Settings');
+          }
+        } catch (err) {
+          console.error('Error initializing push notifications:', err);
+        }
+      };
+
+      initPushNotifications();
+
+      // Setup notification listeners (these work regardless of permission)
+      setupNotificationListeners(
+        (notification) => {
+          console.log('Notification received in foreground:', notification);
+        },
+        (response) => {
+          console.log('User interacted with notification:', response);
+        }
+      );
+
+      return () => {
+        removeNotificationListeners();
+      };
+    }
+  }, [user, userDetails]);
 
   // Listen for auth state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    let userDocUnsubscribe = null;
+
+    const authUnsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       try {
         if (firebaseUser) {
           console.log('AuthContext: Auth state changed, user logged in:', firebaseUser.uid);
           setUser(firebaseUser);
 
-          // Fetch additional user details from Firestore
-          console.log('AuthContext: Fetching user document from Firestore...');
-          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            console.log('AuthContext: User document fetched:', userData);
-            setUserDetails(userData);
-          } else {
-            // User document doesn't exist - create a minimal one with multi-account structure
-            console.warn('User document not found, creating minimal user details');
-            const minimalUserDetails = {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email,
-              displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
-              accounts: [], // Array of accounts
-              activeAccountId: null, // No active account yet
-            };
-            setUserDetails(minimalUserDetails);
-          }
+          // Set up real-time listener for user document (for subscription updates)
+          console.log('AuthContext: Setting up real-time listener for user document...');
+          const userRef = doc(db, 'users', firebaseUser.uid);
+
+          userDocUnsubscribe = onSnapshot(
+            userRef,
+            async (snapshot) => {
+              if (snapshot.exists()) {
+                const userData = snapshot.data();
+                console.log('🔄 User details updated from Firestore:', {
+                  subscriptionStatus: userData.subscriptionStatus,
+                  manuallyGranted: userData.manuallyGranted,
+                  subscriptionExpiresAt: userData.subscriptionExpiresAt,
+                  accountsCount: userData.accounts?.length || 0,
+                  activeAccountId: userData.activeAccountId,
+                });
+
+                setUserDetails(userData);
+              } else {
+                // User document doesn't exist - create it with multi-account structure (self-healing)
+                console.warn('⚠️ User document not found for authenticated user. Creating it now...');
+                const newUserData = {
+                  uid: firebaseUser.uid,
+                  email: firebaseUser.email,
+                  displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+                  // Legacy fields for backward compatibility
+                  partnerId: null,
+                  coupleId: null,
+                  // Multi-account fields
+                  accounts: [], // Array of account objects
+                  activeAccountId: null, // Currently selected account
+                  createdAt: new Date().toISOString(),
+                  settings: {
+                    notifications: true,
+                    defaultSplit: 50,
+                    currency: 'USD',
+                  },
+                  // Subscription fields
+                  subscriptionStatus: 'free',
+                  subscriptionPlatform: null,
+                  subscriptionExpiresAt: null,
+                  subscriptionProductId: null,
+                  revenueCatUserId: firebaseUser.uid,
+                  trialUsed: false,
+                  trialEndsAt: null,
+                };
+
+                try {
+                  await setDoc(userRef, newUserData);
+                  console.log('✓ User document created successfully');
+                  setUserDetails(newUserData);
+                } catch (error) {
+                  console.error('❌ Failed to create user document:', error);
+                  // Fall back to local state only
+                  setUserDetails(newUserData);
+                }
+              }
+              setLoading(false);
+            },
+            (error) => {
+              console.error('Error listening to user details:', error);
+              // Fallback to one-time fetch on error
+              getDoc(userRef).then(doc => {
+                if (doc.exists()) {
+                  const data = doc.data();
+                  setUserDetails(data);
+                }
+                setLoading(false);
+              }).catch(err => {
+                console.error('Fallback getDoc also failed:', err);
+                setLoading(false);
+              });
+            }
+          );
         } else {
           console.log('AuthContext: Auth state changed, user logged out');
           setUser(null);
           setUserDetails(null);
+          setLoading(false);
         }
       } catch (err) {
         console.error('Error in auth state change:', err);
         setError(err.message);
-      } finally {
         setLoading(false);
       }
     });
 
-    // Cleanup subscription
-    return unsubscribe;
+    // Cleanup subscriptions
+    return () => {
+      authUnsubscribe();
+      if (userDocUnsubscribe) {
+        userDocUnsubscribe();
+      }
+    };
   }, []);
 
   // Sign up with email and password
   const signUp = async (email, password, displayName) => {
     try {
       setError(null);
-      setLoading(true);
+      // setLoading(true); // Removed to prevent navigation stack reset
 
       // Create user in Firebase Auth
       console.log('Creating Firebase Auth user...');
@@ -102,6 +264,14 @@ export const AuthProvider = ({ children }) => {
           defaultSplit: 50,
           currency: 'USD',
         },
+        // Subscription fields
+        subscriptionStatus: 'free', // 'free' | 'premium' | 'trial' | 'expired'
+        subscriptionPlatform: null, // 'ios' | 'android' | 'web' | null
+        subscriptionExpiresAt: null,
+        subscriptionProductId: null,
+        revenueCatUserId: firebaseUser.uid, // Links to RevenueCat
+        trialUsed: false,
+        trialEndsAt: null,
       };
 
       console.log('Creating Firestore user document...');
@@ -115,7 +285,7 @@ export const AuthProvider = ({ children }) => {
       setError(err.message);
       throw err;
     } finally {
-      setLoading(false);
+      // setLoading(false);
     }
   };
 
@@ -123,7 +293,7 @@ export const AuthProvider = ({ children }) => {
   const signIn = async (email, password) => {
     try {
       setError(null);
-      setLoading(true);
+      // setLoading(true); // Removed to prevent navigation stack reset
 
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const { user: firebaseUser } = userCredential;
@@ -137,10 +307,41 @@ export const AuthProvider = ({ children }) => {
       return firebaseUser;
     } catch (err) {
       console.error('Sign in error:', err);
-      setError(err.message);
-      throw err;
+
+      // Map Firebase error codes to user-friendly messages
+      let userMessage = 'An error occurred. Please try again.';
+
+      switch (err.code) {
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+        case 'auth/invalid-credential':
+          // Generic message for security - don't reveal if email exists
+          userMessage = 'Invalid email or password. Please check your credentials and try again.';
+          break;
+        case 'auth/invalid-email':
+          userMessage = 'Invalid email address format.';
+          break;
+        case 'auth/user-disabled':
+          userMessage = 'This account has been disabled. Please contact support.';
+          break;
+        case 'auth/too-many-requests':
+          userMessage = 'Too many failed login attempts. Please try again later or reset your password.';
+          break;
+        case 'auth/network-request-failed':
+          userMessage = 'Network error. Please check your internet connection and try again.';
+          break;
+        default:
+          userMessage = err.message || 'Failed to sign in. Please try again.';
+      }
+
+      setError(userMessage);
+
+      // Create a new error with the user-friendly message
+      const userError = new Error(userMessage);
+      userError.code = err.code;
+      throw userError;
     } finally {
-      setLoading(false);
+      // setLoading(false);
     }
   };
 
@@ -148,6 +349,14 @@ export const AuthProvider = ({ children }) => {
   const signOut = async () => {
     try {
       setError(null);
+
+      // Unregister push token before signing out
+      if (user) {
+        await unregisterPushToken(user.uid);
+        setPushToken(null);
+        removeNotificationListeners();
+      }
+
       await firebaseSignOut(auth);
       setUser(null);
       setUserDetails(null);
@@ -165,7 +374,7 @@ export const AuthProvider = ({ children }) => {
 
       setError(null);
       await updateDoc(doc(db, 'users', user.uid), updates);
-      
+
       // Update local state
       setUserDetails(prev => ({ ...prev, ...updates }));
     } catch (err) {
@@ -255,14 +464,47 @@ export const AuthProvider = ({ children }) => {
     return userDetails?.activeAccountId != null;
   };
 
-  // Sign in with Google (OAuth)
+  // Sign in with Google (OAuth) - cross-platform support
   const signInWithGoogle = async () => {
     try {
       setError(null);
-      const provider = new GoogleAuthProvider();
+      let firebaseUser;
 
-      const result = await signInWithPopup(auth, provider);
-      const firebaseUser = result.user;
+      if (Platform.OS === 'web') {
+        // Web: Use Firebase popup sign-in
+        const provider = new GoogleAuthProvider();
+        const result = await signInWithPopup(auth, provider);
+        firebaseUser = result.user;
+      } else {
+        // Native (iOS/Android): Use @react-native-google-signin/google-signin
+        if (!GoogleSignin) {
+          throw new Error('Google Sign-In is not configured for this platform');
+        }
+
+        // Check if Google Sign-In is configured
+        try {
+          await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+        } catch (e) {
+          console.error('Play services error:', e);
+          throw new Error('Google Play Services are required for Google Sign-In');
+        }
+
+        // Sign in with Google
+        const signInResult = await GoogleSignin.signIn();
+        console.log('Google Sign-In result:', signInResult);
+
+        // Get the ID token - handle both old and new API formats
+        const idToken = signInResult.data?.idToken || signInResult.idToken;
+
+        if (!idToken) {
+          throw new Error('Failed to get Google ID token');
+        }
+
+        // Create Firebase credential and sign in
+        const googleCredential = GoogleAuthProvider.credential(idToken);
+        const result = await signInWithCredential(auth, googleCredential);
+        firebaseUser = result.user;
+      }
 
       // Check if user document exists, create if not
       const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
@@ -273,6 +515,10 @@ export const AuthProvider = ({ children }) => {
           uid: firebaseUser.uid,
           email: firebaseUser.email,
           displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+          // Legacy fields for backward compatibility
+          partnerId: null,
+          coupleId: null,
+          // Multi-account fields
           accounts: [], // Array of accounts (solo and couple budgets)
           activeAccountId: null, // Currently selected account
           createdAt: new Date().toISOString(),
@@ -281,6 +527,14 @@ export const AuthProvider = ({ children }) => {
             defaultSplit: 50,
             currency: 'USD',
           },
+          // Subscription fields
+          subscriptionStatus: 'free',
+          subscriptionPlatform: null,
+          subscriptionExpiresAt: null,
+          subscriptionProductId: null,
+          revenueCatUserId: firebaseUser.uid,
+          trialUsed: false,
+          trialEndsAt: null,
         };
 
         await setDoc(doc(db, 'users', firebaseUser.uid), userData);
@@ -296,12 +550,16 @@ export const AuthProvider = ({ children }) => {
         setError('Google sign-in is not enabled. Please enable it in Firebase Console → Authentication → Sign-in method → Google');
       } else if (err.code === 'auth/popup-blocked') {
         setError('Popup was blocked. Please allow popups for this site.');
-      } else if (err.code === 'auth/popup-closed-by-user') {
+      } else if (err.code === 'auth/popup-closed-by-user' || err.code === statusCodes?.SIGN_IN_CANCELLED) {
         setError('Sign-in cancelled');
       } else if (err.code === 'auth/account-exists-with-different-credential') {
         setError('An account already exists with the same email. Try a different sign-in method.');
       } else if (err.code === 'auth/unauthorized-domain') {
         setError('This domain is not authorized. Add it in Firebase Console → Authentication → Settings → Authorized domains');
+      } else if (err.code === statusCodes?.IN_PROGRESS) {
+        setError('Sign-in already in progress');
+      } else if (err.code === statusCodes?.PLAY_SERVICES_NOT_AVAILABLE) {
+        setError('Google Play Services not available');
       } else {
         setError(err.message || 'Failed to sign in with Google');
       }
@@ -327,6 +585,10 @@ export const AuthProvider = ({ children }) => {
           uid: firebaseUser.uid,
           email: firebaseUser.email,
           displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+          // Legacy fields for backward compatibility
+          partnerId: null,
+          coupleId: null,
+          // Multi-account fields
           accounts: [], // Array of accounts (solo and couple budgets)
           activeAccountId: null, // Currently selected account
           createdAt: new Date().toISOString(),
@@ -335,6 +597,14 @@ export const AuthProvider = ({ children }) => {
             defaultSplit: 50,
             currency: 'USD',
           },
+          // Subscription fields
+          subscriptionStatus: 'free',
+          subscriptionPlatform: null,
+          subscriptionExpiresAt: null,
+          subscriptionProductId: null,
+          revenueCatUserId: firebaseUser.uid,
+          trialUsed: false,
+          trialEndsAt: null,
         };
 
         await setDoc(doc(db, 'users', firebaseUser.uid), userData);
@@ -363,12 +633,174 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Change password (requires recent authentication)
+  const changePassword = async (currentPassword, newPassword) => {
+    try {
+      if (!user) throw new Error('No user logged in');
+      setError(null);
+
+      // Check if user signed in with email/password
+      const providerData = user.providerData;
+      const hasEmailProvider = providerData.some(p => p.providerId === 'password');
+
+      if (!hasEmailProvider) {
+        throw new Error('Password change is only available for email/password accounts. You signed in with a social provider.');
+      }
+
+      // Reauthenticate user with current password
+      const credential = EmailAuthProvider.credential(user.email, currentPassword);
+      await reauthenticateWithCredential(user, credential);
+
+      // Update password
+      await updatePassword(user, newPassword);
+      console.log('✓ Password updated successfully');
+
+      return true;
+    } catch (err) {
+      console.error('Change password error:', err);
+
+      // Handle specific errors
+      if (err.code === 'auth/wrong-password') {
+        setError('Current password is incorrect');
+      } else if (err.code === 'auth/weak-password') {
+        setError('New password is too weak. Please use at least 6 characters.');
+      } else if (err.code === 'auth/requires-recent-login') {
+        setError('For security, please sign out and sign in again before changing your password');
+      } else {
+        setError(err.message);
+      }
+      throw err;
+    }
+  };
+
+  // Unpair from partner
+  const unpair = async () => {
+    try {
+      if (!user) throw new Error('No user logged in');
+      if (!userDetails?.partnerId) throw new Error('No partner to unpair from');
+
+      setError(null);
+      setLoading(true);
+
+      const partnerId = userDetails.partnerId;
+      const currentUserId = user.uid;
+
+      console.log(`Unpairing users: ${currentUserId} and ${partnerId}`);
+
+      // Update current user document - keep coupleId, store previous partner
+      const currentUserRef = doc(db, 'users', currentUserId);
+      await updateDoc(currentUserRef, {
+        partnerId: null,
+        previousPartnerId: partnerId, // Store for easy reconnection
+        // coupleId is kept to maintain access to shared data
+        unpairedAt: new Date().toISOString()
+      });
+
+      // Update partner document - keep coupleId, store previous partner
+      const partnerRef = doc(db, 'users', partnerId);
+      await updateDoc(partnerRef, {
+        partnerId: null,
+        previousPartnerId: currentUserId, // Store for easy reconnection
+        // coupleId is kept to maintain access to shared data
+        unpairedAt: new Date().toISOString()
+      });
+
+      console.log('✓ Users unpaired successfully (coupleId preserved)');
+
+      // Update local state - keep coupleId
+      setUserDetails(prev => ({
+        ...prev,
+        partnerId: null,
+        previousPartnerId: partnerId
+      }));
+
+      return true;
+    } catch (err) {
+      console.error('Unpair error:', err);
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Delete account (requires recent authentication)
+  const deleteAccount = async (password = null) => {
+    try {
+      if (!user) throw new Error('No user logged in');
+      setError(null);
+
+      // Check provider type
+      const providerData = user.providerData;
+      const hasEmailProvider = providerData.some(p => p.providerId === 'password');
+      const hasGoogleProvider = providerData.some(p => p.providerId === 'google.com');
+      const hasAppleProvider = providerData.some(p => p.providerId === 'apple.com');
+
+      // Reauthenticate based on provider
+      if (hasEmailProvider) {
+        if (!password) {
+          throw new Error('Password is required to delete account');
+        }
+        const credential = EmailAuthProvider.credential(user.email, password);
+        await reauthenticateWithCredential(user, credential);
+      } else if (hasGoogleProvider) {
+        const provider = new GoogleAuthProvider();
+        await reauthenticateWithPopup(user, provider);
+      } else if (hasAppleProvider) {
+        const provider = new OAuthProvider('apple.com');
+        await reauthenticateWithPopup(user, provider);
+      }
+
+      // Delete user data from Firestore
+      const userId = user.uid;
+
+      // If user has a partner, we should handle couple data cleanup
+      if (userDetails?.coupleId) {
+        console.log('⚠️ User has couple data. Consider implementing cleanup logic.');
+        // TODO: Implement couple data cleanup if needed
+        // For now, we'll just delete the user document
+      }
+
+      // Delete user document from Firestore
+      const userRef = doc(db, 'users', userId);
+      await updateDoc(userRef, {
+        deleted: true,
+        deletedAt: new Date().toISOString(),
+      });
+
+      // Delete the Firebase Auth account
+      await deleteUser(user);
+      console.log('✓ Account deleted successfully');
+
+      // Clear local state
+      setUser(null);
+      setUserDetails(null);
+
+      return true;
+    } catch (err) {
+      console.error('Delete account error:', err);
+
+      // Handle specific errors
+      if (err.code === 'auth/wrong-password') {
+        setError('Password is incorrect');
+      } else if (err.code === 'auth/requires-recent-login') {
+        setError('For security, please sign out and sign in again before deleting your account');
+      } else if (err.code === 'auth/popup-closed-by-user') {
+        setError('Account deletion cancelled');
+      } else {
+        setError(err.message);
+      }
+      throw err;
+    }
+  };
+
   // Value provided to consumers
   const value = {
     user,
     userDetails,
     loading,
     error,
+    pushToken,
     signUp,
     signIn,
     signOut,
@@ -377,9 +809,12 @@ export const AuthProvider = ({ children }) => {
     updateUserDetails,
     updatePartnerInfo, // Deprecated - kept for backward compatibility
     getPartnerDetails,
-    hasPartner, // Now checks if user has any accounts
+    hasPartner, // Now checks if user has any accounts (multi-account support)
     hasActiveAccount, // New: Check if user has selected an active account
     setActiveAccount, // New: Set the active account
+    changePassword, // From master: Change user password
+    deleteAccount, // From master: Delete user account
+    unpair, // From master: Unpair from partner
   };
 
   return (

@@ -27,9 +27,29 @@ import { Ionicons } from '@expo/vector-icons';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSubscription } from '../../contexts/SubscriptionContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { onboardingStorage } from '../../utils/storage';
 import { COLORS, FONTS, SPACING } from '../../constants/theme';
 import { formatCurrency, calculateBalance } from '../../utils/calculations';
+import CurrencyPicker from '../../components/CurrencyPicker';
+import { getCurrencyInfo } from '../../constants/currencies';
+import {
+  updatePrimaryCurrency,
+  getPrimaryCurrency,
+  updateNotificationPreferences,
+  getCoupleSettings,
+} from '../../services/coupleSettingsService';
+import MerchantAliasManager from '../../components/MerchantAliasManager';
+import { useTranslation } from 'react-i18next';
+import {
+  getPermissionStatus,
+  requestPermissions,
+  isPushNotificationSupported,
+  registerForPushNotifications,
+} from '../../services/pushNotificationService';
+import { deleteBudgetForMonth } from '../../services/budgetService';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width: screenWidth } = Dimensions.get('window');
 const isSmallScreen = screenWidth < 375;
@@ -37,14 +57,50 @@ const isMediumScreen = screenWidth >= 375 && screenWidth < 768;
 const isLargeScreen = screenWidth >= 768;
 
 export default function SettingsScreen({ navigation }) {
-  const { user, userDetails, signOut, getPartnerDetails } = useAuth();
+  const { user, userDetails, signOut, getPartnerDetails, changePassword, deleteAccount, unpair } = useAuth();
+  const { isPremium, subscriptionInfo } = useSubscription();
+  const insets = useSafeAreaInsets();
+  const { currentLanguage, changeLanguage, availableLanguages, getCurrentLanguageInfo } = useLanguage();
+  const { t } = useTranslation();
   const [editingName, setEditingName] = useState(false);
   const [displayName, setDisplayName] = useState(userDetails?.displayName || '');
   const [partnerName, setPartnerName] = useState('Partner');
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
   const [signOutModalVisible, setSignOutModalVisible] = useState(false);
+  const [unpairModalVisible, setUnpairModalVisible] = useState(false);
+  const [unpairing, setUnpairing] = useState(false);
+  const [primaryCurrency, setPrimaryCurrency] = useState('USD');
+  const [currencyLoading, setCurrencyLoading] = useState(false);
+  const [languageModalVisible, setLanguageModalVisible] = useState(false);
   const [restartOnboardingModalVisible, setRestartOnboardingModalVisible] = useState(false);
+  const [showAliasManager, setShowAliasManager] = useState(false);
+  const [currencyChangeModalVisible, setCurrencyChangeModalVisible] = useState(false);
+  const [pendingCurrency, setPendingCurrency] = useState(null);
+  const [notifications, setNotifications] = useState({
+    emailEnabled: true,
+    pushEnabled: true,
+    monthlyBudgetAlert: true,
+    annualBudgetAlert: true,
+    fiscalYearEndReminder: true,
+    savingsGoalMilestone: true,
+    partnerActivity: false,
+  });
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [pushPermissionStatus, setPushPermissionStatus] = useState('undetermined');
+
+  // Change password modal state
+  const [changePasswordModalVisible, setChangePasswordModalVisible] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
+
+  // Delete account modal state
+  const [deleteAccountModalVisible, setDeleteAccountModalVisible] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   // Fetch partner details
   useEffect(() => {
@@ -70,9 +126,41 @@ export default function SettingsScreen({ navigation }) {
     }
   }, [userDetails?.displayName]);
 
+  // Fetch primary currency and notification settings
+  useEffect(() => {
+    const fetchSettings = async () => {
+      if (userDetails?.coupleId) {
+        try {
+          // Fetch currency
+          const currency = await getPrimaryCurrency(userDetails.coupleId);
+          setPrimaryCurrency(currency.code);
+
+          // Fetch notification preferences
+          const settings = await getCoupleSettings(userDetails.coupleId);
+          if (settings.notifications) {
+            setNotifications(prev => ({
+              ...prev,
+              ...settings.notifications,
+              pushEnabled: settings.notifications.pushEnabled !== false, // Default to true
+            }));
+          }
+
+          // Check push notification permission status
+          if (isPushNotificationSupported()) {
+            const status = await getPermissionStatus();
+            setPushPermissionStatus(status);
+          }
+        } catch (error) {
+          console.error('Error fetching settings:', error);
+        }
+      }
+    };
+    fetchSettings();
+  }, [userDetails?.coupleId]);
+
   const handleSaveName = async () => {
     if (!displayName.trim()) {
-      Alert.alert('Error', 'Name cannot be empty');
+      Alert.alert(t('common.error'), t('settings.nameEmpty'));
       return;
     }
 
@@ -89,10 +177,10 @@ export default function SettingsScreen({ navigation }) {
       });
 
       setEditingName(false);
-      Alert.alert('Success', 'Name updated successfully');
+      Alert.alert(t('common.success'), t('settings.nameUpdated'));
     } catch (error) {
       console.error('Error updating name:', error);
-      Alert.alert('Error', 'Failed to update name. Please try again.');
+      Alert.alert(t('common.error'), t('settings.nameUpdateFailed'));
     } finally {
       setSaving(false);
     }
@@ -101,6 +189,66 @@ export default function SettingsScreen({ navigation }) {
   const handleSignOut = () => {
     console.log('Sign out button pressed');
     setSignOutModalVisible(true);
+  };
+
+  const handleCurrencyChange = async (newCurrency) => {
+    console.log('🔍 handleCurrencyChange called with:', newCurrency);
+    console.log('🔍 Current primaryCurrency:', primaryCurrency);
+    console.log('🔍 userDetails?.coupleId:', userDetails?.coupleId);
+
+    if (!userDetails?.coupleId) {
+      console.log('❌ No coupleId, returning early');
+      return;
+    }
+
+    console.log('🔍 Comparing currencies:', newCurrency, '!==', primaryCurrency, '=', newCurrency !== primaryCurrency);
+
+    // Show warning if changing from current currency
+    if (newCurrency !== primaryCurrency) {
+      console.log('✅ Showing confirmation modal');
+      setPendingCurrency(newCurrency);
+      setCurrencyChangeModalVisible(true);
+    } else {
+      console.log('ℹ️ Same currency selected, no change needed');
+    }
+  };
+
+  const confirmCurrencyChange = async () => {
+    console.log('✅ User confirmed currency change');
+    setCurrencyChangeModalVisible(false);
+    setCurrencyLoading(true);
+
+    try {
+      console.log('🔄 Fetching currency info for:', pendingCurrency);
+      const currencyInfo = getCurrencyInfo(pendingCurrency);
+      console.log('📦 Currency info:', currencyInfo);
+
+      console.log('🔄 Calling updatePrimaryCurrency...');
+      await updatePrimaryCurrency(
+        userDetails.coupleId,
+        pendingCurrency,
+        currencyInfo.symbol,
+        currencyInfo.locale
+      );
+      console.log('✅ updatePrimaryCurrency completed');
+
+      setPrimaryCurrency(pendingCurrency);
+      console.log(`✅ Primary currency successfully changed to ${pendingCurrency}`);
+    } catch (error) {
+      console.error('❌ Error updating currency:', error);
+      console.error('❌ Error stack:', error.stack);
+      console.error('❌ Failed to update currency. Please try again.');
+    } finally {
+      console.log('🔄 Setting currencyLoading to false');
+      setCurrencyLoading(false);
+      setPendingCurrency(null);
+    }
+  };
+
+  const cancelCurrencyChange = () => {
+    console.log('❌ User cancelled currency change');
+    setCurrencyChangeModalVisible(false);
+    setPendingCurrency(null);
   };
 
   const confirmSignOut = async () => {
@@ -112,7 +260,7 @@ export default function SettingsScreen({ navigation }) {
       console.log('Sign out successful');
     } catch (error) {
       console.error('Sign out error:', error);
-      Alert.alert('Error', `Failed to sign out: ${error.message}`);
+      Alert.alert(t('common.error'), `Failed to sign out: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -120,7 +268,7 @@ export default function SettingsScreen({ navigation }) {
 
   const renderProfileSection = () => (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Profile</Text>
+      <Text style={styles.sectionTitle}>{t('settings.profile')}</Text>
 
       <View style={styles.card}>
         {/* Display Name */}
@@ -129,13 +277,13 @@ export default function SettingsScreen({ navigation }) {
             <Ionicons name="person" size={20} color={COLORS.primary} />
           </View>
           <View style={styles.settingContent}>
-            <Text style={styles.settingLabel}>Display Name</Text>
+            <Text style={styles.settingLabel}>{t('settings.displayName')}</Text>
             {editingName ? (
               <TextInput
                 style={styles.input}
                 value={displayName}
                 onChangeText={setDisplayName}
-                placeholder="Enter your name"
+                placeholder={t('settings.namePlaceholder')}
                 autoFocus
                 maxLength={50}
               />
@@ -178,22 +326,47 @@ export default function SettingsScreen({ navigation }) {
         </View>
 
         {/* Email (read-only) */}
-        <View style={[styles.settingRow, styles.settingRowLast]}>
+        <View style={styles.settingRow}>
           <View style={styles.settingIcon}>
             <Ionicons name="mail" size={20} color={COLORS.primary} />
           </View>
           <View style={styles.settingContent}>
-            <Text style={styles.settingLabel}>Email</Text>
+            <Text style={styles.settingLabel}>{t('settings.email')}</Text>
             <Text style={styles.settingValue}>{user?.email}</Text>
           </View>
         </View>
+
+        {/* Change Password - only for email/password users */}
+        {user?.providerData?.some(p => p.providerId === 'password') && (
+          <TouchableOpacity
+            style={[styles.settingRow, styles.settingRowLast]}
+            onPress={() => setChangePasswordModalVisible(true)}
+            activeOpacity={0.6}
+          >
+            <View style={styles.settingIcon}>
+              <Ionicons name="key" size={20} color={COLORS.primary} />
+            </View>
+            <View style={styles.settingContent}>
+              <Text style={styles.settingLabel}>{t('settings.changePassword')}</Text>
+              <Text style={styles.settingDescription}>
+                {t('settings.changePasswordDescription')}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+          </TouchableOpacity>
+        )}
+
+        {/* Last row if no password provider */}
+        {!user?.providerData?.some(p => p.providerId === 'password') && (
+          <View style={styles.settingRowLast} />
+        )}
       </View>
     </View>
   );
 
   const renderPartnerSection = () => (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Partner</Text>
+      <Text style={styles.sectionTitle}>{t('settings.partner')}</Text>
 
       <View style={styles.card}>
         <View style={styles.settingRow}>
@@ -201,38 +374,155 @@ export default function SettingsScreen({ navigation }) {
             <Ionicons name="people" size={20} color={COLORS.primary} />
           </View>
           <View style={styles.settingContent}>
-            <Text style={styles.settingLabel}>Partner Name</Text>
-            <Text style={styles.settingValue}>{partnerName}</Text>
+            <Text style={styles.settingLabel}>{t('settings.partnerName')}</Text>
+            <Text style={styles.settingValue}>
+              {userDetails?.partnerId ? partnerName : t('settings.noPartner')}
+            </Text>
           </View>
         </View>
 
-        {userDetails?.coupleId && (
-          <View style={[styles.settingRow, styles.settingRowLast]}>
+        {/* Show reconnect button for unpaired users */}
+        {!userDetails?.partnerId && (
+          <TouchableOpacity
+            style={[styles.settingRow, styles.settingRowLast]}
+            onPress={() => navigation.navigate('Connect')}
+            activeOpacity={0.7}
+          >
             <View style={styles.settingIcon}>
-              <Ionicons name="heart" size={20} color={COLORS.error} />
+              <Ionicons name="people-outline" size={20} color={COLORS.primary} />
             </View>
             <View style={styles.settingContent}>
-              <Text style={styles.settingLabel}>Couple ID</Text>
-              <Text style={[styles.settingValue, styles.settingValueSmall]}>
-                {userDetails.coupleId.substring(0, 20)}...
+              <Text style={[styles.settingLabel, { color: COLORS.primary }]}>
+                {t('home.unpaired.findPartner')}
               </Text>
             </View>
-          </View>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+          </TouchableOpacity>
+        )}
+
+        {userDetails?.coupleId && userDetails?.partnerId && (
+          <>
+            <View style={styles.settingRow}>
+              <View style={styles.settingIcon}>
+                <Ionicons name="heart" size={20} color={COLORS.error} />
+              </View>
+              <View style={styles.settingContent}>
+                <Text style={styles.settingLabel}>{t('settings.coupleId')}</Text>
+                <Text style={[styles.settingValue, styles.settingValueSmall]}>
+                  {userDetails.coupleId.substring(0, 20)}...
+                </Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.settingRow, styles.settingRowLast]}
+              onPress={() => setUnpairModalVisible(true)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.settingIcon}>
+                <Ionicons name="cut-outline" size={20} color={COLORS.error} />
+              </View>
+              <View style={styles.settingContent}>
+                <Text style={[styles.settingLabel, { color: COLORS.error }]}>
+                  {t('settings.unpair')}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+            </TouchableOpacity>
+          </>
         )}
       </View>
     </View>
   );
 
-  const handleRestartOnboarding = () => {
+  const renderSubscriptionSection = () => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>{t('settings.subscription.title')}</Text>
+
+      <View style={styles.card}>
+        {/* Subscription Status */}
+        <View style={styles.settingRow}>
+          <View style={styles.settingIcon}>
+            <Ionicons
+              name={isPremium ? 'sparkles' : 'lock-closed'}
+              size={20}
+              color={isPremium ? '#FFD700' : COLORS.textSecondary}
+            />
+          </View>
+          <View style={styles.settingContent}>
+            <Text style={styles.settingLabel}>{t('settings.subscription.plan')}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={[styles.settingValue, isPremium && { color: COLORS.primary, fontWeight: '600' }]}>
+                {isPremium ? t('settings.subscription.planPremium') : t('settings.subscription.planFree')}
+              </Text>
+              {isPremium && (
+                <View style={styles.premiumBadge}>
+                  <Text style={styles.premiumBadgeText}>{t('settings.subscription.active')}</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        </View>
+
+        {/* Manage/Upgrade Button */}
+        <TouchableOpacity
+          style={[styles.settingRow, styles.settingRowLast]}
+          onPress={() => navigation.navigate(isPremium ? 'SubscriptionManagement' : 'Paywall')}
+          activeOpacity={0.7}
+        >
+          <View style={styles.settingIcon}>
+            <Ionicons
+              name={isPremium ? 'settings' : 'arrow-up-circle'}
+              size={20}
+              color={COLORS.primary}
+            />
+          </View>
+          <View style={styles.settingContent}>
+            <Text style={styles.settingLabel}>
+              {isPremium ? t('settings.subscription.manage') : t('settings.subscription.upgrade')}
+            </Text>
+            {!isPremium && (
+              <Text style={styles.settingDescription}>
+                {t('settings.subscription.description')}
+              </Text>
+            )}
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Couples Subscription Info */}
+      {userDetails?.partnerId && (
+        <View style={styles.infoCard}>
+          <Ionicons name="heart" size={16} color={COLORS.primary} />
+          <Text style={styles.infoCardText}>
+            {isPremium
+              ? t('settings.subscription.partnerHasPremium')
+              : t('settings.subscription.bothGetPremium')}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+
+  const handleLanguageSelect = async (languageCode) => {
+    try {
+      await changeLanguage(languageCode);
+      setLanguageModalVisible(false);
+    } catch (error) {
+      console.error('Error changing language:', error);
+      Alert.alert(t('common.error'), t('settings.languageChangeFailed'));
+    }
+  };
+
+  const handleRestartOnboarding = async () => {
     console.log('🚨 RESTART BUTTON CLICKED - HANDLER CALLED');
     setRestartOnboardingModalVisible(true);
   };
 
   const confirmRestartOnboarding = async () => {
-    console.log('✅ User confirmed restart - executing...');
-    setRestartOnboardingModalVisible(false);
-
     try {
+      setRestartOnboardingModalVisible(false);
       console.log('🔄 Restarting onboarding...');
 
       // Clear the onboarding completion flag using storage utility
@@ -240,6 +530,19 @@ export default function SettingsScreen({ navigation }) {
         await onboardingStorage.clearCompleted(userDetails.coupleId);
         await onboardingStorage.clearState();
         console.log('✅ Cleared onboarding storage');
+
+        // Delete current month's budget from Firestore so user starts fresh
+        const now = new Date();
+        const month = now.getMonth() + 1; // 1-12
+        const year = now.getFullYear();
+
+        try {
+          await deleteBudgetForMonth(userDetails.coupleId, month, year);
+          console.log('✅ Cleared current month budget');
+        } catch (budgetError) {
+          // Log but don't fail - budget might not exist yet
+          console.log('ℹ️ Could not delete budget (may not exist):', budgetError.message);
+        }
       }
 
       // Log navigation state for debugging
@@ -268,22 +571,390 @@ export default function SettingsScreen({ navigation }) {
       }
     } catch (error) {
       console.error('❌ Error restarting onboarding:', error);
-      Alert.alert('Error', 'Failed to restart onboarding. Please try again.');
+      Alert.alert(t('common.error'), t('settings.restartError'));
     }
   };
 
-  const renderPreferencesSection = () => (
+  const handleNotificationToggle = async (key, value) => {
+    if (!userDetails?.coupleId) return;
+
+    setNotificationsLoading(true);
+    try {
+      const updatedNotifications = {
+        ...notifications,
+        [key]: value,
+      };
+      setNotifications(updatedNotifications);
+
+      await updateNotificationPreferences(userDetails.coupleId, updatedNotifications);
+      console.log(`✅ Updated ${key} to ${value}`);
+    } catch (error) {
+      console.error('Error updating notification preferences:', error);
+      // Revert on error
+      setNotifications(notifications);
+      Alert.alert(t('common.error'), t('settings.notificationUpdateFailed'));
+    } finally {
+      setNotificationsLoading(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    // Validation
+    if (!currentPassword.trim()) {
+      Alert.alert(t('common.error'), t('settings.changePasswordModal.currentPasswordEmpty'));
+      return;
+    }
+
+    if (!newPassword.trim()) {
+      Alert.alert(t('common.error'), t('settings.changePasswordModal.newPasswordEmpty'));
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      Alert.alert(t('common.error'), t('settings.changePasswordModal.passwordTooShort'));
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      Alert.alert(t('common.error'), t('settings.changePasswordModal.passwordMismatch'));
+      return;
+    }
+
+    setChangingPassword(true);
+    try {
+      await changePassword(currentPassword, newPassword);
+
+      // Success - clear form and close modal
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setChangePasswordModalVisible(false);
+
+      Alert.alert(t('common.success'), t('settings.changePasswordModal.success'));
+    } catch (error) {
+      console.error('Password change error:', error);
+      Alert.alert(
+        t('common.error'),
+        error.message || t('settings.changePasswordModal.error')
+      );
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    // Check if user signed in with OAuth
+    const providerData = user?.providerData || [];
+    const hasEmailProvider = providerData.some(p => p.providerId === 'password');
+
+    // Validation for email/password users
+    if (hasEmailProvider && !deletePassword.trim()) {
+      Alert.alert(t('common.error'), t('settings.deleteAccountModal.passwordEmpty'));
+      return;
+    }
+
+    // Require typing "DELETE" to confirm
+    if (deleteConfirmation.trim() !== 'DELETE') {
+      Alert.alert(t('common.error'), t('settings.deleteAccountModal.confirmationMismatch'));
+      return;
+    }
+
+    setDeletingAccount(true);
+    try {
+      await deleteAccount(hasEmailProvider ? deletePassword : null);
+
+      // Success - account deleted, user will be signed out automatically
+      Alert.alert(t('common.success'), t('settings.deleteAccountModal.success'));
+    } catch (error) {
+      console.error('Account deletion error:', error);
+      Alert.alert(
+        t('common.error'),
+        error.message || t('settings.deleteAccountModal.error')
+      );
+      setDeletingAccount(false);
+    }
+  };
+
+  const handleUnpair = async () => {
+    setUnpairing(true);
+    try {
+      await unpair();
+      setUnpairModalVisible(false);
+      Alert.alert(t('common.success'), t('settings.unpairModal.success'));
+    } catch (error) {
+      console.error('Unpair error:', error);
+      Alert.alert(
+        t('common.error'),
+        error.message || t('settings.unpairModal.error')
+      );
+    } finally {
+      setUnpairing(false);
+    }
+  };
+
+
+  const renderNotificationsSection = () => (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Preferences</Text>
+      <Text style={styles.sectionTitle}>{t('settings.notifications.title')}</Text>
 
       <View style={styles.card}>
+        {/* Master Toggle */}
         <View style={styles.settingRow}>
+          <View style={styles.settingIcon}>
+            <Ionicons
+              name={notifications.emailEnabled ? "mail" : "mail-outline"}
+              size={20}
+              color={notifications.emailEnabled ? COLORS.primary : COLORS.textSecondary}
+            />
+          </View>
+          <View style={styles.settingContent}>
+            <Text style={styles.settingLabel}>{t('settings.notifications.emailEnabled')}</Text>
+            <Text style={styles.settingDescription}>{t('settings.notifications.emailEnabledDesc')}</Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => handleNotificationToggle('emailEnabled', !notifications.emailEnabled)}
+            disabled={notificationsLoading}
+            activeOpacity={0.7}
+          >
+            <View style={[
+              styles.toggle,
+              notifications.emailEnabled && styles.toggleActive
+            ]}>
+              <View style={[
+                styles.toggleThumb,
+                notifications.emailEnabled && styles.toggleThumbActive
+              ]} />
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Push Notifications Toggle */}
+        {isPushNotificationSupported() && (
+          <View style={styles.settingRow}>
+            <View style={styles.settingIcon}>
+              <Ionicons
+                name={notifications.pushEnabled ? "notifications" : "notifications-outline"}
+                size={20}
+                color={notifications.pushEnabled ? COLORS.primary : COLORS.textSecondary}
+              />
+            </View>
+            <View style={styles.settingContent}>
+              <Text style={styles.settingLabel}>{t('settings.notifications.pushEnabled') || 'Push Notifications'}</Text>
+              <Text style={styles.settingDescription}>
+                {pushPermissionStatus === 'granted'
+                  ? (t('settings.notifications.pushEnabledDesc') || 'Receive notifications on this device')
+                  : pushPermissionStatus === 'denied'
+                  ? (t('settings.notifications.pushDenied') || 'Permission denied - enable in device settings')
+                  : (t('settings.notifications.pushUndetermined') || 'Tap to enable push notifications')}
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={async () => {
+                if (pushPermissionStatus !== 'granted') {
+                  console.log('Requesting push notification permission...');
+                  const granted = await requestPermissions();
+                  console.log('Permission request result:', granted);
+                  if (granted) {
+                    setPushPermissionStatus('granted');
+                    handleNotificationToggle('pushEnabled', true);
+                    // Register the push token after permission is granted
+                    if (user?.uid) {
+                      console.log('Registering push token for user:', user.uid);
+                      const result = await registerForPushNotifications(user.uid);
+                      console.log('Push token registration result:', result);
+                    }
+                  } else {
+                    setPushPermissionStatus('denied');
+                  }
+                } else {
+                  handleNotificationToggle('pushEnabled', !notifications.pushEnabled);
+                }
+              }}
+              disabled={notificationsLoading || pushPermissionStatus === 'denied'}
+              activeOpacity={0.7}
+            >
+              <View style={[
+                styles.toggle,
+                notifications.pushEnabled && pushPermissionStatus === 'granted' && styles.toggleActive,
+                pushPermissionStatus === 'denied' && { opacity: 0.5 }
+              ]}>
+                <View style={[
+                  styles.toggleThumb,
+                  notifications.pushEnabled && pushPermissionStatus === 'granted' && styles.toggleThumbActive
+                ]} />
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Only show other options if email or push is enabled */}
+        {(notifications.emailEnabled || notifications.pushEnabled) && (
+          <>
+            {/* Monthly Budget Alert */}
+            <View style={styles.settingRow}>
+              <View style={styles.settingIcon}>
+                <Ionicons
+                  name="calendar"
+                  size={20}
+                  color={notifications.monthlyBudgetAlert ? COLORS.primary : COLORS.textSecondary}
+                />
+              </View>
+              <View style={styles.settingContent}>
+                <Text style={styles.settingLabel}>{t('settings.notifications.monthlyBudget')}</Text>
+                <Text style={styles.settingDescription}>{t('settings.notifications.monthlyBudgetDesc')}</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => handleNotificationToggle('monthlyBudgetAlert', !notifications.monthlyBudgetAlert)}
+                disabled={notificationsLoading}
+                activeOpacity={0.7}
+              >
+                <View style={[
+                  styles.toggle,
+                  notifications.monthlyBudgetAlert && styles.toggleActive
+                ]}>
+                  <View style={[
+                    styles.toggleThumb,
+                    notifications.monthlyBudgetAlert && styles.toggleThumbActive
+                  ]} />
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            {/* Fiscal Year End Reminder */}
+            <View style={styles.settingRow}>
+              <View style={styles.settingIcon}>
+                <Ionicons
+                  name="calendar-outline"
+                  size={20}
+                  color={notifications.fiscalYearEndReminder ? COLORS.primary : COLORS.textSecondary}
+                />
+              </View>
+              <View style={styles.settingContent}>
+                <Text style={styles.settingLabel}>{t('settings.notifications.fiscalYearEnd')}</Text>
+                <Text style={styles.settingDescription}>{t('settings.notifications.fiscalYearEndDesc')}</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => handleNotificationToggle('fiscalYearEndReminder', !notifications.fiscalYearEndReminder)}
+                disabled={notificationsLoading}
+                activeOpacity={0.7}
+              >
+                <View style={[
+                  styles.toggle,
+                  notifications.fiscalYearEndReminder && styles.toggleActive
+                ]}>
+                  <View style={[
+                    styles.toggleThumb,
+                    notifications.fiscalYearEndReminder && styles.toggleThumbActive
+                  ]} />
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            {/* Savings Goal Milestone */}
+            <View style={styles.settingRow}>
+              <View style={styles.settingIcon}>
+                <Ionicons
+                  name="trophy"
+                  size={20}
+                  color={notifications.savingsGoalMilestone ? COLORS.primary : COLORS.textSecondary}
+                />
+              </View>
+              <View style={styles.settingContent}>
+                <Text style={styles.settingLabel}>{t('settings.notifications.savingsGoal')}</Text>
+                <Text style={styles.settingDescription}>{t('settings.notifications.savingsGoalDesc')}</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => handleNotificationToggle('savingsGoalMilestone', !notifications.savingsGoalMilestone)}
+                disabled={notificationsLoading}
+                activeOpacity={0.7}
+              >
+                <View style={[
+                  styles.toggle,
+                  notifications.savingsGoalMilestone && styles.toggleActive
+                ]}>
+                  <View style={[
+                    styles.toggleThumb,
+                    notifications.savingsGoalMilestone && styles.toggleThumbActive
+                  ]} />
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            {/* Partner Activity */}
+            <View style={[styles.settingRow, styles.settingRowLast]}>
+              <View style={styles.settingIcon}>
+                <Ionicons
+                  name="person-add"
+                  size={20}
+                  color={notifications.partnerActivity ? COLORS.primary : COLORS.textSecondary}
+                />
+              </View>
+              <View style={styles.settingContent}>
+                <Text style={styles.settingLabel}>{t('settings.notifications.partnerActivity')}</Text>
+                <Text style={styles.settingDescription}>{t('settings.notifications.partnerActivityDesc')}</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => handleNotificationToggle('partnerActivity', !notifications.partnerActivity)}
+                disabled={notificationsLoading}
+                activeOpacity={0.7}
+              >
+                <View style={[
+                  styles.toggle,
+                  notifications.partnerActivity && styles.toggleActive
+                ]}>
+                  <View style={[
+                    styles.toggleThumb,
+                    notifications.partnerActivity && styles.toggleThumbActive
+                  ]} />
+                </View>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
+      </View>
+
+      {/* Info note */}
+      <View style={styles.infoCard}>
+        <Ionicons name="information-circle" size={16} color={COLORS.primary} />
+        <Text style={styles.infoCardText}>
+          {t('settings.notifications.infoText')}
+        </Text>
+      </View>
+    </View>
+  );
+
+  const renderPreferencesSection = () => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>{t('settings.preferences')}</Text>
+
+      <View style={styles.card}>
+        <TouchableOpacity
+          style={styles.settingRow}
+          onPress={() => setLanguageModalVisible(true)}
+          activeOpacity={0.6}
+        >
+          <View style={styles.settingIcon}>
+            <Ionicons name="language" size={20} color={COLORS.primary} />
+          </View>
+          <View style={styles.settingContent}>
+            <Text style={styles.settingLabel}>{t('settings.language')}</Text>
+            <Text style={styles.settingValue}>{getCurrentLanguageInfo().nativeName}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+        </TouchableOpacity>
+
+        <View style={[styles.settingRow, styles.currencyPickerRow]}>
           <View style={styles.settingIcon}>
             <Ionicons name="cash" size={20} color={COLORS.primary} />
           </View>
           <View style={styles.settingContent}>
-            <Text style={styles.settingLabel}>Currency</Text>
-            <Text style={styles.settingValue}>USD ($)</Text>
+            <CurrencyPicker
+              selectedCurrency={primaryCurrency}
+              onSelect={handleCurrencyChange}
+              label={t('settings.currencyLabel')}
+              disabled={currencyLoading}
+              style={styles.currencyPicker}
+            />
           </View>
         </View>
 
@@ -292,8 +963,8 @@ export default function SettingsScreen({ navigation }) {
             <Ionicons name="pie-chart" size={20} color={COLORS.primary} />
           </View>
           <View style={styles.settingContent}>
-            <Text style={styles.settingLabel}>Default Split</Text>
-            <Text style={styles.settingValue}>50 / 50</Text>
+            <Text style={styles.settingLabel}>{t('settings.defaultSplit')}</Text>
+            <Text style={styles.settingValue}>{t('settings.defaultSplitValue')}</Text>
           </View>
         </View>
 
@@ -306,8 +977,31 @@ export default function SettingsScreen({ navigation }) {
             <Ionicons name="refresh" size={20} color={COLORS.primary} />
           </View>
           <View style={styles.settingContent}>
-            <Text style={styles.settingLabel}>Budget Setup</Text>
-            <Text style={styles.settingValue}>Restart onboarding</Text>
+            <Text style={styles.settingLabel}>{t('settings.budgetSetup')}</Text>
+            <Text style={styles.settingValue}>{t('settings.restartOnboarding')}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  const renderReceiptScanningSection = () => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>{t('settings.receiptScanning.title')}</Text>
+
+      <View style={styles.card}>
+        <TouchableOpacity
+          style={[styles.settingRow, styles.settingRowLast]}
+          onPress={() => setShowAliasManager(true)}
+          activeOpacity={0.6}
+        >
+          <View style={styles.settingIcon}>
+            <Ionicons name="storefront" size={20} color={COLORS.primary} />
+          </View>
+          <View style={styles.settingContent}>
+            <Text style={styles.settingLabel}>{t('settings.receiptScanning.merchantAliases')}</Text>
+            <Text style={styles.settingValue}>{t('settings.receiptScanning.merchantAliasesDescription')}</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
         </TouchableOpacity>
@@ -317,7 +1011,7 @@ export default function SettingsScreen({ navigation }) {
 
   const renderAboutSection = () => (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>About</Text>
+      <Text style={styles.sectionTitle}>{t('settings.about')}</Text>
 
       <View style={styles.card}>
         <View style={styles.settingRow}>
@@ -325,7 +1019,7 @@ export default function SettingsScreen({ navigation }) {
             <Ionicons name="information-circle" size={20} color={COLORS.primary} />
           </View>
           <View style={styles.settingContent}>
-            <Text style={styles.settingLabel}>App Version</Text>
+            <Text style={styles.settingLabel}>{t('settings.appVersion')}</Text>
             <Text style={styles.settingValue}>1.0.0</Text>
           </View>
         </View>
@@ -335,14 +1029,73 @@ export default function SettingsScreen({ navigation }) {
             <Ionicons name="code-slash" size={20} color={COLORS.primary} />
           </View>
           <View style={styles.settingContent}>
-            <Text style={styles.settingLabel}>Dividela</Text>
+            <Text style={styles.settingLabel}>{t('settings.appName')}</Text>
             <Text style={[styles.settingValue, styles.settingValueSmall]}>
-              Couple expense tracker
+              {t('settings.appDescription')}
             </Text>
           </View>
         </View>
       </View>
+
+      {/* Subtle delete account link - intentionally low prominence */}
+      <TouchableOpacity
+        style={styles.deleteAccountLink}
+        onPress={() => setDeleteAccountModalVisible(true)}
+        activeOpacity={0.6}
+      >
+        <Text style={styles.deleteAccountLinkText}>
+          {t('settings.deleteAccountLink', { defaultValue: 'Need to delete your account?' })}
+        </Text>
+      </TouchableOpacity>
     </View>
+  );
+
+  const renderLanguageModal = () => (
+    <Modal
+      visible={languageModalVisible}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={() => setLanguageModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Ionicons name="language" size={32} color={COLORS.primary} />
+            <Text style={styles.modalTitle}>{t('settings.language')}</Text>
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setLanguageModalVisible(false)}
+            >
+              <Ionicons name="close" size={24} color={COLORS.text} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            style={styles.languageList}
+            showsVerticalScrollIndicator={true}
+          >
+            {availableLanguages.map((lang) => (
+              <TouchableOpacity
+                key={lang.code}
+                style={[
+                  styles.languageOption,
+                  currentLanguage === lang.code && styles.languageOptionSelected,
+                ]}
+                onPress={() => handleLanguageSelect(lang.code)}
+              >
+                <View style={styles.languageOptionContent}>
+                  <Text style={styles.languageOptionName}>{lang.nativeName}</Text>
+                  <Text style={styles.languageOptionSubname}>{lang.name}</Text>
+                </View>
+                {currentLanguage === lang.code && (
+                  <Ionicons name="checkmark-circle" size={24} color={COLORS.primary} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
   );
 
   return (
@@ -353,9 +1106,9 @@ export default function SettingsScreen({ navigation }) {
         showsVerticalScrollIndicator={true}
       >
         {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Settings</Text>
-          <Text style={styles.headerSubtitle}>Manage your profile and preferences</Text>
+        <View style={[styles.header, { paddingTop: Platform.OS === 'web' ? SPACING.base : Math.max(insets.top, 10) }]}>
+          <Text style={styles.headerTitle}>{t('settings.title')}</Text>
+          <Text style={styles.headerSubtitle}>{t('settings.subtitle')}</Text>
         </View>
 
         {/* Profile Section */}
@@ -364,8 +1117,17 @@ export default function SettingsScreen({ navigation }) {
         {/* Partner Section */}
         {renderPartnerSection()}
 
+        {/* Subscription Section */}
+        {renderSubscriptionSection()}
+
+        {/* Email Notifications Section */}
+        {renderNotificationsSection()}
+
         {/* Preferences Section */}
         {renderPreferencesSection()}
+
+        {/* Receipt Scanning Section */}
+        {renderReceiptScanningSection()}
 
         {/* About Section */}
         {renderAboutSection()}
@@ -383,7 +1145,7 @@ export default function SettingsScreen({ navigation }) {
               <Ionicons name="log-out" size={20} color={COLORS.error} />
             )}
             <Text style={styles.signOutButtonText}>
-              {loading ? 'Signing Out...' : 'Sign Out'}
+              {loading ? t('settings.signingOut') : t('settings.signOut')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -402,9 +1164,9 @@ export default function SettingsScreen({ navigation }) {
               <Ionicons name="log-out" size={32} color={COLORS.error} />
             </View>
 
-            <Text style={styles.modalTitle}>Sign Out</Text>
+            <Text style={styles.modalTitle}>{t('settings.signOutConfirmTitle')}</Text>
             <Text style={styles.modalMessage}>
-              Are you sure you want to sign out? You'll need to sign in again to access your account.
+              {t('settings.signOutConfirmMessage')}
             </Text>
 
             <View style={styles.modalButtons}>
@@ -415,19 +1177,65 @@ export default function SettingsScreen({ navigation }) {
                   setSignOutModalVisible(false);
                 }}
               >
-                <Text style={styles.modalButtonTextSecondary}>Cancel</Text>
+                <Text style={styles.modalButtonTextSecondary}>{t('common.cancel')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={[styles.modalButton, styles.modalButtonPrimary]}
                 onPress={confirmSignOut}
               >
-                <Text style={styles.modalButtonTextPrimary}>Sign Out</Text>
+                <Text style={styles.modalButtonTextPrimary}>{t('settings.signOut')}</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
+
+      {/* Unpair Confirmation Modal */}
+      <Modal
+        visible={unpairModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setUnpairModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={[styles.modalHeader, { backgroundColor: COLORS.errorLight }]}>
+              <Ionicons name="cut" size={32} color={COLORS.error} />
+            </View>
+
+            <Text style={styles.modalTitle}>{t('settings.unpairModal.title')}</Text>
+            <Text style={styles.modalMessage}>
+              {t('settings.unpairModal.message')}
+            </Text>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonSecondary]}
+                onPress={() => setUnpairModalVisible(false)}
+                disabled={unpairing}
+              >
+                <Text style={styles.modalButtonTextSecondary}>{t('common.cancel')}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonDanger]}
+                onPress={handleUnpair}
+                disabled={unpairing}
+              >
+                {unpairing ? (
+                  <ActivityIndicator size="small" color={COLORS.background} />
+                ) : (
+                  <Text style={styles.modalButtonTextPrimary}>{t('settings.unpairModal.confirm')}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Language Selector Modal */}
+      {renderLanguageModal()}
 
       {/* Restart Onboarding Confirmation Modal */}
       <Modal
@@ -442,9 +1250,9 @@ export default function SettingsScreen({ navigation }) {
               <Ionicons name="refresh" size={32} color={COLORS.primary} />
             </View>
 
-            <Text style={styles.modalTitle}>Restart Budget Onboarding</Text>
+            <Text style={styles.modalTitle}>{t('settings.restartOnboardingTitle')}</Text>
             <Text style={styles.modalMessage}>
-              This will take you through the budget setup process again. Your current budget will be replaced.
+              {t('settings.restartOnboardingMessage')}
             </Text>
 
             <View style={styles.modalButtons}>
@@ -455,20 +1263,289 @@ export default function SettingsScreen({ navigation }) {
                   setRestartOnboardingModalVisible(false);
                 }}
               >
-                <Text style={styles.modalButtonTextSecondary}>Cancel</Text>
+                <Text style={styles.modalButtonTextSecondary}>{t('common.cancel')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={[styles.modalButton, styles.modalButtonPrimary]}
                 onPress={confirmRestartOnboarding}
               >
-                <Text style={styles.modalButtonTextPrimary}>Restart</Text>
+                <Text style={styles.modalButtonTextPrimary}>{t('settings.restart')}</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
-    </View>
+
+      {/* Currency Change Confirmation Modal */}
+      <Modal
+        visible={currencyChangeModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={cancelCurrencyChange}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="cash" size={32} color={COLORS.primary} />
+            </View>
+
+            <Text style={styles.modalTitle}>{t('settings.currencyChange.title')}</Text>
+            <Text style={styles.modalMessage}>
+              {t('settings.currencyChange.message', { from: primaryCurrency, to: pendingCurrency })}
+              {'\n\n'}
+              {t('settings.currencyChange.note', { currency: pendingCurrency })}
+            </Text>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonSecondary]}
+                onPress={cancelCurrencyChange}
+              >
+                <Text style={styles.modalButtonTextSecondary}>{t('common.cancel')}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonPrimary]}
+                onPress={confirmCurrencyChange}
+                disabled={currencyLoading}
+              >
+                {currencyLoading ? (
+                  <ActivityIndicator size="small" color={COLORS.background} />
+                ) : (
+                  <Text style={styles.modalButtonTextPrimary}>{t('settings.currencyChange.change')}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Merchant Alias Manager Modal */}
+      <Modal
+        visible={showAliasManager}
+        animationType="slide"
+        onRequestClose={() => setShowAliasManager(false)}
+      >
+        <MerchantAliasManager
+          coupleId={userDetails?.coupleId}
+          onClose={() => setShowAliasManager(false)}
+        />
+      </Modal>
+
+      {/* Change Password Modal */}
+      <Modal
+        visible={changePasswordModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          setChangePasswordModalVisible(false);
+          setCurrentPassword('');
+          setNewPassword('');
+          setConfirmPassword('');
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="key" size={32} color={COLORS.primary} />
+            </View>
+
+            <Text style={styles.modalTitle}>{t('settings.changePasswordModal.title')}</Text>
+
+            {/* Current Password */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>
+                {t('settings.changePasswordModal.currentPassword')}
+              </Text>
+              <TextInput
+                style={styles.modalInput}
+                value={currentPassword}
+                onChangeText={setCurrentPassword}
+                placeholder={t('settings.changePasswordModal.currentPasswordPlaceholder')}
+                secureTextEntry
+                autoCapitalize="none"
+                editable={!changingPassword}
+              />
+            </View>
+
+            {/* New Password */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>
+                {t('settings.changePasswordModal.newPassword')}
+              </Text>
+              <TextInput
+                style={styles.modalInput}
+                value={newPassword}
+                onChangeText={setNewPassword}
+                placeholder={t('settings.changePasswordModal.newPasswordPlaceholder')}
+                secureTextEntry
+                autoCapitalize="none"
+                editable={!changingPassword}
+              />
+            </View>
+
+            {/* Confirm Password */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>
+                {t('settings.changePasswordModal.confirmPassword')}
+              </Text>
+              <TextInput
+                style={styles.modalInput}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                placeholder={t('settings.changePasswordModal.confirmPasswordPlaceholder')}
+                secureTextEntry
+                autoCapitalize="none"
+                editable={!changingPassword}
+              />
+            </View>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonSecondary]}
+                onPress={() => {
+                  setChangePasswordModalVisible(false);
+                  setCurrentPassword('');
+                  setNewPassword('');
+                  setConfirmPassword('');
+                }}
+                disabled={changingPassword}
+              >
+                <Text style={styles.modalButtonTextSecondary}>
+                  {t('settings.changePasswordModal.cancel')}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonPrimary]}
+                onPress={handleChangePassword}
+                disabled={changingPassword}
+              >
+                {changingPassword ? (
+                  <ActivityIndicator size="small" color={COLORS.background} />
+                ) : (
+                  <Text style={styles.modalButtonTextPrimary}>
+                    {t('settings.changePasswordModal.change')}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Delete Account Modal */}
+      <Modal
+        visible={deleteAccountModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          setDeleteAccountModalVisible(false);
+          setDeletePassword('');
+          setDeleteConfirmation('');
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={[styles.modalHeader, { backgroundColor: COLORS.errorLight }]}>
+              <Ionicons name="warning" size={32} color={COLORS.error} />
+            </View>
+
+            <Text style={styles.modalTitle}>{t('settings.deleteAccountModal.title')}</Text>
+            <Text style={[styles.modalMessage, { fontWeight: '600', color: COLORS.error }]}>
+              {t('settings.deleteAccountModal.warning')}
+            </Text>
+
+            <Text style={styles.modalMessage}>
+              {t('settings.deleteAccountModal.message')}
+            </Text>
+
+            <View style={styles.consequencesList}>
+              <Text style={styles.consequenceText}>
+                {t('settings.deleteAccountModal.consequence1')}
+              </Text>
+              <Text style={styles.consequenceText}>
+                {t('settings.deleteAccountModal.consequence2')}
+              </Text>
+              <Text style={styles.consequenceText}>
+                {t('settings.deleteAccountModal.consequence3')}
+              </Text>
+              <Text style={styles.consequenceText}>
+                {t('settings.deleteAccountModal.consequence4')}
+              </Text>
+            </View>
+
+            {/* Password input for email/password users */}
+            {user?.providerData?.some(p => p.providerId === 'password') ? (
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>
+                  {t('settings.deleteAccountModal.passwordLabel')}
+                </Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={deletePassword}
+                  onChangeText={setDeletePassword}
+                  placeholder={t('settings.deleteAccountModal.passwordPlaceholder')}
+                  secureTextEntry
+                  autoCapitalize="none"
+                  editable={!deletingAccount}
+                />
+              </View>
+            ) : (
+              <Text style={[styles.modalMessage, { fontSize: 13, fontStyle: 'italic' }]}>
+                {t('settings.deleteAccountModal.oauthMessage')}
+              </Text>
+            )}
+
+            {/* Confirmation text */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>
+                {t('settings.deleteAccountModal.confirmText')}
+              </Text>
+              <TextInput
+                style={styles.modalInput}
+                value={deleteConfirmation}
+                onChangeText={setDeleteConfirmation}
+                placeholder={t('settings.deleteAccountModal.confirmPlaceholder')}
+                autoCapitalize="characters"
+                editable={!deletingAccount}
+              />
+            </View>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonSecondary]}
+                onPress={() => {
+                  setDeleteAccountModalVisible(false);
+                  setDeletePassword('');
+                  setDeleteConfirmation('');
+                }}
+                disabled={deletingAccount}
+              >
+                <Text style={styles.modalButtonTextSecondary}>
+                  {t('settings.deleteAccountModal.cancel')}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonDanger]}
+                onPress={handleDeleteAccount}
+                disabled={deletingAccount}
+              >
+                {deletingAccount ? (
+                  <ActivityIndicator size="small" color={COLORS.background} />
+                ) : (
+                  <Text style={styles.modalButtonTextPrimary}>
+                    {t('settings.deleteAccountModal.delete')}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </View >
   );
 }
 
@@ -486,7 +1563,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: SPACING.screenPadding,
-    paddingTop: Platform.OS === 'web' ? SPACING.base : 10,
+    // paddingTop is set dynamically via inline style using safe area insets
     paddingBottom: SPACING.base,
   },
   headerTitle: {
@@ -537,6 +1614,13 @@ const styles = StyleSheet.create({
   },
   settingContent: {
     flex: 1,
+  },
+  currencyPickerRow: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+  },
+  currencyPicker: {
+    marginVertical: 0,
   },
   settingLabel: {
     ...FONTS.small,
@@ -653,5 +1737,166 @@ const styles = StyleSheet.create({
     ...FONTS.body,
     color: COLORS.background,
     fontWeight: '600',
+  },
+  // Subscription styles
+  premiumBadge: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: SPACING.small,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginLeft: SPACING.small,
+  },
+  premiumBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  settingDescription: {
+    ...FONTS.body,
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    marginTop: 4,
+  },
+  infoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary + '10',
+    padding: SPACING.base,
+    borderRadius: 12,
+    marginTop: SPACING.small,
+    maxWidth: isLargeScreen ? 600 : '100%',
+    alignSelf: isLargeScreen ? 'center' : 'stretch',
+  },
+  infoCardText: {
+    ...FONTS.body,
+    fontSize: 13,
+    color: COLORS.primary,
+    marginLeft: SPACING.small,
+    flex: 1,
+    lineHeight: 18,
+  },
+  // Language styles
+  languageList: {
+    maxHeight: 400,
+    width: '100%',
+    marginTop: SPACING.base,
+  },
+  languageOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: SPACING.base,
+    borderRadius: 12,
+    marginBottom: SPACING.small,
+    backgroundColor: COLORS.backgroundSecondary,
+  },
+  languageOptionSelected: {
+    backgroundColor: COLORS.primary + '15',
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+  },
+  languageOptionContent: {
+    flex: 1,
+  },
+  languageOptionName: {
+    ...FONTS.body,
+    color: COLORS.text,
+    fontWeight: '600',
+    marginBottom: SPACING.tiny,
+  },
+  languageOptionSubname: {
+    ...FONTS.small,
+    color: COLORS.textSecondary,
+  },
+  modalCloseButton: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+  },
+  // Toggle switch styles
+  toggle: {
+    width: 50,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: COLORS.border,
+    padding: 2,
+    justifyContent: 'center',
+  },
+  toggleActive: {
+    backgroundColor: COLORS.primary,
+  },
+  toggleThumb: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: COLORS.background,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  toggleThumbActive: {
+    transform: [{ translateX: 22 }],
+  },
+  // Account management styles
+  dangerRow: {
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border || '#E5E5E5',
+  },
+  dangerIcon: {
+    backgroundColor: COLORS.errorLight,
+  },
+  dangerText: {
+    color: COLORS.error,
+  },
+  inputGroup: {
+    width: '100%',
+    marginBottom: SPACING.base,
+  },
+  inputLabel: {
+    ...FONTS.small,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.tiny,
+    fontWeight: '600',
+  },
+  modalInput: {
+    ...FONTS.body,
+    backgroundColor: COLORS.backgroundSecondary,
+    borderRadius: 12,
+    padding: SPACING.base,
+    borderWidth: 1,
+    borderColor: COLORS.border || '#E5E5E5',
+    color: COLORS.text,
+  },
+  modalButtonDanger: {
+    backgroundColor: COLORS.error,
+  },
+  consequencesList: {
+    width: '100%',
+    backgroundColor: COLORS.errorLight,
+    borderRadius: 12,
+    padding: SPACING.base,
+    marginBottom: SPACING.base,
+  },
+  consequenceText: {
+    ...FONTS.body,
+    fontSize: 13,
+    color: COLORS.error,
+    marginBottom: SPACING.tiny,
+    lineHeight: 20,
+  },
+  // Subtle delete account link styles
+  deleteAccountLink: {
+    marginTop: SPACING.large,
+    alignItems: 'center',
+    paddingVertical: SPACING.small,
+  },
+  deleteAccountLinkText: {
+    ...FONTS.small,
+    fontSize: 12,
+    color: COLORS.textTertiary,
+    textDecorationLine: 'underline',
   },
 });

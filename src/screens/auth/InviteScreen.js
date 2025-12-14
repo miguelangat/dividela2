@@ -20,23 +20,27 @@ import {
   Share,
   ActivityIndicator,
   Platform,
+  ScrollView,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { doc, setDoc, onSnapshot, serverTimestamp, getDoc } from 'firebase/firestore';
+import { useTranslation } from 'react-i18next';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { generateInviteCode, calculateExpirationDate, formatTimeRemaining } from '../../utils/inviteCode';
-import { COLORS, FONTS, SPACING, COMMON_STYLES } from '../../constants/theme';
+import { COLORS, FONTS, SPACING, SIZES, SHADOWS } from '../../constants/theme';
 
 export default function InviteScreen({ navigation }) {
+  const { t } = useTranslation();
   const { user, userDetails, updatePartnerInfo } = useAuth();
   const [inviteCode, setInviteCode] = useState('');
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [expiresAt, setExpiresAt] = useState(null);
   const [error, setError] = useState('');
-  const copiedTimeoutRef = useRef(null); // Track timeout for cleanup
+  const copiedTimeoutRef = useRef(null);
 
   useEffect(() => {
     generateAndSaveCode();
@@ -52,23 +56,18 @@ export default function InviteScreen({ navigation }) {
         if (docSnapshot.exists()) {
           const data = docSnapshot.data();
           if (data.isUsed) {
-            // Partner has joined! Fetch updated user document to get coupleId
             try {
               const userDocRef = doc(db, 'users', user.uid);
               const userDoc = await getDoc(userDocRef);
 
               if (userDoc.exists()) {
                 const userData = userDoc.data();
-
-                // Update local auth state with partner info
                 await updatePartnerInfo(data.usedBy, userData.coupleId);
               }
 
-              // Navigate to success screen
               navigation.replace('Success', { partnerId: data.usedBy });
             } catch (err) {
               console.error('Error updating partner info:', err);
-              // Still navigate even if update fails - user can refresh
               navigation.replace('Success', { partnerId: data.usedBy });
             }
           }
@@ -87,26 +86,51 @@ export default function InviteScreen({ navigation }) {
       setLoading(true);
       setError('');
 
-      // Check if user is authenticated
       if (!user || !user.uid) {
         console.error('No authenticated user found');
-        setError('You must be signed in to generate an invite code.');
+        setError(t('invite.authError'));
         setLoading(false);
         return;
       }
 
-      // Generate unique code
+      console.log('Validating user document exists...');
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (!userDoc.exists()) {
+        console.warn('⚠️ User document not found. Creating it now...');
+        const newUserData = {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName || user.email?.split('@')[0] || 'User',
+          partnerId: null,
+          coupleId: null,
+          createdAt: new Date().toISOString(),
+          settings: {
+            notifications: true,
+            defaultSplit: 50,
+            currency: 'USD',
+          },
+          subscriptionStatus: 'free',
+          subscriptionPlatform: null,
+          subscriptionExpiresAt: null,
+          subscriptionProductId: null,
+          revenueCatUserId: user.uid,
+          trialUsed: false,
+          trialEndsAt: null,
+        };
+
+        await setDoc(userDocRef, newUserData);
+        console.log('✓ User document created successfully');
+      } else {
+        console.log('✓ User document validated');
+      }
+
       let code = generateInviteCode();
-
-      // In rare case of collision, regenerate
-      // (Could check Firestore, but with 2B+ combinations, collision is extremely unlikely)
-
       const expirationDate = calculateExpirationDate();
 
       console.log('Attempting to save invite code:', code);
-      console.log('User ID:', user.uid);
 
-      // Save to Firestore
       await setDoc(doc(db, 'inviteCodes', code), {
         code: code,
         createdBy: user.uid,
@@ -123,16 +147,13 @@ export default function InviteScreen({ navigation }) {
       setExpiresAt(expirationDate);
     } catch (err) {
       console.error('Error generating invite code:', err);
-      console.error('Error code:', err.code);
-      console.error('Error message:', err.message);
 
-      // Provide more specific error messages
       if (err.code === 'permission-denied') {
-        setError('Permission denied. Please check your Firestore security rules.');
+        setError(t('invite.permissionError'));
       } else if (err.code === 'unavailable') {
-        setError('Network error. Please check your internet connection.');
+        setError(t('invite.networkError'));
       } else {
-        setError(`Failed to generate invite code: ${err.message}`);
+        setError(t('errors.generic'));
       }
     } finally {
       setLoading(false);
@@ -144,25 +165,21 @@ export default function InviteScreen({ navigation }) {
       await Clipboard.setStringAsync(inviteCode);
       setCopied(true);
 
-      // Clear any existing timeout
       if (copiedTimeoutRef.current) {
         clearTimeout(copiedTimeoutRef.current);
       }
 
-      // Reset "Copied!" message after 2 seconds
       copiedTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
 
-      // Show native feedback
       if (Platform.OS === 'ios' || Platform.OS === 'android') {
-        Alert.alert('Copied!', 'Invite code copied to clipboard');
+        Alert.alert(t('auth.invite.copied'), t('auth.invite.copySuccess'));
       }
     } catch (err) {
       console.error('Error copying to clipboard:', err);
-      Alert.alert('Error', 'Failed to copy code');
+      Alert.alert(t('common.error'), t('auth.invite.copyError'));
     }
   };
 
-  // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
       if (copiedTimeoutRef.current) {
@@ -173,20 +190,19 @@ export default function InviteScreen({ navigation }) {
 
   const handleShare = async () => {
     try {
-      const message = `Join me on Dividela! Use this code to connect: ${inviteCode}\n\nDividela helps couples track shared expenses effortlessly.`;
+      const message = t('auth.invite.shareMessage', { code: inviteCode });
 
       await Share.share({
         message: message,
-        title: 'Join me on Dividela',
+        title: t('auth.invite.shareTitle'),
       });
     } catch (err) {
       console.error('Error sharing:', err);
-      Alert.alert('Error', 'Failed to share invite code');
+      Alert.alert(t('common.error'), t('auth.invite.shareError'));
     }
   };
 
   const formatCode = (code) => {
-    // Display code in groups of 3 for readability: ABC 123
     if (code.length === 6) {
       return `${code.substring(0, 3)} ${code.substring(3, 6)}`;
     }
@@ -195,20 +211,30 @@ export default function InviteScreen({ navigation }) {
 
   if (loading) {
     return (
-      <View style={styles.container}>
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Generating invite code...</Text>
+        <Text style={styles.loadingText}>{t('auth.invite.generating')}</Text>
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.container}>
-        <Ionicons name="alert-circle-outline" size={64} color={COLORS.error} />
+      <View style={styles.errorContainer}>
+        <View style={styles.errorIconContainer}>
+          <MaterialCommunityIcons name="alert-circle-outline" size={64} color={COLORS.error} />
+        </View>
+        <Text style={styles.errorTitle}>{t('common.error')}</Text>
         <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={COMMON_STYLES.primaryButton} onPress={generateAndSaveCode}>
-          <Text style={COMMON_STYLES.primaryButtonText}>Try Again</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={generateAndSaveCode}>
+          <LinearGradient
+            colors={[COLORS.gradientStart, COLORS.gradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.retryButtonGradient}
+          >
+            <Text style={styles.retryButtonText}>{t('auth.invite.tryAgain')}</Text>
+          </LinearGradient>
         </TouchableOpacity>
       </View>
     );
@@ -216,67 +242,96 @@ export default function InviteScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-        <Ionicons name="arrow-back" size={24} color={COLORS.text} />
-      </TouchableOpacity>
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={[COLORS.gradientStart, COLORS.gradientEnd]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradientHeader}
+      >
+        {/* Back Button */}
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color={COLORS.textWhite} />
+        </TouchableOpacity>
 
-      <View style={styles.content}>
         {/* Icon */}
-        <View style={styles.iconContainer}>
-          <Text style={styles.iconEmoji}>📤</Text>
+        <View style={styles.headerIconContainer}>
+          <MaterialCommunityIcons
+            name="send"
+            size={50}
+            color={COLORS.textWhite}
+          />
         </View>
 
         {/* Title */}
-        <Text style={styles.title}>Share Your Code</Text>
-        <Text style={styles.subtitle}>
-          Send this code to your partner so they can join you on Dividela
+        <Text style={styles.headerTitle}>{t('auth.invite.title')}</Text>
+        <Text style={styles.headerSubtitle}>
+          {t('auth.invite.subtitle')}
         </Text>
+      </LinearGradient>
 
-        {/* Invite Code Display */}
-        <View style={styles.codeContainer}>
-          <Text style={styles.codeLabel}>Your Invite Code</Text>
-          <Text style={styles.codeText}>{formatCode(inviteCode)}</Text>
+      {/* Form Card */}
+      <View style={styles.formCard}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Invite Code Display */}
+          <View style={styles.codeContainer}>
+            <Text style={styles.codeLabel}>{t('auth.invite.codeLabel')}</Text>
+            <Text style={styles.codeText}>{formatCode(inviteCode)}</Text>
 
-          <TouchableOpacity style={styles.copyButton} onPress={handleCopyCode}>
-            <Ionicons
-              name={copied ? 'checkmark-circle' : 'copy-outline'}
-              size={20}
-              color={copied ? COLORS.success : COLORS.primary}
-            />
-            <Text style={[styles.copyButtonText, copied && styles.copiedText]}>
-              {copied ? 'Copied!' : 'Copy Code'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Share Options */}
-        <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-          <Ionicons name="share-outline" size={20} color={COLORS.primary} />
-          <Text style={styles.shareButtonText}>Share via SMS, Email, or More</Text>
-        </TouchableOpacity>
-
-        {/* Status */}
-        <View style={styles.statusContainer}>
-          <ActivityIndicator size="small" color={COLORS.primary} />
-          <Text style={styles.statusText}>Waiting for your partner to join...</Text>
-        </View>
-
-        {/* Expiration Notice */}
-        {expiresAt && (
-          <View style={styles.expirationNotice}>
-            <Ionicons name="time-outline" size={16} color={COLORS.textSecondary} />
-            <Text style={styles.expirationText}>
-              Code expires in {formatTimeRemaining(expiresAt)}
-            </Text>
+            {/* Copy Button */}
+            <TouchableOpacity style={styles.copyButton} onPress={handleCopyCode}>
+              <Ionicons
+                name={copied ? 'checkmark-circle' : 'copy-outline'}
+                size={20}
+                color={copied ? COLORS.success : COLORS.primary}
+              />
+              <Text style={[styles.copyButtonText, copied && styles.copiedText]}>
+                {copied ? t('auth.invite.copied') : t('auth.invite.copyCode')}
+              </Text>
+            </TouchableOpacity>
           </View>
-        )}
 
-        {/* Generate New Code */}
-        <TouchableOpacity style={styles.regenerateButton} onPress={generateAndSaveCode}>
-          <Ionicons name="refresh-outline" size={18} color={COLORS.primary} />
-          <Text style={styles.regenerateText}>Generate New Code</Text>
-        </TouchableOpacity>
+          {/* Share Button - Gradient */}
+          <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
+            <LinearGradient
+              colors={[COLORS.gradientStart, COLORS.gradientEnd]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.shareButtonGradient}
+            >
+              <Ionicons name="share-outline" size={20} color={COLORS.textWhite} />
+              <Text style={styles.shareButtonText}>{t('auth.invite.shareVia')}</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          {/* Status */}
+          <View style={styles.statusContainer}>
+            <ActivityIndicator size="small" color={COLORS.primary} />
+            <Text style={styles.statusText}>{t('auth.invite.waiting')}</Text>
+          </View>
+
+          {/* Expiration Notice */}
+          {expiresAt && (
+            <View style={styles.expirationNotice}>
+              <Ionicons name="time-outline" size={18} color={COLORS.textSecondary} />
+              <Text style={styles.expirationText}>
+                {t('auth.invite.expiresIn', { time: formatTimeRemaining(expiresAt) })}
+              </Text>
+            </View>
+          )}
+
+          {/* Generate New Code */}
+          <TouchableOpacity style={styles.regenerateButton} onPress={generateAndSaveCode}>
+            <Ionicons name="refresh-outline" size={18} color={COLORS.primary} />
+            <Text style={styles.regenerateText}>{t('auth.invite.generateNew')}</Text>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
     </View>
   );
@@ -286,63 +341,138 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    padding: SPACING.screenPadding,
+  },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: COLORS.background,
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: FONTS.sizes.body,
+    color: COLORS.textSecondary,
+    marginTop: SPACING.base,
+  },
+  errorContainer: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: SPACING.screenPadding,
+  },
+  errorIconContainer: {
+    marginBottom: SPACING.base,
+  },
+  errorTitle: {
+    fontSize: FONTS.sizes.title,
+    fontWeight: FONTS.weights.bold,
+    color: COLORS.text,
+    marginBottom: SPACING.small,
+  },
+  errorText: {
+    fontSize: FONTS.sizes.body,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginBottom: SPACING.xlarge,
+    paddingHorizontal: SPACING.large,
+    lineHeight: 22,
+  },
+  retryButton: {
+    borderRadius: SIZES.borderRadius.medium,
+    overflow: 'hidden',
+    ...SHADOWS.medium,
+  },
+  retryButtonGradient: {
+    paddingVertical: SPACING.buttonPadding,
+    paddingHorizontal: SPACING.xlarge,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: SIZES.button.height,
+  },
+  retryButtonText: {
+    color: COLORS.textWhite,
+    fontSize: FONTS.sizes.body,
+    fontWeight: FONTS.weights.bold,
+  },
+  gradientHeader: {
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingBottom: SPACING.xxlarge * 2,
+    paddingHorizontal: SPACING.screenPadding,
+    borderBottomLeftRadius: SIZES.borderRadius.xlarge * 2,
+    borderBottomRightRadius: SIZES.borderRadius.xlarge * 2,
+    alignItems: 'center',
   },
   backButton: {
     position: 'absolute',
-    top: 50,
+    top: Platform.OS === 'ios' ? 50 : 30,
     left: SPACING.screenPadding,
-    zIndex: 10,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
-    maxWidth: 400,
-    width: '100%',
-    alignSelf: 'center',
+    justifyContent: 'center',
   },
-  iconContainer: {
+  headerIconContainer: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: SPACING.large,
   },
-  iconEmoji: {
-    fontSize: 80,
-  },
-  title: {
-    ...FONTS.heading,
-    fontSize: 28,
-    color: COLORS.text,
+  headerTitle: {
+    fontSize: FONTS.sizes.xlarge,
+    fontWeight: FONTS.weights.bold,
+    color: COLORS.textWhite,
     marginBottom: SPACING.small,
     textAlign: 'center',
   },
-  subtitle: {
-    ...FONTS.body,
-    color: COLORS.textSecondary,
+  headerSubtitle: {
+    fontSize: FONTS.sizes.body,
+    color: COLORS.textWhite,
+    opacity: 0.9,
     textAlign: 'center',
-    marginBottom: SPACING.xl,
-    paddingHorizontal: SPACING.base,
+    maxWidth: 280,
+    lineHeight: 22,
+  },
+  formCard: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    borderRadius: SIZES.borderRadius.xlarge,
+    marginHorizontal: SPACING.screenPadding,
+    marginTop: -SPACING.xxlarge,
+    marginBottom: SPACING.base,
+    ...SHADOWS.large,
+    overflow: 'hidden',
+  },
+  scrollContent: {
+    padding: SPACING.large,
+    paddingTop: SPACING.xlarge,
+    alignItems: 'center',
   },
   codeContainer: {
-    backgroundColor: COLORS.primaryLight,
-    borderRadius: 16,
-    padding: SPACING.xl,
+    backgroundColor: COLORS.primaryLight + '20',
+    borderRadius: SIZES.borderRadius.large,
+    padding: SPACING.xlarge,
     width: '100%',
     alignItems: 'center',
-    marginBottom: SPACING.base,
+    marginBottom: SPACING.large,
     borderWidth: 2,
-    borderColor: COLORS.primary,
+    borderColor: COLORS.primary + '40',
   },
   codeLabel: {
-    ...FONTS.small,
+    fontSize: FONTS.sizes.small,
     color: COLORS.textSecondary,
     marginBottom: SPACING.small,
     textTransform: 'uppercase',
     letterSpacing: 1,
+    fontWeight: FONTS.weights.semibold,
   },
   codeText: {
     fontSize: 42,
-    fontWeight: 'bold',
+    fontWeight: FONTS.weights.bold,
     color: COLORS.primary,
     letterSpacing: 8,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
@@ -354,35 +484,38 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     paddingVertical: SPACING.small,
     paddingHorizontal: SPACING.base,
-    borderRadius: 8,
+    borderRadius: SIZES.borderRadius.medium,
     gap: SPACING.small,
+    ...SHADOWS.small,
   },
   copyButtonText: {
-    ...FONTS.body,
+    fontSize: FONTS.sizes.body,
     color: COLORS.primary,
-    fontWeight: '600',
+    fontWeight: FONTS.weights.semibold,
   },
   copiedText: {
     color: COLORS.success,
   },
   shareButton: {
+    width: '100%',
+    borderRadius: SIZES.borderRadius.medium,
+    overflow: 'hidden',
+    marginBottom: SPACING.xlarge,
+    ...SHADOWS.medium,
+  },
+  shareButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.background,
-    paddingVertical: SPACING.base,
-    paddingHorizontal: SPACING.large,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: COLORS.primary,
-    width: '100%',
     justifyContent: 'center',
+    paddingVertical: SPACING.buttonPadding,
+    paddingHorizontal: SPACING.large,
+    minHeight: SIZES.button.height,
     gap: SPACING.small,
-    marginBottom: SPACING.xl,
   },
   shareButtonText: {
-    ...FONTS.body,
-    color: COLORS.primary,
-    fontWeight: '600',
+    fontSize: FONTS.sizes.body,
+    color: COLORS.textWhite,
+    fontWeight: FONTS.weights.bold,
   },
   statusContainer: {
     flexDirection: 'row',
@@ -391,7 +524,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.base,
   },
   statusText: {
-    ...FONTS.body,
+    fontSize: FONTS.sizes.body,
     color: COLORS.textSecondary,
     fontStyle: 'italic',
   },
@@ -400,13 +533,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: SPACING.small,
     backgroundColor: COLORS.backgroundSecondary,
-    paddingVertical: SPACING.small,
+    paddingVertical: SPACING.medium,
     paddingHorizontal: SPACING.base,
-    borderRadius: 8,
+    borderRadius: SIZES.borderRadius.medium,
     marginBottom: SPACING.large,
   },
   expirationText: {
-    ...FONTS.small,
+    fontSize: FONTS.sizes.small,
     color: COLORS.textSecondary,
   },
   regenerateButton: {
@@ -416,20 +549,8 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.small,
   },
   regenerateText: {
-    ...FONTS.body,
+    fontSize: FONTS.sizes.body,
     color: COLORS.primary,
-    textDecorationLine: 'underline',
-  },
-  loadingText: {
-    ...FONTS.body,
-    color: COLORS.textSecondary,
-    marginTop: SPACING.base,
-  },
-  errorText: {
-    ...FONTS.body,
-    color: COLORS.error,
-    textAlign: 'center',
-    marginVertical: SPACING.base,
-    paddingHorizontal: SPACING.large,
+    fontWeight: FONTS.weights.medium,
   },
 });

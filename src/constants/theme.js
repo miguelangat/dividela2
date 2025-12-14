@@ -15,17 +15,20 @@ export const COLORS = {
   gradientEnd: '#764ba2',
   
   // Text colors
-  text: '#333333',
-  textSecondary: '#666666',
+  text: '#2d3748',
+  textSecondary: '#718096',
   textTertiary: '#999999',
   textLight: '#999999',
   textWhite: '#ffffff',
 
   // Background colors
   background: '#ffffff',
-  backgroundSecondary: '#f8f9fa',
-  backgroundLight: '#f0f1f3',
+  backgroundSecondary: '#f7fafc',
+  backgroundLight: '#edf2f7',
   cardBackground: '#ffffff',
+  errorBackground: '#fff5f5',
+  descriptionBackground: '#f8f9ff',
+  splitPreviewBackground: '#f0f9ff',
   
   // Status colors
   success: '#4caf50',
@@ -34,7 +37,7 @@ export const COLORS = {
   info: '#2196f3',
   
   // UI element colors
-  border: '#eeeeee',
+  border: '#e2e8f0',
   borderLight: '#f5f5f5',
   divider: '#e0e0e0',
   
@@ -332,6 +335,22 @@ export const COMMON_STYLES = {
   },
 };
 
+// Export theme object for components that use it directly
+export const theme = {
+  colors: {
+    ...COLORS,
+    background: COLORS.background,
+    surface: COLORS.cardBackground,
+    text: COLORS.text,
+    textSecondary: COLORS.textSecondary,
+    primary: COLORS.primary,
+    success: COLORS.success,
+    error: COLORS.error,
+    warning: COLORS.warning,
+    info: COLORS.info,
+  },
+};
+
 export default {
   COLORS,
   FONTS,
@@ -341,4 +360,5 @@ export default {
   ANIMATIONS,
   COMMON_STYLES,
   createGradient,
+  theme,
 };

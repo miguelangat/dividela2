@@ -5,6 +5,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { COLORS, FONTS, SPACING, SIZES } from '../../constants/theme';
+import { formatCurrency, getCurrencySymbol } from '../../utils/currencyUtils';
 
 export default function BudgetSlider({
   category,
@@ -12,16 +13,18 @@ export default function BudgetSlider({
   min = 0,
   max = 10000,
   onChange,
+  currency = 'USD',
   showMonthly = true,
   showProgress = true,
   totalBudget = null,
   style,
 }) {
-  const formatCurrency = (num) => {
+  const formatCurrencyShort = (num) => {
+    const currencySymbol = getCurrencySymbol(currency);
     if (num >= 1000) {
-      return `$${(num / 1000).toFixed(1)}k`;
+      return `${currencySymbol}${(num / 1000).toFixed(1)}k`;
     }
-    return `$${num.toFixed(0)}`;
+    return `${currencySymbol}${num.toFixed(0)}`;
   };
 
   const monthlyAmount = Math.round(value / 12);
@@ -79,12 +82,12 @@ export default function BudgetSlider({
       {/* Value Display */}
       <View style={styles.valueContainer}>
         <View style={styles.amountRow}>
-          <Text style={styles.valueAmount}>${value.toFixed(0)}</Text>
+          <Text style={styles.valueAmount}>{formatCurrency(value, currency, { maximumFractionDigits: 0 })}</Text>
           <Text style={styles.valueLabel}> / year</Text>
         </View>
         {showMonthly && (
           <Text style={styles.monthlyAmount}>
-            ${monthlyAmount.toFixed(0)} / month
+            {formatCurrency(monthlyAmount, currency, { maximumFractionDigits: 0 })} / month
           </Text>
         )}
         {totalPercentage && (
@@ -111,8 +114,8 @@ export default function BudgetSlider({
 
       {/* Range Labels */}
       <View style={styles.rangeLabels}>
-        <Text style={styles.rangeLabel}>{formatCurrency(min)}</Text>
-        <Text style={styles.rangeLabel}>{formatCurrency(max)}</Text>
+        <Text style={styles.rangeLabel}>{formatCurrencyShort(min)}</Text>
+        <Text style={styles.rangeLabel}>{formatCurrencyShort(max)}</Text>
       </View>
 
       {/* Progress Bar (mirrors slider) */}

@@ -8,7 +8,7 @@
  * - Real-time sync with partner
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -23,12 +23,19 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { collection, query, where, onSnapshot, orderBy, addDoc, serverTimestamp, writeBatch, doc, runTransaction } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBudget } from '../../contexts/BudgetContext';
-import { COLORS, FONTS, SPACING, COMMON_STYLES } from '../../constants/theme';
+import { useSubscription } from '../../contexts/SubscriptionContext';
+import { useNudges, NUDGE_TYPES } from '../../contexts/NudgeContext';
+import { useTranslation } from 'react-i18next';
+import { COLORS, FONTS, SPACING, COMMON_STYLES, SHADOWS } from '../../constants/theme';
+import { onboardingStorage } from '../../utils/storage';
+import { getPermissionStatus, isPushNotificationSupported } from '../../services/pushNotificationService';
+import { BudgetSetupNudge, PushNotificationNudge, FirstExpenseCoachMark } from '../../components/nudges';
 import {
   calculateBalance,
   calculateBalanceWithSettlements,
@@ -38,16 +45,30 @@ import {
   sortExpensesByDate,
   validateSettlement,
 } from '../../utils/calculations';
+import { getExpenseDualDisplay, formatCurrency as formatCurrencyNew } from '../../utils/currencyUtils';
+import { getCurrencyFlag } from '../../constants/currencies';
 import ExpenseDetailModal from '../../components/ExpenseDetailModal';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as settlementService from '../../services/settlementService';
+import { getPrimaryCurrency, getCoupleSettings } from '../../services/coupleSettingsService';
 
 export default function HomeScreen({ navigation }) {
   const { user, userDetails, getPartnerDetails } = useAuth();
   const { categories, currentBudget } = useBudget();
+  const { isPremium } = useSubscription();
+  const { shouldShowNudge, dismissNudge } = useNudges();
+  const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
+
+  // FAB ref for coach mark targeting
+  const fabRef = useRef(null);
+
+  // State
   const [expenses, setExpenses] = useState([]);
   const [settlements, setSettlements] = useState([]); // Track settlements for balance calculation
   const [balance, setBalance] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [primaryCurrency, setPrimaryCurrency] = useState('USD');
   const [refreshing, setRefreshing] = useState(false);
   const [partnerName, setPartnerName] = useState('Partner');
   const [error, setError] = useState(null); // Track errors for UI display
@@ -57,6 +78,56 @@ export default function HomeScreen({ navigation }) {
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [expenseDetailModalVisible, setExpenseDetailModalVisible] = useState(false);
   const [partnerDetails, setPartnerDetails] = useState(null);
+
+  // Nudge-related state
+  const [onboardingCompleted, setOnboardingCompleted] = useState(true);
+  const [pushPermissionStatus, setPushPermissionStatus] = useState('granted');
+  const [showFirstExpenseCoachMark, setShowFirstExpenseCoachMark] = useState(false);
+
+  // Check onboarding and push notification status for nudges
+  // Using useFocusEffect to re-check every time HomeScreen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      const checkNudgeConditions = async () => {
+        // Check onboarding status from Firestore coupleSettings (coreSetupComplete)
+        if (userDetails?.coupleId) {
+          const settings = await getCoupleSettings(userDetails.coupleId);
+          setOnboardingCompleted(settings?.coreSetupComplete || false);
+        }
+
+        // Check push notification permission status
+        if (isPushNotificationSupported()) {
+          const status = await getPermissionStatus();
+          setPushPermissionStatus(status);
+        }
+      };
+
+      checkNudgeConditions();
+    }, [userDetails?.coupleId])
+  );
+
+  // Show first expense coach mark when appropriate
+  useEffect(() => {
+    // Show coach mark if:
+    // 1. User has partner
+    // 2. No expenses yet
+    // 3. Nudge not dismissed
+    // 4. Not loading
+    if (
+      userDetails?.partnerId &&
+      expenses.length === 0 &&
+      shouldShowNudge(NUDGE_TYPES.FIRST_EXPENSE) &&
+      !loading
+    ) {
+      // Small delay to ensure FAB is rendered and measured
+      const timer = setTimeout(() => {
+        setShowFirstExpenseCoachMark(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    } else {
+      setShowFirstExpenseCoachMark(false);
+    }
+  }, [userDetails?.partnerId, expenses.length, shouldShowNudge, loading]);
 
   // Fetch partner's name and details
   useEffect(() => {
@@ -81,6 +152,24 @@ export default function HomeScreen({ navigation }) {
     };
     fetchPartnerName();
   }, [userDetails?.partnerId]);
+
+  // Fetch primary currency on mount and when screen comes into focus
+  // This ensures currency updates when changed in Settings
+  useFocusEffect(
+    React.useCallback(() => {
+      const fetchCurrency = async () => {
+        if (userDetails?.coupleId) {
+          try {
+            const currency = await getPrimaryCurrency(userDetails.coupleId);
+            setPrimaryCurrency(currency.code);
+          } catch (error) {
+            console.error('Error fetching primary currency:', error);
+          }
+        }
+      };
+      fetchCurrency();
+    }, [userDetails?.coupleId])
+  );
 
   // Real-time expenses listener
   useEffect(() => {
@@ -117,11 +206,11 @@ export default function HomeScreen({ navigation }) {
 
         // Set user-friendly error message
         if (error.code === 'permission-denied') {
-          setError('Permission denied. Please check your connection with your partner.');
+          setError(t('home.errors.permissionDenied'));
         } else if (error.code === 'unavailable') {
-          setError('Network error. Please check your internet connection.');
+          setError(t('home.errors.networkError'));
         } else {
-          setError('Failed to load expenses. Pull down to retry.');
+          setError(t('home.errors.loadFailed'));
         }
 
         setLoading(false);
@@ -223,13 +312,13 @@ export default function HomeScreen({ navigation }) {
 
   const handleSettleUp = async () => {
     if (!user || !userDetails || !userDetails.coupleId) {
-      Alert.alert('Error', 'Unable to settle up. Please try again.');
+      Alert.alert(t('common.error'), t('home.alerts.settleUpError'));
       return;
     }
 
     // Check if balance is already zero
     if (balance === 0) {
-      Alert.alert('Already Settled', 'Your balance is already at zero. No need to settle up!');
+      Alert.alert(t('home.alerts.alreadySettledTitle'), t('home.alerts.alreadySettledMessage'));
       setSettleUpModalVisible(false);
       return;
     }
@@ -264,19 +353,19 @@ export default function HomeScreen({ navigation }) {
         message += `\n\nTop category: ${topCategory.icon} ${topCategory.categoryName} (${formatCurrency(topCategory.amount)})`;
       }
 
-      Alert.alert('Settled Up! 💰', message, [{ text: 'OK' }]);
+      Alert.alert(t('home.alerts.settledTitle'), message, [{ text: t('common.ok') }]);
     } catch (error) {
       console.error('Error settling up:', error);
 
       // Provide more specific error messages
-      let errorMessage = 'Failed to settle up. Please try again.';
+      let errorMessage = t('home.alerts.settlementFailed');
       if (error.code === 'permission-denied') {
-        errorMessage = 'Permission denied. Please check your account settings.';
+        errorMessage = t('home.alerts.permissionDenied');
       } else if (error.message && error.message.includes('settlement')) {
         errorMessage = error.message;
       }
 
-      Alert.alert('Settlement Failed', errorMessage);
+      Alert.alert(t('home.alerts.settlementFailedTitle'), errorMessage);
     } finally {
       setSettling(false);
     }
@@ -321,7 +410,10 @@ export default function HomeScreen({ navigation }) {
               contentContainerStyle={styles.modalScrollContent}
             >
               <Text style={styles.modalDescription}>
-                Record that {balanceInfo.status === 'positive' ? partnerName : 'you'} {balanceInfo.status === 'settled' ? 'are all settled' : 'paid'}:
+                {t('home.modal.recordPayment', {
+                  payer: balanceInfo.status === 'positive' ? partnerName : t('home.modal.you'),
+                  action: balanceInfo.status === 'settled' ? t('home.modal.settled') : t('home.modal.paid')
+                })}
               </Text>
 
               <View style={styles.modalAmountContainer}>
@@ -461,7 +553,10 @@ export default function HomeScreen({ navigation }) {
 
         <View style={styles.expenseDetails}>
           <View style={styles.expenseDescriptionRow}>
-            <Text style={[styles.expenseDescription, isSettled && styles.expenseDescriptionSettled]}>
+            <Text
+              style={[styles.expenseDescription, isSettled && styles.expenseDescriptionSettled]}
+              numberOfLines={1}
+            >
               {item.description}
             </Text>
             {isSettled && (
@@ -474,24 +569,31 @@ export default function HomeScreen({ navigation }) {
             <Text style={[styles.expenseDate, isSettled && styles.expenseMetaSettled]}>{dateStr}</Text>
             <Text style={[styles.expenseSeparator, isSettled && styles.expenseMetaSettled]}>•</Text>
             <Text style={[styles.expensePaidBy, isSettled && styles.expenseMetaSettled]}>
-              {isPaidByUser ? 'You paid' : `${partnerName} paid`}
+              {isPaidByUser ? t('home.list.youPaid') : t('home.list.partnerPaid', { partner: partnerName })}
             </Text>
             {isSettled && settledDateStr && (
               <>
                 <Text style={[styles.expenseSeparator, styles.expenseMetaSettled]}>•</Text>
-                <Text style={styles.settledText}>Settled {settledDateStr}</Text>
+                <Text style={styles.settledText}>{t('home.list.settled', { date: settledDateStr })}</Text>
               </>
             )}
           </View>
         </View>
 
         <View style={styles.expenseAmountContainer}>
-          <Text style={[styles.expenseAmount, isSettled && styles.expenseAmountSettled]}>
-            {formatCurrency(item.amount)}
-          </Text>
+          <View style={styles.expenseAmountRow}>
+            {item.currency && item.currency !== primaryCurrency && (
+              <Text style={styles.currencyFlag}>{getCurrencyFlag(item.currency)}</Text>
+            )}
+            <Text style={[styles.expenseAmount, isSettled && styles.expenseAmountSettled]}>
+              {item.currency && item.primaryCurrencyAmount
+                ? getExpenseDualDisplay(item)
+                : formatCurrency(item.amount)}
+            </Text>
+          </View>
           {item.splitDetails && item.splitDetails.user1Amount !== undefined && item.splitDetails.user2Amount !== undefined && (
             <Text style={[styles.expenseYourShare, isSettled && styles.expenseMetaSettled]}>
-              Your share: {formatCurrency(isPaidByUser ? item.splitDetails.user1Amount : item.splitDetails.user2Amount)}
+              Your share: {formatCurrencyNew(isPaidByUser ? item.splitDetails.user1Amount : item.splitDetails.user2Amount, primaryCurrency)}
             </Text>
           )}
         </View>
@@ -502,9 +604,9 @@ export default function HomeScreen({ navigation }) {
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <Text style={styles.emptyStateEmoji}>💸</Text>
-      <Text style={styles.emptyStateTitle}>No Expenses Yet</Text>
+      <Text style={styles.emptyStateTitle}>{t('home.noExpensesTitle')}</Text>
       <Text style={styles.emptyStateText}>
-        Start tracking your shared expenses by tapping the + button below
+        {t('home.noExpensesText')}
       </Text>
     </View>
   );
@@ -518,7 +620,7 @@ export default function HomeScreen({ navigation }) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Loading expenses...</Text>
+        <Text style={styles.loadingText}>{t('home.loadingExpenses')}</Text>
       </View>
     );
   }
@@ -530,7 +632,7 @@ export default function HomeScreen({ navigation }) {
         onPress={() => setExpenseFilter('active')}
       >
         <Text style={[styles.filterButtonText, expenseFilter === 'active' && styles.filterButtonTextActive]}>
-          Active ({unsettledCount})
+          {t('home.active')} ({unsettledCount})
         </Text>
       </TouchableOpacity>
 
@@ -539,7 +641,7 @@ export default function HomeScreen({ navigation }) {
         onPress={() => setExpenseFilter('all')}
       >
         <Text style={[styles.filterButtonText, expenseFilter === 'all' && styles.filterButtonTextActive]}>
-          All ({expenses.length})
+          {t('home.all')} ({expenses.length})
         </Text>
       </TouchableOpacity>
 
@@ -548,7 +650,7 @@ export default function HomeScreen({ navigation }) {
         onPress={() => setExpenseFilter('settled')}
       >
         <Text style={[styles.filterButtonText, expenseFilter === 'settled' && styles.filterButtonTextActive]}>
-          Settled ({settledCount})
+          {t('home.settled')} ({settledCount})
         </Text>
       </TouchableOpacity>
     </View>
@@ -558,10 +660,10 @@ export default function HomeScreen({ navigation }) {
     <View style={styles.container}>
       <View style={styles.contentContainer}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: Platform.OS === 'web' ? SPACING.base : Math.max(insets.top, 10) }]}>
           <View>
-            <Text style={styles.greeting}>Hello, {userDetails?.displayName || 'there'}!</Text>
-            <Text style={styles.subtitle}>Here's your balance with {partnerName}</Text>
+            <Text style={styles.greeting}>{t('home.greeting', { name: userDetails?.displayName || 'there' })}</Text>
+            <Text style={styles.subtitle}>{t('home.subtitle', { partnerName })}</Text>
           </View>
           <TouchableOpacity
             style={styles.historyButton}
@@ -571,13 +673,64 @@ export default function HomeScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
+        {/* Unpaired User Banner - Enhanced */}
+        {!userDetails?.partnerId && (
+          <View style={styles.unpairedBanner}>
+            <View style={styles.unpairedBannerIconContainer}>
+              <Ionicons name="people" size={32} color={COLORS.primary} />
+            </View>
+            <View style={styles.unpairedBannerContent}>
+              <Text style={styles.unpairedBannerTitle}>{t('home.unpaired.title')}</Text>
+              <Text style={styles.unpairedBannerMessage}>{t('home.unpaired.message')}</Text>
+            </View>
+            <View style={styles.unpairedBannerActions}>
+              <TouchableOpacity
+                style={styles.unpairedBannerButtonPrimary}
+                onPress={() => navigation.navigate('Invite')}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="person-add-outline" size={16} color={COLORS.textWhite} />
+                <Text style={styles.unpairedBannerButtonPrimaryText}>
+                  {t('nudges.partnerInvite.inviteCta', 'Invite Partner')}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.unpairedBannerButtonSecondary}
+                onPress={() => navigation.navigate('Join')}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="enter-outline" size={16} color={COLORS.primary} />
+                <Text style={styles.unpairedBannerButtonSecondaryText}>
+                  {t('nudges.partnerInvite.joinCta', 'Join Partner')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* Budget Setup Nudge - Show if onboarding not completed */}
+        {userDetails?.partnerId && !onboardingCompleted && shouldShowNudge(NUDGE_TYPES.BUDGET_SETUP) && (
+          <BudgetSetupNudge
+            onSetup={() => navigation.navigate('Onboarding')}
+            style={{ marginTop: 0 }}
+          />
+        )}
+
+        {/* Push Notification Nudge - Show if permission not granted */}
+        {userDetails?.partnerId && pushPermissionStatus === 'undetermined' && shouldShowNudge(NUDGE_TYPES.PUSH_NOTIFICATIONS) && (
+          <PushNotificationNudge
+            mode="banner"
+            style={{ marginTop: 0 }}
+          />
+        )}
+
         {/* Balance Card */}
         <View style={[
           styles.balanceCard,
           balanceInfo.status === 'positive' && styles.balanceCardPositive,
           balanceInfo.status === 'negative' && styles.balanceCardNegative,
         ]}>
-          <Text style={styles.balanceLabel}>Current Balance</Text>
+          <Text style={styles.balanceLabel}>{t('home.currentBalance')}</Text>
           <Text style={styles.balanceAmount}>
             {formatCurrency(balanceInfo.amount)}
           </Text>
@@ -589,15 +742,15 @@ export default function HomeScreen({ navigation }) {
                 style={styles.settleButton}
                 onPress={() => setSettleUpModalVisible(true)}
               >
-                <Text style={styles.settleButtonText}>Settle Up</Text>
+                <Text style={styles.settleButtonText}>{t('home.settleUp')}</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity
               style={[styles.historyButtonCard, balanceInfo.status === 'settled' && styles.historyButtonFull]}
               onPress={() => navigation.navigate('SettlementsTab')}
             >
-              <Ionicons name="list-outline" size={18} color={COLORS.primary} />
-              <Text style={styles.historyButtonText}>View History</Text>
+              <Ionicons name="list-outline" size={18} color={COLORS.primary} style={{ marginRight: 6 }} />
+              <Text style={styles.historyButtonText}>{t('home.viewHistory')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -613,7 +766,33 @@ export default function HomeScreen({ navigation }) {
         {/* Expenses List */}
         <View style={styles.expensesSection}>
           <View style={styles.expensesSectionHeader}>
-            <Text style={styles.sectionTitle}>Expenses</Text>
+            <Text style={styles.sectionTitle}>{t('home.expenses')}</Text>
+            <TouchableOpacity
+              style={styles.importButton}
+              onPress={() => {
+                try {
+                  console.log('Import button pressed, isPremium:', isPremium);
+                  // Check if user has premium access
+                  if (!isPremium) {
+                    console.log('User is not premium, redirecting to paywall');
+                    navigation.navigate('Paywall', { feature: 'import_expenses' });
+                    return;
+                  }
+                  console.log('Navigating to ImportExpenses screen');
+                  navigation.navigate('ImportExpenses');
+                } catch (error) {
+                  console.error('Error navigating to ImportExpenses:', error);
+                  Alert.alert(t('home.alerts.navigationErrorTitle'), t('home.alerts.navigationErrorMessage'));
+                }
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="cloud-upload-outline" size={18} color={COLORS.primary} />
+              <Text style={styles.importButtonText}>{t('home.import') || 'Import'}</Text>
+              {!isPremium && (
+                <Ionicons name="lock-closed" size={14} color={COLORS.warning} style={{ marginLeft: 4 }} />
+              )}
+            </TouchableOpacity>
           </View>
 
           {/* Filter Toggle */}
@@ -628,16 +807,55 @@ export default function HomeScreen({ navigation }) {
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
             }
-            contentContainerStyle={filteredExpenses.length === 0 ? styles.emptyListContent : styles.listContent}
+            contentContainerStyle={filteredExpenses.length === 0 ? styles.emptyListContent : [styles.listContent, { paddingBottom: 100 + insets.bottom }]}
             showsVerticalScrollIndicator={true}
             nestedScrollEnabled={true}
           />
         </View>
 
         {/* Floating Add Button */}
-        <TouchableOpacity style={styles.fab} onPress={handleAddExpense}>
-          <Ionicons name="add" size={32} color={COLORS.background} />
-        </TouchableOpacity>
+        <View ref={fabRef} collapsable={false} style={[styles.fabContainer, { bottom: SPACING.screenPadding + 60 + insets.bottom }]}>
+          <TouchableOpacity
+            style={[
+              styles.fab,
+              !userDetails?.partnerId && styles.fabDisabled
+            ]}
+            onPress={() => {
+              // Dismiss coach mark if shown
+              if (showFirstExpenseCoachMark) {
+                setShowFirstExpenseCoachMark(false);
+                dismissNudge(NUDGE_TYPES.FIRST_EXPENSE);
+              }
+              // Check if user is unpaired
+              if (!userDetails?.partnerId) {
+                Alert.alert(
+                  t('home.unpaired.title'),
+                  t('home.unpaired.readOnlyMode'),
+                  [
+                    { text: t('common.cancel'), style: 'cancel' },
+                    {
+                      text: t('home.unpaired.findPartner'),
+                      onPress: () => navigation.navigate('Connect')
+                    }
+                  ]
+                );
+                return;
+              }
+              handleAddExpense();
+            }}
+            disabled={!userDetails?.partnerId}
+          >
+            <Ionicons name="add" size={32} color={COLORS.background} />
+          </TouchableOpacity>
+        </View>
+
+        {/* First Expense Coach Mark */}
+        {showFirstExpenseCoachMark && (
+          <FirstExpenseCoachMark
+            targetRef={fabRef}
+            onDismiss={() => setShowFirstExpenseCoachMark(false)}
+          />
+        )}
 
         {/* Settle Up Modal */}
         {renderSettleUpModal()}
@@ -686,7 +904,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: SPACING.screenPadding,
-    paddingTop: Platform.OS === 'web' ? SPACING.base : 10,
+    // paddingTop is set dynamically via inline style using safe area insets
     paddingBottom: SPACING.base,
   },
   historyButton: {
@@ -743,17 +961,18 @@ const styles = StyleSheet.create({
   },
   balanceActions: {
     flexDirection: 'row',
-    gap: SPACING.small,
+    alignItems: 'center',
     marginTop: SPACING.base,
     width: '100%',
   },
   settleButton: {
-    flex: 1,
+    width: '48%',
+    height: 44,
+    marginRight: 8,
     backgroundColor: COLORS.primary,
-    paddingVertical: SPACING.small,
-    paddingHorizontal: SPACING.large,
     borderRadius: 8,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   settleButtonText: {
     ...FONTS.body,
@@ -761,21 +980,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   historyButtonCard: {
-    flex: 1,
+    width: '48%',
+    height: 44,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
     backgroundColor: COLORS.background,
-    paddingVertical: SPACING.small,
-    paddingHorizontal: SPACING.base,
     borderRadius: 8,
     borderWidth: 2,
     borderColor: COLORS.primary,
   },
   historyButtonFull: {
-    flex: 0,
-    minWidth: '100%',
+    width: '100%',
+    marginRight: 0,
   },
   historyButtonText: {
     ...FONTS.body,
@@ -807,7 +1024,27 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   expensesSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: SPACING.small,
+  },
+  importButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: COLORS.primary + '15',
+    borderWidth: 1,
+    borderColor: COLORS.primary + '30',
+  },
+  importButtonText: {
+    ...FONTS.small,
+    fontSize: 13,
+    color: COLORS.primary,
+    fontWeight: '600',
+    marginLeft: 4,
   },
   listContent: {
     paddingBottom: 80, // Space for FAB
@@ -876,6 +1113,8 @@ const styles = StyleSheet.create({
   },
   expenseDetails: {
     flex: 1,
+    minWidth: 0,  // Critical for text truncation in flex children
+    overflow: 'hidden',
   },
   expenseDescriptionRow: {
     flexDirection: 'row',
@@ -897,6 +1136,8 @@ const styles = StyleSheet.create({
   expenseMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: isSmallScreen ? 2 : undefined,
   },
   expenseDate: {
     ...FONTS.small,
@@ -910,6 +1151,7 @@ const styles = StyleSheet.create({
   expensePaidBy: {
     ...FONTS.small,
     color: COLORS.textSecondary,
+    flexShrink: 1,
   },
   expenseMetaSettled: {
     color: COLORS.textSecondary,
@@ -922,6 +1164,16 @@ const styles = StyleSheet.create({
   },
   expenseAmountContainer: {
     alignItems: 'flex-end',
+    marginLeft: SPACING.small,
+    flexShrink: 0,  // Don't let amount column shrink
+  },
+  expenseAmountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  currencyFlag: {
+    fontSize: 16,
   },
   expenseAmount: {
     ...FONTS.body,
@@ -961,9 +1213,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.large,
   },
   fab: {
-    position: 'absolute',
-    right: SPACING.screenPadding,
-    bottom: SPACING.screenPadding + (Platform.OS === 'ios' ? 60 : 50), // Account for tab bar
     width: 64,
     height: 64,
     borderRadius: 32,
@@ -1177,5 +1426,86 @@ const styles = StyleSheet.create({
     ...FONTS.body,
     color: COLORS.background,
     fontWeight: '600',
+  },
+  unpairedBanner: {
+    backgroundColor: COLORS.background,
+    marginHorizontal: SPACING.screenPadding,
+    borderRadius: 12,
+    padding: SPACING.base,
+    marginBottom: SPACING.base,
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.primary,
+    ...SHADOWS.medium,
+  },
+  unpairedBannerIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.primary + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.medium,
+    alignSelf: 'center',
+  },
+  unpairedBannerContent: {
+    marginBottom: SPACING.medium,
+  },
+  unpairedBannerTitle: {
+    ...FONTS.body,
+    fontWeight: '600',
+    color: COLORS.text,
+    textAlign: 'center',
+    marginBottom: SPACING.tiny,
+  },
+  unpairedBannerMessage: {
+    ...FONTS.small,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  unpairedBannerActions: {
+    flexDirection: 'row',
+    gap: SPACING.small,
+  },
+  unpairedBannerButtonPrimary: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primary,
+    paddingVertical: SPACING.small,
+    paddingHorizontal: SPACING.base,
+    borderRadius: 8,
+    gap: SPACING.tiny,
+  },
+  unpairedBannerButtonPrimaryText: {
+    ...FONTS.small,
+    color: COLORS.textWhite,
+    fontWeight: '600',
+  },
+  unpairedBannerButtonSecondary: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primary + '15',
+    paddingVertical: SPACING.small,
+    paddingHorizontal: SPACING.base,
+    borderRadius: 8,
+    gap: SPACING.tiny,
+  },
+  unpairedBannerButtonSecondaryText: {
+    ...FONTS.small,
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  fabContainer: {
+    position: 'absolute',
+    right: SPACING.screenPadding,
+    // bottom is set dynamically via inline style using safe area insets
+  },
+  fabDisabled: {
+    backgroundColor: COLORS.textSecondary,
+    opacity: 0.5,
   },
 });

@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Expense - Dividela (Complete with Split & Who Paid)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            overflow: hidden;
+            max-height: 95vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 24px;
+            text-align: center;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .form-container {
+            padding: 32px 24px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        /* Amount Section with Currency - Primary Focus */
+        .amount-section {
+            text-align: center;
+            margin-bottom: 32px;
+            padding-bottom: 32px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .amount-label {
+            font-size: 13px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .amount-currency-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+
+        .currency-selector {
+            position: relative;
+        }
+
+        .currency-dropdown {
+            padding: 12px 16px;
+            font-size: 18px;
+            font-weight: 600;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            background: #f7fafc;
+            color: #2d3748;
+            cursor: pointer;
+            appearance: none;
+            padding-right: 36px;
+            transition: all 0.2s ease;
+        }
+
+        .currency-dropdown:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .currency-selector::after {
+            content: '▼';
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 12px;
+            color: #667eea;
+            pointer-events: none;
+        }
+
+        .amount-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .currency-symbol {
+            font-size: 36px;
+            color: #667eea;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        #amount {
+            font-size: 48px;
+            font-weight: 700;
+            border: none;
+            outline: none;
+            text-align: left;
+            width: auto;
+            min-width: 100px;
+            max-width: 250px;
+            color: #2d3748;
+            background: transparent;
+        }
+
+        #amount:focus {
+            color: #667eea;
+        }
+
+        #amount::placeholder {
+            color: #cbd5e0;
+        }
+
+        .amount-formatted {
+            font-size: 14px;
+            color: #718096;
+            margin-top: 8px;
+        }
+
+        /* Input Groups */
+        .input-group {
+            margin-bottom: 24px;
+        }
+
+        .input-label {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 12px;
+        }
+
+        .required-badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-left: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .optional-badge {
+            display: inline-block;
+            background: #e2e8f0;
+            color: #718096;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-left: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Who Paid Section */
+        .who-paid-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .paid-option {
+            background: #f7fafc;
+            border: 2px solid transparent;
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .paid-option:hover {
+            background: #edf2f7;
+            transform: translateY(-2px);
+        }
+
+        .paid-option.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .paid-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .paid-name {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        /* Split Method Section */
+        .split-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .split-option {
+            background: #f7fafc;
+            border: 2px solid transparent;
+            border-radius: 12px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .split-option:hover {
+            background: #edf2f7;
+        }
+
+        .split-option.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .split-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 4px;
+        }
+
+        .split-icon {
+            font-size: 20px;
+        }
+
+        .split-title {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .split-description {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-left: 32px;
+        }
+
+        /* Custom Split Input */
+        .custom-split-wrapper {
+            display: none;
+            margin-top: 16px;
+            padding: 16px;
+            background: white;
+            border-radius: 12px;
+        }
+
+        .custom-split-wrapper.show {
+            display: block;
+        }
+
+        .split-inputs {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .split-input-group {
+            text-align: center;
+        }
+
+        .split-input-label {
+            font-size: 11px;
+            color: #718096;
+            margin-bottom: 6px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .split-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            text-align: center;
+            color: #2d3748;
+        }
+
+        .split-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .split-divider {
+            font-size: 24px;
+            color: #cbd5e0;
+        }
+
+        /* Category Selection - Card Style */
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .category-card {
+            background: #f7fafc;
+            border: 2px solid transparent;
+            border-radius: 12px;
+            padding: 16px 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .category-card:hover {
+            background: #edf2f7;
+            transform: translateY(-2px);
+        }
+
+        .category-card.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .category-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .category-name {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* Date Input */
+        .date-input-wrapper {
+            position: relative;
+        }
+
+        #date {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 15px;
+            color: #2d3748;
+            background: #f7fafc;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        #date:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        /* Description - Optional */
+        .description-wrapper {
+            background: #f8f9ff;
+            border: 2px dashed #cbd5e0;
+            border-radius: 12px;
+            padding: 16px;
+            transition: all 0.2s ease;
+        }
+
+        .description-wrapper:focus-within {
+            border-color: #667eea;
+            border-style: solid;
+            background: white;
+        }
+
+        .description-hint {
+            display: flex;
+            align-items: center;
+            font-size: 12px;
+            color: #718096;
+            margin-bottom: 8px;
+        }
+
+        .description-hint svg {
+            margin-right: 6px;
+            opacity: 0.7;
+        }
+
+        #description {
+            width: 100%;
+            border: none;
+            outline: none;
+            font-size: 14px;
+            color: #2d3748;
+            background: transparent;
+            resize: none;
+            font-family: inherit;
+            min-height: 60px;
+        }
+
+        #description::placeholder {
+            color: #a0aec0;
+        }
+
+        /* Action Buttons */
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 2px solid #f0f0f0;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
+
+        /* Success Message */
+        .success-message {
+            background: #48bb78;
+            color: white;
+            padding: 16px;
+            border-radius: 12px;
+            text-align: center;
+            margin-top: 16px;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        .success-message.show {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Error States */
+        .error {
+            border-color: #fc8181 !important;
+            background: #fff5f5 !important;
+        }
+
+        .error-message {
+            color: #e53e3e;
+            font-size: 12px;
+            margin-top: 8px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        /* Split Preview */
+        .split-preview {
+            background: #f0f9ff;
+            border: 2px solid #667eea;
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 16px;
+            display: none;
+        }
+
+        .split-preview.show {
+            display: block;
+        }
+
+        .split-preview-title {
+            font-size: 12px;
+            color: #667eea;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        .split-preview-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+        }
+
+        .split-preview-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .split-preview-amount {
+            font-size: 16px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 480px) {
+            .container {
+                border-radius: 0;
+                min-height: 100vh;
+                max-height: 100vh;
+            }
+
+            .category-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            #amount {
+                font-size: 40px;
+            }
+
+            .form-container {
+                padding: 24px 20px;
+            }
+
+            .amount-currency-wrapper {
+                flex-direction: column;
+                gap: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Add Expense</h1>
+            <p>Track your shared spending</p>
+        </div>
+
+        <form id="expenseForm" class="form-container">
+            <!-- Amount Section with Currency - Primary Focus -->
+            <div class="amount-section">
+                <div class="amount-label">How much did you spend?</div>
+                
+                <div class="amount-currency-wrapper">
+                    <div class="currency-selector">
+                        <select 
+                            id="currency" 
+                            name="currency" 
+                            class="currency-dropdown"
+                            aria-label="Select currency"
+                        >
+                            <option value="USD">USD</option>
+                            <option value="EUR">EUR</option>
+                            <option value="GBP">GBP</option>
+                            <option value="CAD">CAD</option>
+                            <option value="AUD">AUD</option>
+                            <option value="JPY">JPY</option>
+                            <option value="CNY">CNY</option>
+                            <option value="INR">INR</option>
+                            <option value="MXN">MXN</option>
+                            <option value="BRL">BRL</option>
+                        </select>
+                    </div>
+
+                    <div class="amount-input-wrapper">
+                        <span class="currency-symbol" id="currencySymbol">$</span>
+                        <input 
+                            type="text" 
+                            id="amount" 
+                            name="amount"
+                            placeholder="0.00"
+                            required
+                            aria-label="Expense amount"
+                            autofocus
+                            inputmode="decimal"
+                        >
+                    </div>
+                </div>
+
+                <div class="amount-formatted" id="amountFormatted"></div>
+                <div class="error-message" id="amountError">Please enter a valid amount</div>
+            </div>
+
+            <!-- Who Paid Section -->
+            <div class="input-group">
+                <label class="input-label">
+                    Who paid for this?
+                    <span class="required-badge">Required</span>
+                </label>
+                <div class="who-paid-options">
+                    <div class="paid-option" data-paidby="partner1" role="radio" aria-checked="false" tabindex="0">
+                        <div class="paid-icon">👤</div>
+                        <div class="paid-name" id="partner1Name">Partner 1</div>
+                    </div>
+                    <div class="paid-option" data-paidby="partner2" role="radio" aria-checked="false" tabindex="0">
+                        <div class="paid-icon">👤</div>
+                        <div class="paid-name" id="partner2Name">Partner 2</div>
+                    </div>
+                </div>
+                <input type="hidden" id="paidBy" name="paidBy" required>
+                <div class="error-message" id="paidByError">Please select who paid</div>
+            </div>
+
+            <!-- Split Method Section -->
+            <div class="input-group">
+                <label class="input-label">
+                    How to split this?
+                    <span class="required-badge">Required</span>
+                </label>
+                <div class="split-options">
+                    <div class="split-option" data-split="equal" role="radio" aria-checked="false" tabindex="0">
+                        <div class="split-header">
+                            <span class="split-icon">⚖️</span>
+                            <span class="split-title">Split Equally (50/50)</span>
+                        </div>
+                        <div class="split-description">Each person pays half</div>
+                    </div>
+                    
+                    <div class="split-option" data-split="full" role="radio" aria-checked="false" tabindex="0">
+                        <div class="split-header">
+                            <span class="split-icon">💯</span>
+                            <span class="split-title">Paid in Full</span>
+                        </div>
+                        <div class="split-description">Only the payer covers this expense</div>
+                    </div>
+                    
+                    <div class="split-option" data-split="custom" role="radio" aria-checked="false" tabindex="0">
+                        <div class="split-header">
+                            <span class="split-icon">🎯</span>
+                            <span class="split-title">Custom Split</span>
+                        </div>
+                        <div class="split-description">Choose your own percentages</div>
+                    </div>
+                </div>
+
+                <!-- Custom Split Input -->
+                <div class="custom-split-wrapper" id="customSplitWrapper">
+                    <div class="split-inputs">
+                        <div class="split-input-group">
+                            <div class="split-input-label" id="partner1SplitLabel">Partner 1</div>
+                            <input 
+                                type="number" 
+                                class="split-input" 
+                                id="partner1Split" 
+                                min="0" 
+                                max="100" 
+                                value="50"
+                                placeholder="50"
+                            >
+                            <div style="font-size: 12px; color: #718096; margin-top: 4px;">%</div>
+                        </div>
+                        
+                        <div class="split-divider">/</div>
+                        
+                        <div class="split-input-group">
+                            <div class="split-input-label" id="partner2SplitLabel">Partner 2</div>
+                            <input 
+                                type="number" 
+                                class="split-input" 
+                                id="partner2Split" 
+                                min="0" 
+                                max="100" 
+                                value="50"
+                                placeholder="50"
+                            >
+                            <div style="font-size: 12px; color: #718096; margin-top: 4px;">%</div>
+                        </div>
+                    </div>
+                    <div class="error-message" id="customSplitError">Percentages must add up to 100%</div>
+                </div>
+
+                <input type="hidden" id="splitMethod" name="splitMethod" required>
+                <input type="hidden" id="splitPercentage1" name="splitPercentage1">
+                <input type="hidden" id="splitPercentage2" name="splitPercentage2">
+                <div class="error-message" id="splitError">Please select how to split</div>
+
+                <!-- Split Preview -->
+                <div class="split-preview" id="splitPreview">
+                    <div class="split-preview-title">💡 Split Preview</div>
+                    <div class="split-preview-row">
+                        <span class="split-preview-name" id="previewName1">Partner 1</span>
+                        <span class="split-preview-amount" id="previewAmount1">$0.00</span>
+                    </div>
+                    <div class="split-preview-row">
+                        <span class="split-preview-name" id="previewName2">Partner 2</span>
+                        <span class="split-preview-amount" id="previewAmount2">$0.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category Selection -->
+            <div class="input-group">
+                <label class="input-label">
+                    What's this for?
+                    <span class="required-badge">Required</span>
+                </label>
+                <div class="category-grid" role="radiogroup" aria-label="Expense category">
+                    <div class="category-card" data-category="food" role="radio" aria-checked="false" tabindex="0">
+                        <div class="category-icon">🍕</div>
+                        <div class="category-name">Food</div>
+                    </div>
+                    <div class="category-card" data-category="groceries" role="radio" aria-checked="false" tabindex="0">
+                        <div class="category-icon">🛒</div>
+                        <div class="category-name">Groceries</div>
+                    </div>
+                    <div class="category-card" data-category="transport" role="radio" aria-checked="false" tabindex="0">
+                        <div class="category-icon">🚗</div>
+                        <div class="category-name">Transport</div>
+                    </div>
+                    <div class="category-card" data-category="home" role="radio" aria-checked="false" tabindex="0">
+                        <div class="category-icon">🏠</div>
+                        <div class="category-name">Home</div>
+                    </div>
+                    <div class="category-card" data-category="entertainment" role="radio" aria-checked="false" tabindex="0">
+                        <div class="category-icon">🎬</div>
+                        <div class="category-name">Fun</div>
+                    </div>
+                    <div class="category-card" data-category="other" role="radio" aria-checked="false" tabindex="0">
+                        <div class="category-icon">📦</div>
+                        <div class="category-name">Other</div>
+                    </div>
+                </div>
+                <input type="hidden" id="category" name="category" required>
+                <div class="error-message" id="categoryError">Please select a category</div>
+            </div>
+
+            <!-- Date Selection -->
+            <div class="input-group">
+                <label class="input-label" for="date">
+                    When was this?
+                    <span class="required-badge">Required</span>
+                </label>
+                <div class="date-input-wrapper">
+                    <input 
+                        type="date" 
+                        id="date" 
+                        name="date"
+                        required
+                        aria-label="Expense date"
+                    >
+                </div>
+                <div class="error-message" id="dateError">Please select a date</div>
+            </div>
+
+            <!-- Description / Note - Clearly Optional -->
+            <div class="input-group">
+                <label class="input-label" for="description">
+                    Add a note
+                    <span class="optional-badge">Optional</span>
+                </label>
+                <div class="description-wrapper">
+                    <div class="description-hint">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M8 0C3.6 0 0 3.6 0 8s3.6 8 8 8 8-3.6 8-8-3.6-8-8-8zm1 12H7V7h2v5zm0-6H7V4h2v2z"/>
+                        </svg>
+                        Help remember what this was for (e.g., "Dinner at Luigi's")
+                    </div>
+                    <textarea 
+                        id="description" 
+                        name="description"
+                        placeholder="Add details here..."
+                        aria-label="Optional description"
+                    ></textarea>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="button-group">
+                <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                    Add Expense
+                </button>
+            </div>
+
+            <!-- Success Message -->
+            <div class="success-message" id="successMessage">
+                ✓ Expense added successfully!
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // Currency symbols mapping
+        const currencySymbols = {
+            'USD': '$',
+            'EUR': '€',
+            'GBP': '£',
+            'CAD': 'C$',
+            'AUD': 'A$',
+            'JPY': '¥',
+            'CNY': '¥',
+            'INR': '₹',
+            'MXN': '$',
+            'BRL': 'R$'
+        };
+
+        // Partner names (would come from user profile in real app)
+        const partnerNames = {
+            partner1: 'Alex',
+            partner2: 'Jordan'
+        };
+
+        // Initialize partner names
+        document.getElementById('partner1Name').textContent = partnerNames.partner1;
+        document.getElementById('partner2Name').textContent = partnerNames.partner2;
+        document.getElementById('partner1SplitLabel').textContent = partnerNames.partner1;
+        document.getElementById('partner2SplitLabel').textContent = partnerNames.partner2;
+        document.getElementById('previewName1').textContent = partnerNames.partner1;
+        document.getElementById('previewName2').textContent = partnerNames.partner2;
+
+        // Number formatting utility
+        function formatNumber(value) {
+            const numericValue = value.replace(/[^\d.]/g, '');
+            const parts = numericValue.split('.');
+            let integerPart = parts[0] || '0';
+            let decimalPart = parts[1] || '';
+
+            integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+            if (decimalPart.length > 2) {
+                decimalPart = decimalPart.substring(0, 2);
+            }
+
+            return decimalPart ? `${integerPart}.${decimalPart}` : integerPart;
+        }
+
+        function formatAmountInWords(value, currency) {
+            const num = parseFloat(value.replace(/,/g, ''));
+            if (isNaN(num) || num === 0) return '';
+
+            const formatter = new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: currency,
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+
+            return formatter.format(num);
+        }
+
+        // Set today's date as default
+        document.getElementById('date').valueAsDate = new Date();
+
+        // Currency selector change
+        const currencySelect = document.getElementById('currency');
+        const currencySymbolSpan = document.getElementById('currencySymbol');
+        const amountInput = document.getElementById('amount');
+        const amountFormatted = document.getElementById('amountFormatted');
+
+        currencySelect.addEventListener('change', function() {
+            const selectedCurrency = this.value;
+            currencySymbolSpan.textContent = currencySymbols[selectedCurrency];
+            
+            if (amountInput.value) {
+                const formatted = formatAmountInWords(amountInput.value, selectedCurrency);
+                amountFormatted.textContent = formatted;
+            }
+            
+            updateSplitPreview();
+        });
+
+        // Amount input formatting
+        amountInput.addEventListener('input', function(e) {
+            const cursorPosition = this.selectionStart;
+            const oldLength = this.value.length;
+            
+            const rawValue = this.value.replace(/[^\d.]/g, '');
+            this.value = formatNumber(rawValue);
+            
+            const formatted = formatAmountInWords(this.value, currencySelect.value);
+            amountFormatted.textContent = formatted;
+
+            const newLength = this.value.length;
+            const newPosition = cursorPosition + (newLength - oldLength);
+            this.setSelectionRange(newPosition, newPosition);
+
+            if (this.value && parseFloat(this.value.replace(/,/g, '')) > 0) {
+                this.classList.remove('error');
+                document.getElementById('amountError').classList.remove('show');
+            }
+
+            updateSplitPreview();
+        });
+
+        // Who Paid selection
+        const paidOptions = document.querySelectorAll('.paid-option');
+        const paidByInput = document.getElementById('paidBy');
+
+        paidOptions.forEach(option => {
+            option.addEventListener('click', () => selectPaidBy(option));
+            
+            option.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    selectPaidBy(option);
+                }
+            });
+        });
+
+        function selectPaidBy(selectedOption) {
+            paidOptions.forEach(o => {
+                o.classList.remove('selected');
+                o.setAttribute('aria-checked', 'false');
+            });
+            selectedOption.classList.add('selected');
+            selectedOption.setAttribute('aria-checked', 'true');
+            paidByInput.value = selectedOption.dataset.paidby;
+            
+            document.getElementById('paidByError').classList.remove('show');
+            updateSplitPreview();
+        }
+
+        // Split Method selection
+        const splitOptions = document.querySelectorAll('.split-option');
+        const splitMethodInput = document.getElementById('splitMethod');
+        const customSplitWrapper = document.getElementById('customSplitWrapper');
+        const partner1SplitInput = document.getElementById('partner1Split');
+        const partner2SplitInput = document.getElementById('partner2Split');
+
+        splitOptions.forEach(option => {
+            option.addEventListener('click', () => selectSplitMethod(option));
+            
+            option.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    selectSplitMethod(option);
+                }
+            });
+        });
+
+        function selectSplitMethod(selectedOption) {
+            splitOptions.forEach(o => {
+                o.classList.remove('selected');
+                o.setAttribute('aria-checked', 'false');
+            });
+            selectedOption.classList.add('selected');
+            selectedOption.setAttribute('aria-checked', 'true');
+            
+            const splitType = selectedOption.dataset.split;
+            splitMethodInput.value = splitType;
+
+            // Show/hide custom split inputs
+            if (splitType === 'custom') {
+                customSplitWrapper.classList.add('show');
+            } else {
+                customSplitWrapper.classList.remove('show');
+                
+                // Set default percentages based on split type
+                if (splitType === 'equal') {
+                    document.getElementById('splitPercentage1').value = 50;
+                    document.getElementById('splitPercentage2').value = 50;
+                } else if (splitType === 'full') {
+                    // Will be determined by who paid
+                    document.getElementById('splitPercentage1').value = '';
+                    document.getElementById('splitPercentage2').value = '';
+                }
+            }
+            
+            document.getElementById('splitError').classList.remove('show');
+            updateSplitPreview();
+        }
+
+        // Custom split inputs - auto-calculate complementary percentage
+        partner1SplitInput.addEventListener('input', function() {
+            const value = parseInt(this.value) || 0;
+            if (value >= 0 && value <= 100) {
+                partner2SplitInput.value = 100 - value;
+                validateCustomSplit();
+                updateSplitPreview();
+            }
+        });
+
+        partner2SplitInput.addEventListener('input', function() {
+            const value = parseInt(this.value) || 0;
+            if (value >= 0 && value <= 100) {
+                partner1SplitInput.value = 100 - value;
+                validateCustomSplit();
+                updateSplitPreview();
+            }
+        });
+
+        function validateCustomSplit() {
+            const p1 = parseInt(partner1SplitInput.value) || 0;
+            const p2 = parseInt(partner2SplitInput.value) || 0;
+            const errorMsg = document.getElementById('customSplitError');
+            
+            if (p1 + p2 !== 100) {
+                errorMsg.classList.add('show');
+                return false;
+            } else {
+                errorMsg.classList.remove('show');
+                document.getElementById('splitPercentage1').value = p1;
+                document.getElementById('splitPercentage2').value = p2;
+                return true;
+            }
+        }
+
+        // Update split preview
+        function updateSplitPreview() {
+            const amount = parseFloat(amountInput.value.replace(/,/g, '')) || 0;
+            const splitMethod = splitMethodInput.value;
+            const paidBy = paidByInput.value;
+            const currency = currencySelect.value;
+            const splitPreview = document.getElementById('splitPreview');
+
+            if (amount > 0 && splitMethod && paidBy) {
+                let p1Amount, p2Amount;
+
+                if (splitMethod === 'equal') {
+                    p1Amount = amount / 2;
+                    p2Amount = amount / 2;
+                } else if (splitMethod === 'full') {
+                    if (paidBy === 'partner1') {
+                        p1Amount = amount;
+                        p2Amount = 0;
+                    } else {
+                        p1Amount = 0;
+                        p2Amount = amount;
+                    }
+                } else if (splitMethod === 'custom') {
+                    const p1Pct = parseInt(partner1SplitInput.value) || 50;
+                    const p2Pct = parseInt(partner2SplitInput.value) || 50;
+                    p1Amount = (amount * p1Pct) / 100;
+                    p2Amount = (amount * p2Pct) / 100;
+                }
+
+                const formatter = new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: currency,
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+
+                document.getElementById('previewAmount1').textContent = formatter.format(p1Amount);
+                document.getElementById('previewAmount2').textContent = formatter.format(p2Amount);
+                
+                splitPreview.classList.add('show');
+            } else {
+                splitPreview.classList.remove('show');
+            }
+        }
+
+        // Category selection
+        const categoryCards = document.querySelectorAll('.category-card');
+        const categoryInput = document.getElementById('category');
+
+        categoryCards.forEach(card => {
+            card.addEventListener('click', () => selectCategory(card));
+            
+            card.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    selectCategory(card);
+                }
+            });
+        });
+
+        function selectCategory(selectedCard) {
+            categoryCards.forEach(c => {
+                c.classList.remove('selected');
+                c.setAttribute('aria-checked', 'false');
+            });
+            selectedCard.classList.add('selected');
+            selectedCard.setAttribute('aria-checked', 'true');
+            categoryInput.value = selectedCard.dataset.category;
+            
+            document.getElementById('categoryError').classList.remove('show');
+        }
+
+        // Form submission
+        const form = document.getElementById('expenseForm');
+        const submitBtn = document.getElementById('submitBtn');
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            let isValid = true;
+            
+            // Clear previous errors
+            document.querySelectorAll('.error-message').forEach(msg => msg.classList.remove('show'));
+            document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
+
+            // Validate amount
+            const amount = amountInput.value.replace(/,/g, '');
+            if (!amount || parseFloat(amount) <= 0) {
+                isValid = false;
+                document.getElementById('amountError').classList.add('show');
+                amountInput.classList.add('error');
+            }
+
+            // Validate paid by
+            if (!paidByInput.value) {
+                isValid = false;
+                document.getElementById('paidByError').classList.add('show');
+            }
+
+            // Validate split method
+            if (!splitMethodInput.value) {
+                isValid = false;
+                document.getElementById('splitError').classList.add('show');
+            } else if (splitMethodInput.value === 'custom') {
+                if (!validateCustomSplit()) {
+                    isValid = false;
+                }
+            }
+
+            // Set split percentages for full payment
+            if (splitMethodInput.value === 'full' && paidByInput.value) {
+                if (paidByInput.value === 'partner1') {
+                    document.getElementById('splitPercentage1').value = 100;
+                    document.getElementById('splitPercentage2').value = 0;
+                } else {
+                    document.getElementById('splitPercentage1').value = 0;
+                    document.getElementById('splitPercentage2').value = 100;
+                }
+            }
+
+            // Validate category
+            if (!categoryInput.value) {
+                isValid = false;
+                document.getElementById('categoryError').classList.add('show');
+            }
+
+            // Validate date
+            const date = document.getElementById('date');
+            if (!date.value) {
+                isValid = false;
+                document.getElementById('dateError').classList.add('show');
+                date.classList.add('error');
+            }
+
+            if (isValid) {
+                // Get form data
+                const formData = {
+                    amount: parseFloat(amount),
+                    currency: currencySelect.value,
+                    paidBy: paidByInput.value,
+                    splitMethod: splitMethodInput.value,
+                    splitPercentage1: parseInt(document.getElementById('splitPercentage1').value),
+                    splitPercentage2: parseInt(document.getElementById('splitPercentage2').value),
+                    category: categoryInput.value,
+                    date: date.value,
+                    description: document.getElementById('description').value.trim() || null,
+                    createdAt: new Date().toISOString()
+                };
+
+                console.log('Expense Data:', formData);
+
+                // Simulate saving
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Adding...';
+                
+                setTimeout(() => {
+                    document.getElementById('successMessage').classList.add('show');
+                    
+                    setTimeout(() => {
+                        form.reset();
+                        categoryCards.forEach(c => {
+                            c.classList.remove('selected');
+                            c.setAttribute('aria-checked', 'false');
+                        });
+                        paidOptions.forEach(o => {
+                            o.classList.remove('selected');
+                            o.setAttribute('aria-checked', 'false');
+                        });
+                        splitOptions.forEach(o => {
+                            o.classList.remove('selected');
+                            o.setAttribute('aria-checked', 'false');
+                        });
+                        customSplitWrapper.classList.remove('show');
+                        document.getElementById('splitPreview').classList.remove('show');
+                        document.getElementById('date').valueAsDate = new Date();
+                        currencySymbolSpan.textContent = '$';
+                        amountFormatted.textContent = '';
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Add Expense';
+                        document.getElementById('successMessage').classList.remove('show');
+                        
+                        amountInput.focus();
+                    }, 1500);
+                }, 500);
+            }
+        });
+
+        // Cancel button
+        document.getElementById('cancelBtn').addEventListener('click', () => {
+            if (confirm('Discard this expense?')) {
+                window.history.back();
+            }
+        });
+
+        // Real-time validation
+        document.getElementById('date').addEventListener('change', function() {
+            if (this.value) {
+                this.classList.remove('error');
+                document.getElementById('dateError').classList.remove('show');
+            }
+        });
+    </script>
+</body>
+</html>

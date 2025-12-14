@@ -10,13 +10,10 @@
  * @throws {Error} If validation fails
  */
 export const calculateSplit = (amount, user1Percentage, user2Percentage = null) => {
-  // Validate amount
+  // Validate amount (large amount warnings are handled at the UI level)
   const total = parseFloat(amount);
   if (isNaN(total) || total <= 0) {
     throw new Error('Invalid amount: must be a positive number');
-  }
-  if (total > 1000000) {
-    throw new Error('Invalid amount: exceeds maximum allowed value');
   }
 
   // Validate user1Percentage
@@ -51,12 +48,10 @@ export const calculateSplit = (amount, user1Percentage, user2Percentage = null) 
  * @throws {Error} If validation fails
  */
 export const calculateEqualSplit = (amount) => {
+  // Large amount warnings are handled at the UI level
   const total = parseFloat(amount);
   if (isNaN(total) || total <= 0) {
     throw new Error('Invalid amount: must be a positive number');
-  }
-  if (total > 1000000) {
-    throw new Error('Invalid amount: exceeds maximum allowed value');
   }
 
   const half = total / 2;
@@ -70,9 +65,26 @@ export const calculateEqualSplit = (amount) => {
 };
 
 /**
+ * Calculate split amounts for import transactions
+ * This is a simplified version for transaction mapping that doesn't need paidBy
+ *
+ * @param {number|string} amount - Total amount to split
+ * @param {number|string} percentage - Percentage for user1 (0-100)
+ * @param {string} paidBy - User ID who paid (not currently used, kept for compatibility)
+ * @returns {object} Split details with amounts and percentages
+ * @throws {Error} If validation fails
+ */
+export const calculateSplitAmounts = (amount, percentage, paidBy = null) => {
+  // Use the existing calculateSplit function
+  return calculateSplit(amount, percentage);
+};
+
+/**
  * Calculate balance from expenses
  * Positive balance = user2 owes user1
  * Negative balance = user1 owes user2
+ *
+ * Multi-currency support: Uses primaryCurrencyAmount for calculations
  *
  * @param {Array} expenses - Array of expense objects
  * @param {string} user1Id - Current user's ID
@@ -115,6 +127,9 @@ export const calculateBalance = (expenses, user1Id, user2Id) => {
       console.warn('calculateBalance: invalid split amounts', expense);
       return;
     }
+
+    // NOTE: splitDetails amounts are already in primary currency
+    // because they're calculated from primaryCurrencyAmount in AddExpenseScreen
 
     // Determine who paid and who owes what
     if (paidBy === user1Id) {
@@ -234,32 +249,43 @@ export const formatBalance = (balance, user1Name = 'You', user2Name = 'Partner')
 
 /**
  * Format currency amount
+ * Legacy function - now uses currencyUtils for better formatting
+ * Kept for backwards compatibility
  */
 export const formatCurrency = (amount, currency = 'USD') => {
   const absAmount = Math.abs(amount);
-  
-  // Simple USD formatting
-  if (currency === 'USD') {
-    return `$${absAmount.toFixed(2)}`;
-  }
 
-  // For other currencies, you can add more formatting options
-  return `${absAmount.toFixed(2)}`;
+  // Import dynamically to avoid circular dependencies
+  try {
+    // Try to use new currency utils if available
+    const { formatCurrency: formatCurrencyNew } = require('./currencyUtils');
+    return formatCurrencyNew(absAmount, currency);
+  } catch (e) {
+    // Fallback to simple formatting
+    if (currency === 'USD') {
+      return `$${absAmount.toFixed(2)}`;
+    }
+    return `${absAmount.toFixed(2)}`;
+  }
 };
 
 /**
  * Calculate total expenses
+ * Uses primaryCurrencyAmount for multi-currency support
  */
 export const calculateTotalExpenses = (expenses) => {
   if (!expenses || expenses.length === 0) return 0;
 
   return expenses.reduce((total, expense) => {
-    return total + parseFloat(expense.amount);
+    // Use primaryCurrencyAmount for multi-currency support, fallback to amount
+    const amount = expense.primaryCurrencyAmount || expense.amount;
+    return total + parseFloat(amount);
   }, 0);
 };
 
 /**
  * Calculate expenses by category
+ * Uses primaryCurrencyAmount for multi-currency support
  */
 export const calculateExpensesByCategory = (expenses) => {
   if (!expenses || expenses.length === 0) return {};
@@ -271,7 +297,9 @@ export const calculateExpensesByCategory = (expenses) => {
     if (!categoryTotals[category]) {
       categoryTotals[category] = 0;
     }
-    categoryTotals[category] += parseFloat(expense.amount);
+    // Use primaryCurrencyAmount for multi-currency support, fallback to amount
+    const amount = expense.primaryCurrencyAmount || expense.amount;
+    categoryTotals[category] += parseFloat(amount);
   });
 
   return categoryTotals;
@@ -441,13 +469,9 @@ export const validateSettlement = (settlementData, currentUserId, currentUserCou
     return { valid: false, error: 'settledBy must be one of the couple members' };
   }
 
-  // Validate amount
+  // Validate amount (large amount warnings are handled at the UI level)
   if (typeof amount !== 'number' || amount <= 0) {
     return { valid: false, error: 'Settlement amount must be a positive number' };
-  }
-
-  if (amount > 1000000) {
-    return { valid: false, error: 'Settlement amount exceeds maximum allowed value' };
   }
 
   // All validations passed
@@ -486,6 +510,7 @@ export const isSettlementValid = (settlement, currentUserId, currentUserCoupleId
 export default {
   calculateSplit,
   calculateEqualSplit,
+  calculateSplitAmounts,
   calculateBalance,
   calculateBalanceWithSettlements,
   formatBalance,

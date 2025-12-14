@@ -15,8 +15,10 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { COLORS, FONTS, SPACING } from '../constants/theme';
 import { useBudget } from '../contexts/BudgetContext';
 import { formatCurrency, formatDate } from '../utils/calculations';
@@ -31,6 +33,7 @@ export default function ExpenseDetailModal({
   onEdit,
   onDelete,
 }) {
+  const { t } = useTranslation();
   const { categories } = useBudget();
   const [deleting, setDeleting] = useState(false);
 
@@ -73,39 +76,39 @@ export default function ExpenseDetailModal({
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     const warningMessage = deleteCheck.isSettled
-      ? `This expense is part of a settlement. Deleting it may affect your balance history.\n\nAre you sure you want to delete this expense?`
-      : 'Are you sure you want to delete this expense? This cannot be undone.';
+      ? t('components.expenseDetail.deleteWarningSettled')
+      : t('components.expenseDetail.deleteWarning');
 
-    Alert.alert(
-      'Delete Expense',
-      warningMessage,
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setDeleting(true);
-              await expenseService.deleteExpense(expense.id);
-              if (onDelete) {
-                onDelete(expense.id);
-              }
-              onClose();
-            } catch (error) {
-              Alert.alert('Error', error.message || 'Failed to delete expense');
-              setDeleting(false);
-            }
-          },
-        },
-      ],
-      { cancelable: true }
-    );
+    // Use window.confirm on web for better compatibility
+    const confirmed = Platform.OS === 'web'
+      ? window.confirm(`${t('components.expenseDetail.deleteTitle')}\n\n${warningMessage}`)
+      : await new Promise(resolve => {
+          Alert.alert(
+            t('components.expenseDetail.deleteTitle'),
+            warningMessage,
+            [
+              { text: t('common.cancel'), style: 'cancel', onPress: () => resolve(false) },
+              { text: t('common.delete'), style: 'destructive', onPress: () => resolve(true) },
+            ],
+            { cancelable: true }
+          );
+        });
+
+    if (!confirmed) return;
+
+    try {
+      setDeleting(true);
+      await expenseService.deleteExpense(expense.id);
+      if (onDelete) {
+        onDelete(expense.id);
+      }
+      onClose();
+    } catch (error) {
+      Alert.alert(t('common.error'), error.message || t('components.expenseDetail.deleteError'));
+      setDeleting(false);
+    }
   };
 
   return (
@@ -119,7 +122,7 @@ export default function ExpenseDetailModal({
         <View style={styles.modalContainer}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Expense Details</Text>
+            <Text style={styles.headerTitle}>{t('components.expenseDetail.title')}</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Ionicons name="close" size={24} color={COLORS.text} />
             </TouchableOpacity>
@@ -145,27 +148,27 @@ export default function ExpenseDetailModal({
 
             {/* Description */}
             <View style={styles.section}>
-              <Text style={styles.label}>Description</Text>
-              <Text style={styles.value}>{expense.description || 'No description'}</Text>
+              <Text style={styles.label}>{t('components.expenseDetail.description')}</Text>
+              <Text style={styles.value}>{expense.description || t('components.expenseDetail.noDescription')}</Text>
             </View>
 
             {/* Amount */}
             <View style={styles.section}>
-              <Text style={styles.label}>Total Amount</Text>
+              <Text style={styles.label}>{t('components.expenseDetail.totalAmount')}</Text>
               <Text style={styles.amountValue}>{formatCurrency(expense.amount)}</Text>
             </View>
 
             {/* Date */}
             <View style={styles.section}>
-              <Text style={styles.label}>Date</Text>
+              <Text style={styles.label}>{t('components.expenseDetail.date')}</Text>
               <Text style={styles.value}>
-                {expense.date ? formatDate(expense.date) : 'Unknown'}
+                {expense.date ? formatDate(expense.date) : t('components.expenseDetail.unknown')}
               </Text>
             </View>
 
             {/* Paid By */}
             <View style={styles.section}>
-              <Text style={styles.label}>Paid By</Text>
+              <Text style={styles.label}>{t('components.expenseDetail.paidBy')}</Text>
               <View style={styles.paidByContainer}>
                 <Ionicons
                   name="person"
@@ -178,10 +181,10 @@ export default function ExpenseDetailModal({
 
             {/* Split Breakdown */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Split Breakdown</Text>
+              <Text style={styles.sectionTitle}>{t('components.expenseDetail.splitBreakdown')}</Text>
 
               <View style={styles.splitRow}>
-                <Text style={styles.splitLabel}>Your Share</Text>
+                <Text style={styles.splitLabel}>{t('components.expenseDetail.yourShare')}</Text>
                 <View style={styles.splitValueContainer}>
                   <Text style={styles.splitValue}>{formatCurrency(userShare)}</Text>
                   <Text style={styles.splitPercentage}>({userPercentage}%)</Text>
@@ -189,7 +192,7 @@ export default function ExpenseDetailModal({
               </View>
 
               <View style={styles.splitRow}>
-                <Text style={styles.splitLabel}>{partnerDetails?.displayName || 'Partner'}'s Share</Text>
+                <Text style={styles.splitLabel}>{t('components.expenseDetail.partnerShare', { partner: partnerDetails?.displayName || 'Partner' })}</Text>
                 <View style={styles.splitValueContainer}>
                   <Text style={styles.splitValue}>{formatCurrency(partnerShare)}</Text>
                   <Text style={styles.splitPercentage}>({partnerPercentage}%)</Text>
@@ -199,7 +202,7 @@ export default function ExpenseDetailModal({
 
             {/* Settlement Status */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Settlement Status</Text>
+              <Text style={styles.sectionTitle}>{t('components.expenseDetail.settlementStatus')}</Text>
 
               <View
                 style={[
@@ -218,19 +221,19 @@ export default function ExpenseDetailModal({
                     isSettled ? styles.statusTextSettled : styles.statusTextPending,
                   ]}
                 >
-                  {isSettled ? 'Settled' : 'Pending'}
+                  {isSettled ? t('components.expenseDetail.settled') : t('components.expenseDetail.pending')}
                 </Text>
               </View>
 
               {isSettled && settledDate && (
                 <Text style={styles.settledDate}>
-                  Settled on {settledDate.toLocaleDateString()}
+                  {t('components.expenseDetail.settledOn', { date: settledDate.toLocaleDateString() })}
                 </Text>
               )}
 
               {isSettled && expense.settledBySettlementId && (
                 <Text style={styles.settlementId}>
-                  Settlement ID: {expense.settledBySettlementId.substring(0, 8)}...
+                  {t('components.expenseDetail.settlementId', { id: expense.settledBySettlementId.substring(0, 8) })}
                 </Text>
               )}
             </View>
@@ -247,7 +250,7 @@ export default function ExpenseDetailModal({
                     disabled={deleting}
                   >
                     <Ionicons name="pencil" size={20} color={COLORS.primary} />
-                    <Text style={[styles.actionButtonText, styles.editButtonText]}>Edit</Text>
+                    <Text style={[styles.actionButtonText, styles.editButtonText]}>{t('components.expenseDetail.edit')}</Text>
                   </TouchableOpacity>
                 )}
                 {canDelete && (
@@ -261,7 +264,7 @@ export default function ExpenseDetailModal({
                     ) : (
                       <>
                         <Ionicons name="trash-outline" size={20} color={COLORS.error} />
-                        <Text style={[styles.actionButtonText, styles.deleteButtonText]}>Delete</Text>
+                        <Text style={[styles.actionButtonText, styles.deleteButtonText]}>{t('components.expenseDetail.delete')}</Text>
                       </>
                     )}
                   </TouchableOpacity>
@@ -272,12 +275,12 @@ export default function ExpenseDetailModal({
               <View style={styles.settledWarning}>
                 <Ionicons name="lock-closed" size={16} color={COLORS.textSecondary} />
                 <Text style={styles.settledWarningText}>
-                  This expense is part of a settlement and cannot be edited
+                  {t('components.expenseDetail.settledWarning')}
                 </Text>
               </View>
             )}
             <TouchableOpacity style={styles.closeFooterButton} onPress={onClose}>
-              <Text style={styles.closeFooterButtonText}>Close</Text>
+              <Text style={styles.closeFooterButtonText}>{t('common.close')}</Text>
             </TouchableOpacity>
           </View>
         </View>
