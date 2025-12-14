@@ -32,10 +32,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import { formatCodeInput, isValidCodeFormat } from '../../utils/inviteCode';
 import { COLORS, FONTS, SPACING, SIZES, SHADOWS } from '../../constants/theme';
 import { initializeCategoriesForCouple } from '../../services/categoryService';
+import { createCoupleAccount } from '../../services/accountService';
 
 export default function JoinScreen({ navigation }) {
   const { t } = useTranslation();
-  const { user, userDetails, updatePartnerInfo } = useAuth();
+  const { user, userDetails, updatePartnerInfo, setActiveAccount } = useAuth();
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -93,10 +94,11 @@ export default function JoinScreen({ navigation }) {
 
   const createCouple = async (partnerId) => {
     try {
-      console.log('Starting couple creation...');
+      console.log('Starting couple account creation...');
       console.log('Current user ID:', user.uid);
       console.log('Partner ID:', partnerId);
 
+      // Validate partner document
       console.log('Validating partner document...');
       const partnerDocRef = doc(db, 'users', partnerId);
       const partnerDoc = await getDoc(partnerDocRef);
@@ -105,61 +107,54 @@ export default function JoinScreen({ navigation }) {
         console.error('⚠️ Partner document not found!');
         throw new Error(t('auth.join.partnerAccountIncomplete'));
       }
+      const partnerData = partnerDoc.data();
       console.log('✓ Partner document validated');
 
       if (!partnerId || !user.uid) {
         throw new Error(t('auth.join.invalidUserIds'));
       }
 
-      const coupleId = `couple_${user.uid}_${partnerId}_${Date.now()}`;
-      console.log('Generated couple ID:', coupleId);
+      // Use account service to create couple account
+      // This creates the couple document AND adds to both users' accounts arrays
+      const accountName = t('auth.join.defaultAccountName', 'Shared Budget');
+      const partnerAccountName = t('auth.join.defaultPartnerAccountName', 'Shared Budget');
 
-      console.log('Creating atomic batch write...');
-      const batch = writeBatch(db);
+      console.log('Creating couple account using account service...');
+      const result = await createCoupleAccount(
+        user.uid,
+        partnerId,
+        accountName,
+        partnerAccountName
+      );
+      console.log('✓ Couple account created:', result.accountId);
 
-      const coupleRef = doc(db, 'couples', coupleId);
-      batch.set(coupleRef, {
-        user1Id: partnerId,
-        user2Id: user.uid,
-        inviteCode: code,
-        createdAt: serverTimestamp(),
-        currentBalance: 0,
-        totalExpenses: 0,
-        lastActivity: serverTimestamp(),
-      });
-      console.log('✓ Batch: couple document queued');
-
-      const currentUserRef = doc(db, 'users', user.uid);
-      batch.update(currentUserRef, {
-        partnerId: partnerId,
-        coupleId: coupleId,
-      });
-      console.log('✓ Batch: current user update queued');
-
-      batch.update(partnerDocRef, {
-        partnerId: user.uid,
-        coupleId: coupleId,
-      });
-      console.log('✓ Batch: partner user update queued');
-
+      // Mark invite code as used
       const inviteCodeRef = doc(db, 'inviteCodes', code);
-      batch.update(inviteCodeRef, {
+      await updateDoc(inviteCodeRef, {
         isUsed: true,
         usedBy: user.uid,
         usedAt: serverTimestamp(),
       });
-      console.log('✓ Batch: invite code update queued');
+      console.log('✓ Invite code marked as used');
 
-      console.log('Committing batch (all or nothing)...');
-      await batch.commit();
-      console.log('✓ Batch committed successfully!');
-
-      console.log('Initializing default categories for couple:', coupleId);
-      await initializeCategoriesForCouple(coupleId);
+      // Initialize default categories for the account
+      console.log('Initializing default categories for account:', result.accountId);
+      await initializeCategoriesForCouple(result.accountId);
       console.log('✓ Categories initialized');
 
+      // Also update legacy fields for backward compatibility
+      await updateDoc(doc(db, 'users', user.uid), {
+        partnerId: partnerId,
+        coupleId: result.accountId,
+      });
+      await updateDoc(partnerDocRef, {
+        partnerId: user.uid,
+        coupleId: result.accountId,
+      });
+      console.log('✓ Legacy fields updated for backward compatibility');
+
       console.log('✓ Couple creation complete!');
-      return { success: true, partnerId, coupleId };
+      return { success: true, partnerId, accountId: result.accountId };
     } catch (err) {
       console.error('Error creating couple:', err);
       console.error('Error code:', err.code);
@@ -202,9 +197,13 @@ export default function JoinScreen({ navigation }) {
       const result = await createCouple(validation.partnerId);
 
       if (result.success) {
-        console.log('JoinScreen: Updating local state with partnerId:', validation.partnerId, 'coupleId:', result.coupleId);
-        await updatePartnerInfo(validation.partnerId, result.coupleId);
-        console.log('JoinScreen: Local state updated successfully');
+        console.log('JoinScreen: Setting active account to:', result.accountId);
+        await setActiveAccount(result.accountId);
+        console.log('JoinScreen: Active account set successfully');
+
+        // Also call updatePartnerInfo for backward compatibility (deprecated)
+        await updatePartnerInfo(validation.partnerId, result.accountId);
+        console.log('JoinScreen: Legacy fields updated');
 
         navigation.replace('Success', { partnerId: validation.partnerId });
       }

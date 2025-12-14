@@ -210,11 +210,11 @@ export default function CoreSetupScreen({ navigation }) {
       setLoading(true);
       console.log('Loading set to true');
 
-      if (!userDetails?.coupleId) {
-        console.error('No couple ID found!');
-        throw new Error('No couple ID found');
+      if (!userDetails?.activeAccountId) {
+        console.error('No active account ID found!');
+        throw new Error('No active account ID found. Please create or select an account first.');
       }
-      console.log('coupleId:', userDetails.coupleId);
+      console.log('activeAccountId:', userDetails.activeAccountId);
 
       // Validate fiscal year date if custom
       if (selectedType === 'custom') {
@@ -257,10 +257,10 @@ export default function CoreSetupScreen({ navigation }) {
         coreSetupCompletedAt: new Date(),
       };
 
-      // Save couple settings
-      console.log('Saving couple settings with coreSetupComplete: true');
-      await initializeCoupleSettings(userDetails.coupleId, settings);
-      console.log('Couple settings saved successfully');
+      // Save account settings (works for both solo and couple accounts)
+      console.log('Saving account settings with coreSetupComplete: true');
+      await initializeCoupleSettings(userDetails.activeAccountId, settings);
+      console.log('Account settings saved successfully');
 
       // If budget was configured (not skipped and has allocations), save it
       if (!skipBudget && totalAllocated > 0) {
@@ -286,7 +286,7 @@ export default function CoreSetupScreen({ navigation }) {
           });
 
           await initializeBudgetForMonth(
-            userDetails.coupleId,
+            userDetails.activeAccountId,
             categoriesForBudget,
             month,
             year,
