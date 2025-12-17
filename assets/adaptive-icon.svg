@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Android adaptive icon foreground - content within 66% safe zone -->
+  <!-- Safe zone: inner 676x676 (174px padding on each side) -->
+  <text x="512" y="700" font-family="Arial, sans-serif" font-size="500" font-weight="bold" fill="white" text-anchor="middle">/</text>
+</svg>

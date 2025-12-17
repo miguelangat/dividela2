@@ -4,6 +4,7 @@
     "slug": "dividela",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "description": "A simple, privacy-focused expense tracking app for couples",
     "assetBundlePatterns": [
@@ -35,6 +36,10 @@
       "package": "com.dividela.app",
       "googleServicesFile": "./android/app/google-services.json",
       "useNextNotificationsApi": true,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#667eea"
+      },
       "permissions": [
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.RECEIVE_BOOT_COMPLETED",

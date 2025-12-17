@@ -12,6 +12,8 @@ web-build/
 .env.local
 .env.production
 .env.development
+!.env.gpg
+!.env.example
 
 # macOS
 .DS_Store
