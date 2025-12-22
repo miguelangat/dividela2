@@ -28,6 +28,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.dividela.app",
+      "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "UIBackgroundModes": ["remote-notification"]
       }
