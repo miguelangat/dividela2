@@ -9,6 +9,21 @@ import { getFunctions } from 'firebase/functions';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
+// Wrapper for AsyncStorage to handle type conversion
+// Firebase Auth persistence may pass non-string values which AsyncStorage doesn't accept
+const AsyncStorageWrapper = {
+  async setItem(key, value) {
+    const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
+    return AsyncStorage.setItem(key, stringValue);
+  },
+  async getItem(key) {
+    return AsyncStorage.getItem(key);
+  },
+  async removeItem(key) {
+    return AsyncStorage.removeItem(key);
+  },
+};
+
 // Firebase configuration from environment variables
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
@@ -35,11 +50,11 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId || !firebaseConfig.appId
 const app = initializeApp(firebaseConfig);
 
 // Initialize Firebase Auth with platform-specific persistence
-// - Native: Use AsyncStorage for persistence
+// - Native: Use AsyncStorage wrapper for persistence (handles type conversion)
 // - Web: Use getAuth which uses browser's default persistence
 export const auth = Platform.OS !== 'web'
   ? initializeAuth(app, {
-      persistence: getReactNativePersistence(AsyncStorage),
+      persistence: getReactNativePersistence(AsyncStorageWrapper),
     })
   : getAuth(app);
 export const db = getFirestore(app);
