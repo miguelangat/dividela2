@@ -13,7 +13,16 @@ const DATE_FORMATS = [
   /^\d{4}-\d{2}-\d{2}$/, // YYYY-MM-DD
   /^\d{2}-\d{2}-\d{4}$/, // DD-MM-YYYY or MM-DD-YYYY
   /^\d{1,2}\/\d{1,2}\/\d{2,4}$/, // M/D/YY or M/D/YYYY
+  /^\d{1,2}-[a-z]{3}-\d{4}$/i, // DD-mon-YYYY (Spanish: 18-ene-2026)
 ];
+
+/**
+ * Spanish month abbreviations mapping
+ */
+const SPANISH_MONTHS = {
+  'ene': 0, 'feb': 1, 'mar': 2, 'abr': 3, 'may': 4, 'jun': 5,
+  'jul': 6, 'ago': 7, 'sep': 8, 'oct': 9, 'nov': 10, 'dic': 11
+};
 
 /**
  * Common column names for transaction data
@@ -151,6 +160,18 @@ function parseDate(dateString, preferredFormat = 'auto') {
     return null;
   }
 
+  // Try DD-mon-YYYY format with Spanish month abbreviations (e.g., 18-ene-2026)
+  if (/^\d{1,2}-[a-z]{3}-\d{4}$/i.test(cleaned)) {
+    const [day, monthStr, year] = cleaned.split('-');
+    const month = SPANISH_MONTHS[monthStr.toLowerCase()];
+    if (month !== undefined) {
+      const date = new Date(parseInt(year), month, parseInt(day));
+      if (!isNaN(date.getTime())) {
+        return date;
+      }
+    }
+  }
+
   // Fallback to native Date parsing
   const fallback = new Date(cleaned);
   return isNaN(fallback.getTime()) ? null : fallback;
@@ -247,16 +268,40 @@ function findColumnIndex(headers, columnType) {
 }
 
 /**
+ * Check if a row appears to be an account summary header (not transaction header)
+ * Account summary headers typically have "cuenta", "número", "saldo" but no date column
+ */
+function isAccountSummaryHeader(normalizedRow) {
+  const accountSummaryTerms = ['tipo de cuenta', 'número', 'numero', 'saldo', 'cuenta', 'nombre'];
+  const hasAccountTerms = normalizedRow.some(cell =>
+    accountSummaryTerms.some(term => cell.includes(term))
+  );
+  const hasDateColumn = COLUMN_MAPPINGS.date.some(name =>
+    normalizedRow.some(cell => cell === name || cell.includes(name))
+  );
+  // It's an account summary header if it has account terms but no date column
+  return hasAccountTerms && !hasDateColumn;
+}
+
+/**
  * Detect header row in CSV data
  * Returns an object with index and confidence level
+ * Handles multi-section CSVs by skipping account summary sections
  */
 function detectHeaderRow(rows) {
   // Look for a row that contains typical column names
-  for (let i = 0; i < Math.min(5, rows.length); i++) {
+  // Extend search to first 10 rows to handle multi-section CSVs (account summary + transactions)
+  for (let i = 0; i < Math.min(10, rows.length); i++) {
     const row = rows[i];
     if (!Array.isArray(row)) continue;
 
     const normalizedRow = row.map(cell => (cell || '').toLowerCase().trim());
+
+    // Skip rows that look like account summary headers
+    if (isAccountSummaryHeader(normalizedRow)) {
+      console.log(`📋 Row ${i + 1} appears to be account summary header, skipping...`);
+      continue;
+    }
 
     // Count matches for different column types
     let dateMatches = 0;
@@ -640,12 +685,33 @@ function processCSVData(rows, dateFormat = 'auto') {
   // Validate we have some transactions
   if (transactions.length === 0) {
     console.error('❌ No valid transactions parsed');
-    throw new Error(
-      'No valid transactions found in CSV file. ' +
-      (errors.length > 0
-        ? `All ${errors.length} rows had errors. Check console for details.`
-        : 'Please verify your CSV file format.')
-    );
+
+    // Build detailed error message
+    let errorMsg = 'No valid transactions found in CSV file.';
+
+    if (errors.length > 0) {
+      errorMsg += ` All ${errors.length} rows had errors.`;
+
+      // Include first 3 specific errors for user feedback
+      const sampleErrors = errors.slice(0, 3);
+      const errorDetails = sampleErrors.map(e =>
+        `Row ${e.row}: ${e.error}${e.value ? ` (value: "${e.value}")` : ''}`
+      ).join('\n');
+
+      errorMsg += `\n\nSample errors:\n${errorDetails}`;
+
+      if (errors.length > 3) {
+        errorMsg += `\n...and ${errors.length - 3} more errors`;
+      }
+
+      // Add detected column info for debugging
+      errorMsg += `\n\nDetected columns: Date="${headers[dateIndex] || 'NOT FOUND'}", ` +
+        `Amount="${headers[amountIndex] || headers[debitIndex] || 'NOT FOUND'}"`;
+    } else {
+      errorMsg += ' Please verify your CSV file format.';
+    }
+
+    throw new Error(errorMsg);
   }
 
   return {
