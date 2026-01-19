@@ -1,7 +1,7 @@
 // src/contexts/AuthContext.js
 // Authentication context for managing user state across the app
 
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
 import { Platform } from 'react-native';
 import {
   createUserWithEmailAndPassword,
@@ -71,6 +71,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [pushToken, setPushToken] = useState(null);
+  const pushNotificationsInitializedRef = useRef(false);
 
   // Initialize push notification channels on app startup (Android requires this early)
   useEffect(() => {
@@ -82,8 +83,12 @@ export const AuthProvider = ({ children }) => {
   // Register for push notifications when user is authenticated
   // Note: On web, permission must be granted via user gesture (Settings screen toggle)
   // This effect only registers token if permission is already granted
+  // Using user?.uid as dependency instead of userDetails object to prevent re-renders
   useEffect(() => {
-    if (user && userDetails) {
+    // Only run once per user session to prevent infinite loops
+    if (user && userDetails && !pushNotificationsInitializedRef.current) {
+      pushNotificationsInitializedRef.current = true;
+
       const initPushNotifications = async () => {
         try {
           // Import dynamically to check permission status
@@ -126,12 +131,16 @@ export const AuthProvider = ({ children }) => {
           console.log('User interacted with notification:', response);
         }
       );
-
-      return () => {
-        removeNotificationListeners();
-      };
     }
-  }, [user, userDetails]);
+
+    // Cleanup when user logs out
+    return () => {
+      if (!user) {
+        pushNotificationsInitializedRef.current = false;
+        removeNotificationListeners();
+      }
+    };
+  }, [user?.uid]); // Depend on user.uid only, not the entire userDetails object
 
   // Listen for auth state changes
   useEffect(() => {
@@ -153,12 +162,45 @@ export const AuthProvider = ({ children }) => {
               if (snapshot.exists()) {
                 const userData = snapshot.data();
                 console.log('🔄 User details updated from Firestore:', {
+                  uid: userData.uid,
+                  partnerId: userData.partnerId,
+                  coupleId: userData.coupleId,
                   subscriptionStatus: userData.subscriptionStatus,
                   manuallyGranted: userData.manuallyGranted,
                   subscriptionExpiresAt: userData.subscriptionExpiresAt,
                 });
 
-                setUserDetails(userData);
+                // Only update state if data has actually changed to prevent re-render loops
+                setUserDetails((prevDetails) => {
+                  // If no previous details, always update
+                  if (!prevDetails) {
+                    console.log('[AuthContext] No previous details, setting initial state');
+                    return userData;
+                  }
+
+                  // Check if key fields have changed - with detailed logging
+                  const changes = [];
+                  if (prevDetails.partnerId !== userData.partnerId) changes.push(`partnerId: ${prevDetails.partnerId} -> ${userData.partnerId}`);
+                  if (prevDetails.coupleId !== userData.coupleId) changes.push(`coupleId: ${prevDetails.coupleId} -> ${userData.coupleId}`);
+                  if (prevDetails.subscriptionStatus !== userData.subscriptionStatus) changes.push(`subscriptionStatus: ${prevDetails.subscriptionStatus} -> ${userData.subscriptionStatus}`);
+                  if (prevDetails.subscriptionExpiresAt !== userData.subscriptionExpiresAt) changes.push(`subscriptionExpiresAt changed`);
+                  if (prevDetails.displayName !== userData.displayName) changes.push(`displayName: ${prevDetails.displayName} -> ${userData.displayName}`);
+
+                  // Compare settings fields individually to avoid JSON.stringify ordering issues
+                  const prevSettings = prevDetails.settings || {};
+                  const newSettings = userData.settings || {};
+                  if (prevSettings.notifications !== newSettings.notifications) changes.push(`settings.notifications: ${prevSettings.notifications} -> ${newSettings.notifications}`);
+                  if (prevSettings.defaultSplit !== newSettings.defaultSplit) changes.push(`settings.defaultSplit: ${prevSettings.defaultSplit} -> ${newSettings.defaultSplit}`);
+                  if (prevSettings.currency !== newSettings.currency) changes.push(`settings.currency: ${prevSettings.currency} -> ${newSettings.currency}`);
+
+                  if (changes.length > 0) {
+                    console.log('[AuthContext] User details changed:', changes.join(', '));
+                    return userData;
+                  }
+
+                  // Return previous state reference to avoid re-render
+                  return prevDetails;
+                });
               } else {
                 // User document doesn't exist - create it (self-healing)
                 console.warn('⚠️ User document not found for authenticated user. Creating it now...');
@@ -184,8 +226,8 @@ export const AuthProvider = ({ children }) => {
                 };
 
                 try {
-                  await setDoc(userRef, newUserData);
-                  console.log('✓ User document created successfully');
+                  await setDoc(userRef, newUserData, { merge: true });
+                  console.log('✓ User document created/merged successfully');
                   setUserDetails(newUserData);
                 } catch (error) {
                   console.error('❌ Failed to create user document:', error);
@@ -350,6 +392,9 @@ export const AuthProvider = ({ children }) => {
         setPushToken(null);
         removeNotificationListeners();
       }
+
+      // Reset push notification ref so it can reinitialize for new user
+      pushNotificationsInitializedRef.current = false;
 
       await firebaseSignOut(auth);
       setUser(null);
