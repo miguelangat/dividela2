@@ -2,7 +2,7 @@
 // Connect screen - Choose to invite partner or join with code
 // Partner pairing is required for new users
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -10,15 +10,37 @@ import {
   TouchableOpacity,
   ScrollView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { COLORS, FONTS, SPACING, SIZES, SHADOWS } from '../../constants/theme';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function ConnectScreen({ navigation }) {
   const { t } = useTranslation();
+  const { signOut, userDetails } = useAuth();
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setLoggingOut(false);
+    }
+  };
+
+  const handleContinueToHome = () => {
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'MainTabs' }],
+    });
+  };
 
   const handleInvitePartner = () => {
     try {
@@ -138,6 +160,39 @@ export default function ConnectScreen({ navigation }) {
               {t('auth.connect.partnerRequired', { defaultValue: 'Dividela is designed for couples. Connect with your partner to start tracking expenses together!' })}
             </Text>
           </View>
+
+          {/* Continue to Home - only if user has coupleId (existing data) */}
+          {userDetails?.coupleId && (
+            <TouchableOpacity
+              style={styles.continueButton}
+              onPress={handleContinueToHome}
+              activeOpacity={0.8}
+            >
+              <MaterialCommunityIcons name="home" size={20} color={COLORS.primary} />
+              <Text style={styles.continueButtonText}>
+                {t('auth.connect.continueToHome', { defaultValue: 'Continue to Home' })}
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Logout Button */}
+          <TouchableOpacity
+            style={styles.logoutButton}
+            onPress={handleLogout}
+            activeOpacity={0.8}
+            disabled={loggingOut}
+          >
+            {loggingOut ? (
+              <ActivityIndicator size="small" color={COLORS.error} />
+            ) : (
+              <>
+                <MaterialCommunityIcons name="logout" size={20} color={COLORS.error} />
+                <Text style={styles.logoutButtonText}>
+                  {t('auth.connect.logout', { defaultValue: 'Log Out' })}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
         </ScrollView>
       </View>
     </View>
@@ -288,5 +343,37 @@ const styles = StyleSheet.create({
     fontSize: FONTS.sizes.small,
     color: COLORS.primary,
     lineHeight: 20,
+  },
+  continueButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primary + '10',
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    borderRadius: SIZES.borderRadius.medium,
+    padding: SPACING.base,
+    marginTop: SPACING.large,
+    gap: SPACING.small,
+  },
+  continueButtonText: {
+    fontSize: FONTS.sizes.body,
+    fontWeight: FONTS.weights.semibold,
+    color: COLORS.primary,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+    borderRadius: SIZES.borderRadius.medium,
+    padding: SPACING.base,
+    marginTop: SPACING.large,
+    gap: SPACING.small,
+  },
+  logoutButtonText: {
+    fontSize: FONTS.sizes.body,
+    fontWeight: FONTS.weights.medium,
+    color: COLORS.error,
   },
 });

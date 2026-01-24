@@ -86,8 +86,9 @@ export default function AppNavigator() {
     navKey,
   });
 
-  // Show loading screen while checking auth state or core setup status
-  if (loading || (user && userDetails?.coupleId && coreSetupComplete === null)) {
+  // Show loading screen while checking auth state, waiting for userDetails, or core setup status
+  // IMPORTANT: Must wait for userDetails to load to avoid showing ConnectScreen to paired users
+  if (loading || (user && !userDetails) || (user && userDetails?.coupleId && coreSetupComplete === null)) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
