@@ -62,7 +62,21 @@ export default function InviteScreen({ navigation }) {
 
               if (userDoc.exists()) {
                 const userData = userDoc.data();
-                await updatePartnerInfo(data.usedBy, userData.coupleId);
+                // Only update if coupleId exists (batch has propagated)
+                if (userData.coupleId) {
+                  await updatePartnerInfo(data.usedBy, userData.coupleId);
+                } else {
+                  // Retry after a short delay to allow batch propagation
+                  console.log('⏳ coupleId not yet available, waiting for batch propagation...');
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                  const retryDoc = await getDoc(userDocRef);
+                  if (retryDoc.exists() && retryDoc.data().coupleId) {
+                    await updatePartnerInfo(data.usedBy, retryDoc.data().coupleId);
+                    console.log('✓ coupleId retrieved after retry');
+                  } else {
+                    console.warn('⚠️ coupleId still not available after retry');
+                  }
+                }
               }
 
               navigation.replace('Success', { partnerId: data.usedBy });
@@ -120,8 +134,8 @@ export default function InviteScreen({ navigation }) {
           trialEndsAt: null,
         };
 
-        await setDoc(userDocRef, newUserData);
-        console.log('✓ User document created successfully');
+        await setDoc(userDocRef, newUserData, { merge: true });
+        console.log('✓ User document created/merged successfully');
       } else {
         console.log('✓ User document validated');
       }
