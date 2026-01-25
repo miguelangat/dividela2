@@ -141,6 +141,11 @@ export const SubscriptionProvider = ({ children }) => {
   const isInitialized = useRef(false);
   const appState = useRef(AppState.currentState);
   const syncInProgress = useRef(false);
+  const lastCheckedPartnerId = useRef(null); // Prevents duplicate partner checks
+  const partnerCheckTimeoutRef = useRef(null); // Debounce partner checks
+
+  // Stable partnerId state (avoids object reference issues with userDetails)
+  const [partnerId, setPartnerId] = useState(null);
 
   // Initialize RevenueCat when user logs in
   useEffect(() => {
@@ -318,29 +323,54 @@ export const SubscriptionProvider = ({ children }) => {
     initialize();
   }, [user]);
 
-  // Check partner premium when userDetails becomes available
+  // Extract partnerId to stable primitive value (prevents unstable object reference issues)
   useEffect(() => {
+    const newPartnerId = userDetails?.partnerId || null;
+    if (newPartnerId !== partnerId) {
+      debugLog('Partner ID changed', { old: partnerId, new: newPartnerId });
+      setPartnerId(newPartnerId);
+    }
+  }, [userDetails?.partnerId, partnerId]);
+
+  // Reset partner tracking when user changes
+  useEffect(() => {
+    lastCheckedPartnerId.current = null;
+  }, [user?.uid]);
+
+  // Check partner premium when partnerId becomes available (with debouncing to prevent loops)
+  useEffect(() => {
+    // Clear any pending check
+    if (partnerCheckTimeoutRef.current) {
+      clearTimeout(partnerCheckTimeoutRef.current);
+    }
+
     const checkPartnerWhenReady = async () => {
-      // Only check if:
-      // 1. User is logged in
-      // 2. User is NOT already premium
-      // 3. UserDetails has partnerId
-      // 4. Not currently loading
-      if (!user || isPremium || !userDetails?.partnerId || loading) {
+      // Skip if already checked this partner
+      if (lastCheckedPartnerId.current === partnerId) {
+        debugLog('Partner already checked, skipping', { partnerId });
         return;
       }
 
-      debugLog('UserDetails now available, checking partner premium...', {
-        partnerId: userDetails.partnerId,
+      // Only check if:
+      // 1. User is logged in
+      // 2. User is NOT already premium (read but don't track in dependencies)
+      // 3. Has partnerId
+      // 4. Not currently loading
+      if (!user || isPremium || !partnerId || loading) {
+        return;
+      }
+
+      debugLog('Checking partner premium...', {
+        partnerId: partnerId,
         currentPremium: isPremium,
       });
 
       try {
-        const partnerStatus = await checkPartnerPremiumStatus(userDetails.partnerId);
+        const partnerStatus = await checkPartnerPremiumStatus(partnerId);
 
         if (partnerStatus.isPremium) {
-          console.log('✅ Partner premium detected after userDetails loaded!', {
-            partnerId: userDetails.partnerId,
+          console.log('✅ Partner premium detected!', {
+            partnerId: partnerId,
             source: partnerStatus.source,
             expirationDate: partnerStatus.expirationDate,
           });
@@ -352,20 +382,36 @@ export const SubscriptionProvider = ({ children }) => {
           });
           setLastSyncTime(Date.now());
 
+          // Mark as checked to prevent duplicate checks
+          lastCheckedPartnerId.current = partnerId;
+
           // Update cache
           await saveToCache({
             isPremium: true,
             premiumSource: 'partner',
             subscriptionInfo: { expirationDate: partnerStatus.expirationDate },
           });
+        } else {
+          // Mark as checked even if not premium (so we don't keep checking)
+          lastCheckedPartnerId.current = partnerId;
+          debugLog('Partner is not premium');
         }
       } catch (error) {
         errorLog('Failed to check partner premium (non-critical)', error);
       }
     };
 
-    checkPartnerWhenReady();
-  }, [userDetails?.partnerId, isPremium, loading, user]);
+    // Debounce by 500ms to prevent rapid-fire checks
+    partnerCheckTimeoutRef.current = setTimeout(() => {
+      checkPartnerWhenReady();
+    }, 500);
+
+    return () => {
+      if (partnerCheckTimeoutRef.current) {
+        clearTimeout(partnerCheckTimeoutRef.current);
+      }
+    };
+  }, [partnerId, loading, user]); // FIXED: Removed isPremium from dependencies to break circular loop
 
   // Subscribe to real-time subscription updates
   useEffect(() => {
@@ -475,29 +521,9 @@ export const SubscriptionProvider = ({ children }) => {
     };
   }, [user, isPremium]);
 
-  // Also sync from userDetails (Firebase) as a fallback
-  useEffect(() => {
-    if (userDetails?.subscriptionStatus) {
-      const premiumFromFirebase = userDetails.subscriptionStatus === 'premium';
-      // Check for expiration
-      const isExpired = userDetails.subscriptionExpiresAt &&
-                       new Date(userDetails.subscriptionExpiresAt.toDate()) < new Date();
-
-      const shouldBePremium = premiumFromFirebase && !isExpired;
-
-      // Only update if different to avoid unnecessary re-renders
-      if (shouldBePremium !== isPremium) {
-        debugLog('Syncing from Firebase', {
-          status: premiumFromFirebase,
-          isExpired,
-          shouldBePremium
-        });
-        setIsPremium(shouldBePremium);
-      }
-    }
-  }, [userDetails?.subscriptionStatus, userDetails?.subscriptionExpiresAt, isPremium]);
-
   // Direct Firestore listener for subscription changes (independent of AuthContext)
+  // NOTE: Removed redundant "sync from userDetails" hook - this Firestore listener
+  // already handles subscription status changes directly and avoids circular dependencies
   useEffect(() => {
     if (!user) return;
 
@@ -520,22 +546,68 @@ export const SubscriptionProvider = ({ children }) => {
           if (isValid && !isPremium) {
             console.log('🔥 Direct Firestore listener detected premium grant!');
             setIsPremium(true);
+            setPremiumSource('own');
             setSubscriptionInfo({
               expirationDate: expiresAt?.toDate() || null,
             });
             setLastSyncTime(Date.now());
-          } else if (!isValid && isPremium) {
-            console.log('⏰ Premium expired via Firestore listener');
-            setIsPremium(false);
+          } else if (!isValid && isPremium && premiumSource === 'own') {
+            // Own premium expired - check if partner has premium before downgrading
+            console.log('⏰ Own premium expired, checking partner...');
+            if (partnerId) {
+              checkPartnerPremiumStatus(partnerId).then(partnerStatus => {
+                if (partnerStatus.isPremium) {
+                  console.log('✅ Partner still premium, keeping access');
+                  setPremiumSource('partner');
+                  setSubscriptionInfo({
+                    expirationDate: partnerStatus.expirationDate,
+                  });
+                } else {
+                  console.log('📉 Downgrading - both own and partner expired');
+                  setIsPremium(false);
+                  setPremiumSource('none');
+                }
+              }).catch(() => {
+                console.log('📉 Downgrading - partner check failed');
+                setIsPremium(false);
+                setPremiumSource('none');
+              });
+            } else {
+              console.log('📉 Downgrading - no partner');
+              setIsPremium(false);
+              setPremiumSource('none');
+            }
           }
-        } else if (firestoreStatus === 'free' && isPremium) {
-          // Only downgrade if we don't have RevenueCat premium
-          // (Don't let manual revoke override real subscription)
+        } else if (firestoreStatus === 'free' && isPremium && premiumSource === 'own') {
+          // Only downgrade if we don't have RevenueCat premium AND this was own subscription
+          // (Don't let manual revoke override partner premium)
           console.log('🔄 Firestore shows free, checking if RevenueCat has subscription');
           checkSubscriptionStatus(user.uid).then(status => {
             if (!status.isPremium) {
-              console.log('📉 Downgrading to free (both sources agree)');
-              setIsPremium(false);
+              // Also check partner before downgrading
+              if (partnerId) {
+                checkPartnerPremiumStatus(partnerId).then(partnerStatus => {
+                  if (partnerStatus.isPremium) {
+                    console.log('✅ Partner has premium, keeping access');
+                    setPremiumSource('partner');
+                    setSubscriptionInfo({
+                      expirationDate: partnerStatus.expirationDate,
+                    });
+                  } else {
+                    console.log('📉 Downgrading to free (both sources agree)');
+                    setIsPremium(false);
+                    setPremiumSource('none');
+                  }
+                }).catch(() => {
+                  console.log('📉 Downgrading to free (partner check failed)');
+                  setIsPremium(false);
+                  setPremiumSource('none');
+                });
+              } else {
+                console.log('📉 Downgrading to free (no partner)');
+                setIsPremium(false);
+                setPremiumSource('none');
+              }
             }
           });
         }
@@ -549,7 +621,7 @@ export const SubscriptionProvider = ({ children }) => {
       debugLog('Cleaning up Firestore subscription listener');
       unsubscribe();
     };
-  }, [user?.uid]); // Only depend on user ID, not isPremium to avoid loops
+  }, [user?.uid, partnerId]); // Added partnerId for partner checks on expiration
 
   /**
    * Purchase a subscription package
