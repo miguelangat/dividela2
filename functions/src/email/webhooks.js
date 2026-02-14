@@ -32,13 +32,17 @@ exports.handleMailersendWebhook = onRequest(
       return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    // Verify webhook signature if secret is configured
-    if (WEBHOOK_SECRET) {
-      const signature = req.headers['mailersend-signature'];
-      if (!verifyWebhookSignature(req.body, signature)) {
-        console.error('Invalid webhook signature');
-        return res.status(401).json({ error: 'Invalid signature' });
-      }
+    // SECURITY: Webhook signature verification is mandatory
+    // Reject all requests if MAILERSEND_WEBHOOK_SECRET is not configured
+    if (!WEBHOOK_SECRET) {
+      console.error('MAILERSEND_WEBHOOK_SECRET is not configured - rejecting webhook');
+      return res.status(500).json({ error: 'Webhook secret not configured' });
+    }
+
+    const signature = req.headers['mailersend-signature'];
+    if (!verifyWebhookSignature(req.body, signature)) {
+      console.error('Invalid webhook signature');
+      return res.status(401).json({ error: 'Invalid signature' });
     }
 
     const event = req.body;

@@ -373,10 +373,12 @@ describe('settlementService.js - Calculation Functions', () => {
     });
 
     it('should calculate with user1 owing', () => {
+      // user2 paid, user1 owes 60 (non-payer's share)
+      // splitDetails: user1Amount = payer's share, user2Amount = non-payer's share
       const expenses = [
         {
           paidBy: user2Id,
-          splitDetails: { user1Amount: 60, user2Amount: 40 },
+          splitDetails: { user1Amount: 40, user2Amount: 60 },
         },
       ];
 
@@ -454,10 +456,12 @@ describe('settlementService.js - Calculation Functions', () => {
     });
 
     it('should return absolute value', () => {
+      // user2 paid $100, user1 owes 100% (non-payer's share)
+      // splitDetails: user1Amount = payer's share, user2Amount = non-payer's share
       const expenses = [
         {
           paidBy: user2Id,
-          splitDetails: { user1Amount: 100, user2Amount: 0 },
+          splitDetails: { user1Amount: 0, user2Amount: 100 },
         },
       ];
 
@@ -499,22 +503,23 @@ describe('settlementService.js - Calculation Functions', () => {
     });
 
     it('should handle complex scenario', () => {
+      // splitDetails: user1Amount = payer's share, user2Amount = non-payer's share
       const expenses = [
         {
           paidBy: user1Id,
-          splitDetails: { user1Amount: 60, user2Amount: 40 },
+          splitDetails: { user1Amount: 60, user2Amount: 40 },  // user1 paid, user2 owes 40
         },
         {
           paidBy: user1Id,
-          splitDetails: { user1Amount: 30, user2Amount: 70 },
+          splitDetails: { user1Amount: 30, user2Amount: 70 },  // user1 paid, user2 owes 70
         },
         {
           paidBy: user2Id,
-          splitDetails: { user1Amount: 50, user2Amount: 50 },
+          splitDetails: { user1Amount: 50, user2Amount: 50 },  // user2 paid, user1 owes 50
         },
         {
           paidBy: user2Id,
-          splitDetails: { user1Amount: 20, user2Amount: 80 },
+          splitDetails: { user1Amount: 80, user2Amount: 20 },  // user2 paid, user1 owes 20
         },
       ];
 

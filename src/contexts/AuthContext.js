@@ -25,7 +25,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // Import Google Sign-In for native platforms only
 let GoogleSignin = null;
 let statusCodes = null;
-const WEB_CLIENT_ID = '156140614030-dm5esb364f890n4pe4g3qhiks6as1el2.apps.googleusercontent.com';
+
+// SECURITY: Google OAuth Client ID should be loaded from environment variables
+// Fallback to hardcoded value for backwards compatibility (to be removed in future release)
+const WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ||
+  '156140614030-dm5esb364f890n4pe4g3qhiks6as1el2.apps.googleusercontent.com';
 
 if (Platform.OS !== 'web') {
   try {
@@ -38,9 +42,9 @@ if (Platform.OS !== 'web') {
       webClientId: WEB_CLIENT_ID,
       offlineAccess: true,
     });
-    console.log('Google Sign-In configured successfully');
+    if (__DEV__) console.log('Google Sign-In configured successfully');
   } catch (e) {
-    console.log('Google Sign-In module not available:', e.message);
+    if (__DEV__) console.log('Google Sign-In module not available:', e.message);
   }
 }
 
@@ -76,7 +80,7 @@ export const AuthProvider = ({ children }) => {
   // Initialize push notification channels on app startup (Android requires this early)
   useEffect(() => {
     initializePushNotifications().catch(err => {
-      console.warn('[AuthContext] Failed to initialize push notifications:', err);
+      if (__DEV__) console.warn('[AuthContext] Failed to initialize push notifications:', err);
     });
   }, []);
 
@@ -95,12 +99,12 @@ export const AuthProvider = ({ children }) => {
           const { getPermissionStatus, isPushNotificationSupported } = await import('../services/pushNotificationService');
 
           if (!isPushNotificationSupported()) {
-            console.log('Push notifications not supported on this device/browser');
+            if (__DEV__) console.log('Push notifications not supported on this device/browser');
             return;
           }
 
           const status = await getPermissionStatus();
-          console.log('Push notification permission status:', status);
+          if (__DEV__) console.log('Push notification permission status:', status);
 
           // Only auto-register if permission is already granted
           // On web, user must explicitly enable via Settings to trigger permission prompt
@@ -108,15 +112,15 @@ export const AuthProvider = ({ children }) => {
             const result = await registerForPushNotifications(user.uid);
             if (result.success) {
               setPushToken(result.token);
-              console.log('Push notifications registered successfully, token:', result.token?.substring(0, 20) + '...');
+              if (__DEV__) console.log('Push notifications registered successfully, token:', result.token?.substring(0, 20) + '...');
             } else {
-              console.log('Push notifications not registered:', result.error);
+              if (__DEV__) console.log('Push notifications not registered:', result.error);
             }
           } else {
-            console.log('Push notification permission not granted yet - user can enable in Settings');
+            if (__DEV__) console.log('Push notification permission not granted yet - user can enable in Settings');
           }
         } catch (err) {
-          console.error('Error initializing push notifications:', err);
+          if (__DEV__) console.error('Error initializing push notifications:', err);
         }
       };
 
@@ -125,10 +129,10 @@ export const AuthProvider = ({ children }) => {
       // Setup notification listeners (these work regardless of permission)
       setupNotificationListeners(
         (notification) => {
-          console.log('Notification received in foreground:', notification);
+          if (__DEV__) console.log('Notification received in foreground:', notification);
         },
         (response) => {
-          console.log('User interacted with notification:', response);
+          if (__DEV__) console.log('User interacted with notification:', response);
         }
       );
     }
@@ -149,11 +153,11 @@ export const AuthProvider = ({ children }) => {
     const authUnsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       try {
         if (firebaseUser) {
-          console.log('AuthContext: Auth state changed, user logged in:', firebaseUser.uid);
+          if (__DEV__) console.log('AuthContext: Auth state changed, user logged in:', firebaseUser.uid);
           setUser(firebaseUser);
 
           // Set up real-time listener for user document
-          console.log('AuthContext: Setting up real-time listener for user document...');
+          if (__DEV__) console.log('AuthContext: Setting up real-time listener for user document...');
           const userRef = doc(db, 'users', firebaseUser.uid);
 
           userDocUnsubscribe = onSnapshot(
@@ -161,7 +165,7 @@ export const AuthProvider = ({ children }) => {
             async (snapshot) => {
               if (snapshot.exists()) {
                 const userData = snapshot.data();
-                console.log('🔄 User details updated from Firestore:', {
+                if (__DEV__) console.log('🔄 User details updated from Firestore:', {
                   uid: userData.uid,
                   partnerId: userData.partnerId,
                   coupleId: userData.coupleId,
@@ -174,7 +178,7 @@ export const AuthProvider = ({ children }) => {
                 setUserDetails((prevDetails) => {
                   // If no previous details, always update
                   if (!prevDetails) {
-                    console.log('[AuthContext] No previous details, setting initial state');
+                    if (__DEV__) console.log('[AuthContext] No previous details, setting initial state');
                     return userData;
                   }
 
@@ -194,7 +198,7 @@ export const AuthProvider = ({ children }) => {
                   if (prevSettings.currency !== newSettings.currency) changes.push(`settings.currency: ${prevSettings.currency} -> ${newSettings.currency}`);
 
                   if (changes.length > 0) {
-                    console.log('[AuthContext] User details changed:', changes.join(', '));
+                    if (__DEV__) console.log('[AuthContext] User details changed:', changes.join(', '));
                     return userData;
                   }
 
@@ -203,13 +207,14 @@ export const AuthProvider = ({ children }) => {
                 });
               } else {
                 // User document doesn't exist - create it (self-healing)
-                console.warn('⚠️ User document not found for authenticated user. Creating it now...');
+                if (__DEV__) console.warn('⚠️ User document not found for authenticated user. Creating it now...');
                 const newUserData = {
                   uid: firebaseUser.uid,
                   email: firebaseUser.email,
                   displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
-                  partnerId: null,
-                  coupleId: null,
+                  // NOTE: partnerId and coupleId intentionally excluded from self-healing
+                  // to preserve existing pairing data if document briefly appears missing
+                  // (can happen due to network issues, cache invalidation, or race conditions)
                   createdAt: new Date().toISOString(),
                   settings: {
                     notifications: true,
@@ -227,10 +232,10 @@ export const AuthProvider = ({ children }) => {
 
                 try {
                   await setDoc(userRef, newUserData, { merge: true });
-                  console.log('✓ User document created/merged successfully');
+                  if (__DEV__) console.log('✓ User document created/merged successfully');
                   setUserDetails(newUserData);
                 } catch (error) {
-                  console.error('❌ Failed to create user document:', error);
+                  if (__DEV__) console.error('❌ Failed to create user document:', error);
                   // Fall back to local state only
                   setUserDetails(newUserData);
                 }
@@ -238,7 +243,7 @@ export const AuthProvider = ({ children }) => {
               setLoading(false);
             },
             (error) => {
-              console.error('Error listening to user details:', error);
+              if (__DEV__) console.error('Error listening to user details:', error);
               // Fallback to one-time fetch on error
               getDoc(userRef).then(doc => {
                 if (doc.exists()) {
@@ -248,19 +253,19 @@ export const AuthProvider = ({ children }) => {
                 }
                 setLoading(false);
               }).catch(err => {
-                console.error('Fallback getDoc also failed:', err);
+                if (__DEV__) console.error('Fallback getDoc also failed:', err);
                 setLoading(false);
               });
             }
           );
         } else {
-          console.log('AuthContext: Auth state changed, user logged out');
+          if (__DEV__) console.log('AuthContext: Auth state changed, user logged out');
           setUser(null);
           setUserDetails(null);
           setLoading(false);
         }
       } catch (err) {
-        console.error('Error in auth state change:', err);
+        if (__DEV__) console.error('Error in auth state change:', err);
         setError(err.message);
         setLoading(false);
       }
@@ -282,10 +287,10 @@ export const AuthProvider = ({ children }) => {
       // setLoading(true); // Removed to prevent navigation stack reset
 
       // Create user in Firebase Auth
-      console.log('Creating Firebase Auth user...');
+      if (__DEV__) console.log('Creating Firebase Auth user...');
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const { user: firebaseUser } = userCredential;
-      console.log('✓ Firebase Auth user created:', firebaseUser.uid);
+      if (__DEV__) console.log('✓ Firebase Auth user created:', firebaseUser.uid);
 
       // Create user document in Firestore
       const userData = {
@@ -310,14 +315,14 @@ export const AuthProvider = ({ children }) => {
         trialEndsAt: null,
       };
 
-      console.log('Creating Firestore user document...');
+      if (__DEV__) console.log('Creating Firestore user document...');
       await setDoc(doc(db, 'users', firebaseUser.uid), userData);
-      console.log('✓ Firestore user document created');
+      if (__DEV__) console.log('✓ Firestore user document created');
       setUserDetails(userData);
 
       return firebaseUser;
     } catch (err) {
-      console.error('Sign up error:', err);
+      if (__DEV__) console.error('Sign up error:', err);
       setError(err.message);
       throw err;
     } finally {
@@ -342,7 +347,7 @@ export const AuthProvider = ({ children }) => {
 
       return firebaseUser;
     } catch (err) {
-      console.error('Sign in error:', err);
+      if (__DEV__) console.error('Sign in error:', err);
 
       // Map Firebase error codes to user-friendly messages
       let userMessage = 'An error occurred. Please try again.';
@@ -400,7 +405,7 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setUserDetails(null);
     } catch (err) {
-      console.error('Sign out error:', err);
+      if (__DEV__) console.error('Sign out error:', err);
       setError(err.message);
       throw err;
     }
@@ -417,7 +422,7 @@ export const AuthProvider = ({ children }) => {
       // Update local state
       setUserDetails(prev => ({ ...prev, ...updates }));
     } catch (err) {
-      console.error('Update user details error:', err);
+      if (__DEV__) console.error('Update user details error:', err);
       setError(err.message);
       throw err;
     }
@@ -428,20 +433,20 @@ export const AuthProvider = ({ children }) => {
     try {
       if (!user) throw new Error('No user logged in');
 
-      console.log('AuthContext: updatePartnerInfo called with partnerId:', partnerId, 'coupleId:', coupleId);
+      if (__DEV__) console.log('AuthContext: updatePartnerInfo called with partnerId:', partnerId, 'coupleId:', coupleId);
       setError(null);
       const updates = { partnerId, coupleId };
 
       await updateDoc(doc(db, 'users', user.uid), updates);
-      console.log('AuthContext: Firestore updated, now updating local state');
+      if (__DEV__) console.log('AuthContext: Firestore updated, now updating local state');
       setUserDetails(prev => {
         const newState = { ...prev, ...updates };
-        console.log('AuthContext: New userDetails state:', newState);
+        if (__DEV__) console.log('AuthContext: New userDetails state:', newState);
         return newState;
       });
-      console.log('AuthContext: updatePartnerInfo complete');
+      if (__DEV__) console.log('AuthContext: updatePartnerInfo complete');
     } catch (err) {
-      console.error('Update partner info error:', err);
+      if (__DEV__) console.error('Update partner info error:', err);
       setError(err.message);
       throw err;
     }
@@ -458,7 +463,7 @@ export const AuthProvider = ({ children }) => {
       }
       return null;
     } catch (err) {
-      console.error('Get partner details error:', err);
+      if (__DEV__) console.error('Get partner details error:', err);
       return null;
     }
   };
@@ -489,13 +494,13 @@ export const AuthProvider = ({ children }) => {
         try {
           await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
         } catch (e) {
-          console.error('Play services error:', e);
+          if (__DEV__) console.error('Play services error:', e);
           throw new Error('Google Play Services are required for Google Sign-In');
         }
 
         // Sign in with Google
         const signInResult = await GoogleSignin.signIn();
-        console.log('Google Sign-In result:', signInResult);
+        if (__DEV__) console.log('Google Sign-In result:', signInResult);
 
         // Get the ID token - handle both old and new API formats
         const idToken = signInResult.data?.idToken || signInResult.idToken;
@@ -538,12 +543,12 @@ export const AuthProvider = ({ children }) => {
         };
 
         await setDoc(doc(db, 'users', firebaseUser.uid), userData);
-        console.log('Created user document for new Google sign-in user');
+        if (__DEV__) console.log('Created user document for new Google sign-in user');
       }
 
       return firebaseUser;
     } catch (err) {
-      console.error('Google sign-in error:', err);
+      if (__DEV__) console.error('Google sign-in error:', err);
 
       // Handle specific errors
       if (err.code === 'auth/operation-not-allowed') {
@@ -604,12 +609,12 @@ export const AuthProvider = ({ children }) => {
         };
 
         await setDoc(doc(db, 'users', firebaseUser.uid), userData);
-        console.log('Created user document for new Apple sign-in user');
+        if (__DEV__) console.log('Created user document for new Apple sign-in user');
       }
 
       return firebaseUser;
     } catch (err) {
-      console.error('Apple sign-in error:', err);
+      if (__DEV__) console.error('Apple sign-in error:', err);
 
       // Handle specific errors
       if (err.code === 'auth/operation-not-allowed') {
@@ -649,11 +654,11 @@ export const AuthProvider = ({ children }) => {
 
       // Update password
       await updatePassword(user, newPassword);
-      console.log('✓ Password updated successfully');
+      if (__DEV__) console.log('✓ Password updated successfully');
 
       return true;
     } catch (err) {
-      console.error('Change password error:', err);
+      if (__DEV__) console.error('Change password error:', err);
 
       // Handle specific errors
       if (err.code === 'auth/wrong-password') {
@@ -681,7 +686,7 @@ export const AuthProvider = ({ children }) => {
       const partnerId = userDetails.partnerId;
       const currentUserId = user.uid;
 
-      console.log(`Unpairing users: ${currentUserId} and ${partnerId}`);
+      if (__DEV__) console.log(`Unpairing users: ${currentUserId} and ${partnerId}`);
 
       // Update current user document - keep coupleId, store previous partner
       const currentUserRef = doc(db, 'users', currentUserId);
@@ -701,7 +706,7 @@ export const AuthProvider = ({ children }) => {
         unpairedAt: new Date().toISOString()
       });
 
-      console.log('✓ Users unpaired successfully (coupleId preserved)');
+      if (__DEV__) console.log('✓ Users unpaired successfully (coupleId preserved)');
 
       // Update local state - keep coupleId
       setUserDetails(prev => ({
@@ -712,7 +717,7 @@ export const AuthProvider = ({ children }) => {
 
       return true;
     } catch (err) {
-      console.error('Unpair error:', err);
+      if (__DEV__) console.error('Unpair error:', err);
       setError(err.message);
       throw err;
     } finally {
@@ -752,7 +757,7 @@ export const AuthProvider = ({ children }) => {
 
       // If user has a partner, we should handle couple data cleanup
       if (userDetails?.coupleId) {
-        console.log('⚠️ User has couple data. Consider implementing cleanup logic.');
+        if (__DEV__) console.log('⚠️ User has couple data. Consider implementing cleanup logic.');
         // TODO: Implement couple data cleanup if needed
         // For now, we'll just delete the user document
       }
@@ -766,7 +771,7 @@ export const AuthProvider = ({ children }) => {
 
       // Delete the Firebase Auth account
       await deleteUser(user);
-      console.log('✓ Account deleted successfully');
+      if (__DEV__) console.log('✓ Account deleted successfully');
 
       // Clear local state
       setUser(null);
@@ -774,7 +779,7 @@ export const AuthProvider = ({ children }) => {
 
       return true;
     } catch (err) {
-      console.error('Delete account error:', err);
+      if (__DEV__) console.error('Delete account error:', err);
 
       // Handle specific errors
       if (err.code === 'auth/wrong-password') {

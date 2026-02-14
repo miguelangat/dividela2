@@ -76,7 +76,7 @@ export const processUploadQueue = async (options = {}) => {
     return { processed: 0, message: 'Device is offline' };
   }
 
-  const queue = await getQueue();
+  let queue = await getQueue();
   const results = {
     processed: 0,
     successful: 0,
@@ -88,7 +88,8 @@ export const processUploadQueue = async (options = {}) => {
   if (options.cleanupExpired) {
     const maxAge = options.maxAge || 7 * 24 * 60 * 60 * 1000;
     const now = Date.now();
-    queue.filter(item => (now - item.timestamp) <= maxAge);
+    // FIX: Properly assign the filtered result (was being discarded)
+    queue = queue.filter(item => (now - item.timestamp) <= maxAge);
   }
 
   // Sort by priority if requested
@@ -292,7 +293,7 @@ async function getQueue() {
     const data = await AsyncStorage.getItem(QUEUE_KEY);
     return data ? JSON.parse(data) : [];
   } catch (error) {
-    console.error('Failed to get queue:', error);
+    if (__DEV__) console.error('Failed to get queue:', error);
     // Reset corrupted queue
     await AsyncStorage.setItem(QUEUE_KEY, '[]');
     return [];

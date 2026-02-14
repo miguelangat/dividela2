@@ -74,8 +74,9 @@ service cloud.firestore {
       // Anyone authenticated can create an invite code
       allow create: if isSignedIn();
 
-      // Anyone can read invite codes (needed to validate codes)
-      allow read: if true;
+      // Only authenticated users can read invite codes (needed to validate codes)
+      // SECURITY: Prevents unauthenticated enumeration of invite codes
+      allow read: if isSignedIn();
 
       // Only the creator can update their own codes
       // Or anyone can update when using a code (marking as used)
@@ -87,8 +88,11 @@ service cloud.firestore {
 
     // Couples collection
     match /couples/{coupleId} {
-      // Anyone authenticated can create a couple
-      allow create: if isSignedIn();
+      // Only authenticated users can create a couple, and they must be a member
+      // SECURITY: Prevents creating couples where the creator is not a member
+      allow create: if isSignedIn() &&
+        (request.resource.data.user1Id == request.auth.uid ||
+         request.resource.data.user2Id == request.auth.uid);
 
       // Only members of the couple can read
       allow read: if isSignedIn() && (

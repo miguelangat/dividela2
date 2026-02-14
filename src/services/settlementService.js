@@ -20,8 +20,13 @@ import { db } from '../config/firebase';
 /**
  * Generate category breakdown from expenses
  * Groups expenses by category and calculates totals
+ *
+ * @param {Array} expenses - Array of expense objects
+ * @param {Object} categories - Categories map
+ * @param {string} user1Id - First user ID (optional, for correct user attribution)
+ * @param {string} user2Id - Second user ID (optional, for correct user attribution)
  */
-export const generateCategoryBreakdown = (expenses, categories) => {
+export const generateCategoryBreakdown = (expenses, categories, user1Id = null, user2Id = null) => {
   const breakdown = {};
 
   expenses.forEach((expense) => {
@@ -44,8 +49,31 @@ export const generateCategoryBreakdown = (expenses, categories) => {
 
     breakdown[categoryKey].totalAmount += expenseAmount;
     breakdown[categoryKey].expenseCount += 1;
-    breakdown[categoryKey].user1Amount += expense.splitDetails?.user1Amount || expenseAmount / 2;
-    breakdown[categoryKey].user2Amount += expense.splitDetails?.user2Amount || expenseAmount / 2;
+
+    // splitDetails: user1Amount = payer's share, user2Amount = non-payer's share
+    const payerShare = expense.splitDetails?.user1Amount || expenseAmount / 2;
+    const nonPayerShare = expense.splitDetails?.user2Amount || expenseAmount / 2;
+
+    // Assign to correct user based on who paid
+    if (user1Id && user2Id) {
+      if (expense.paidBy === user1Id) {
+        // user1 paid: user1's responsibility = payerShare, user2's responsibility = nonPayerShare
+        breakdown[categoryKey].user1Amount += payerShare;
+        breakdown[categoryKey].user2Amount += nonPayerShare;
+      } else if (expense.paidBy === user2Id) {
+        // user2 paid: user1's responsibility = nonPayerShare, user2's responsibility = payerShare
+        breakdown[categoryKey].user1Amount += nonPayerShare;
+        breakdown[categoryKey].user2Amount += payerShare;
+      } else {
+        // Unknown payer, split equally (shouldn't happen but be safe)
+        breakdown[categoryKey].user1Amount += expenseAmount / 2;
+        breakdown[categoryKey].user2Amount += expenseAmount / 2;
+      }
+    } else {
+      // Fallback: no user IDs provided, use raw values (legacy behavior)
+      breakdown[categoryKey].user1Amount += payerShare;
+      breakdown[categoryKey].user2Amount += nonPayerShare;
+    }
   });
 
   return breakdown;
@@ -143,8 +171,8 @@ export const createSettlement = async (
       throw new Error('No unsettled expenses to settle');
     }
 
-    // Generate category breakdown
-    const categoryBreakdown = generateCategoryBreakdown(unsettledExpenses, categories);
+    // Generate category breakdown with proper user attribution
+    const categoryBreakdown = generateCategoryBreakdown(unsettledExpenses, categories, user1Id, user2Id);
 
     // Generate budget summary
     const budgetSummary = generateBudgetSummary(unsettledExpenses, currentBudget, categories);
@@ -152,8 +180,11 @@ export const createSettlement = async (
     // Identify top categories
     const topCategories = identifyTopCategories(categoryBreakdown);
 
-    // Calculate total expense amount
-    const totalExpensesAmount = unsettledExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    // Calculate total expense amount (use primaryCurrencyAmount for multi-currency support)
+    const totalExpensesAmount = unsettledExpenses.reduce(
+      (sum, exp) => sum + (exp.primaryCurrencyAmount || exp.amount),
+      0
+    );
 
     // Get previous settlements to calculate period
     const settlementsQuery = query(
@@ -355,7 +386,7 @@ export const calculateSettlementAmount = (expenses, settlements, user1Id, user2I
     if (expense.paidBy === user1Id) {
       balance += user2Share; // User2 owes User1
     } else if (expense.paidBy === user2Id) {
-      balance -= user1Share; // User1 owes User2
+      balance -= user2Share; // User1 owes User2 (non-payer's share)
     }
   });
 

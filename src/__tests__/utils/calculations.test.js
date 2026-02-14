@@ -198,17 +198,24 @@ describe('calculations.js - Math Behavior Tests', () => {
     });
 
     it('should calculate negative balance when user1 owes user2', () => {
+      // When user2 pays, user1Amount = payer's share, user2Amount = non-payer's share
+      // user2 paid $100, user2's share is $40, user1's share is $60
+      // So user1 owes user2 $60
       const expenses = [
         {
           paidBy: user2Id,
-          splitDetails: { user1Amount: 60, user2Amount: 40 },
+          splitDetails: { user1Amount: 40, user2Amount: 60 },
         },
       ];
       const balance = calculateBalance(expenses, user1Id, user2Id);
-      expect(balance).toBe(-60); // user1 owes 60
+      expect(balance).toBe(-60); // user1 owes 60 (their share that user2 covered)
     });
 
     it('should calculate balance for multiple expenses', () => {
+      // Expense 1: user1 paid $100, 50/50 split, user2 owes user1 $50
+      // Expense 2: user2 paid $100, user2's share is $70 (payer), user1's share is $30 (non-payer)
+      //            so user1 owes user2 $30
+      // Net: user2 owes 50 - 30 = $20
       const expenses = [
         {
           paidBy: user1Id,
@@ -216,12 +223,52 @@ describe('calculations.js - Math Behavior Tests', () => {
         },
         {
           paidBy: user2Id,
-          splitDetails: { user1Amount: 30, user2Amount: 70 },
+          splitDetails: { user1Amount: 70, user2Amount: 30 },
         },
       ];
-      // user2 owes 50, user1 owes 30, net: user2 owes 20
       const balance = calculateBalance(expenses, user1Id, user2Id);
       expect(balance).toBe(20);
+    });
+
+    it('should calculate same absolute balance regardless of user perspective (asymmetry fix)', () => {
+      // This test verifies the critical fix for the settlement asymmetry bug
+      // When user2 pays $100 with A=60%, B=40% split:
+      // Stored: user1Amount = 40 (payer B's share), user2Amount = 60 (non-payer A's share)
+      const expenses = [{
+        paidBy: user2Id,
+        splitDetails: {
+          user1Amount: 40,  // Payer's share (user2)
+          user2Amount: 60,  // Non-payer's share (user1)
+        }
+      }];
+
+      // From user1's perspective (user1 owes user2)
+      const balanceUser1 = calculateBalance(expenses, user1Id, user2Id);
+      // From user2's perspective (user2 is owed)
+      const balanceUser2 = calculateBalance(expenses, user2Id, user1Id);
+
+      // Balances should be equal in magnitude, opposite in sign
+      expect(Math.abs(balanceUser1)).toBe(Math.abs(balanceUser2));
+      expect(balanceUser1).toBe(-60); // user1 owes 60
+      expect(balanceUser2).toBe(60);  // user2 is owed 60
+    });
+
+    it('should handle expense where logged-in user paid (asymmetry fix)', () => {
+      // User1 creates expense where user1 paid $100, A=40%, B=60%
+      // Stored: user1Amount = 40 (payer user1's share), user2Amount = 60 (non-payer user2's share)
+      const expenses = [{
+        paidBy: user1Id,
+        splitDetails: {
+          user1Amount: 40,  // Payer's share (user1)
+          user2Amount: 60,  // Non-payer's share (user2)
+        }
+      }];
+
+      const balanceUser1 = calculateBalance(expenses, user1Id, user2Id);
+      const balanceUser2 = calculateBalance(expenses, user2Id, user1Id);
+
+      expect(balanceUser1).toBe(60);  // user1 is owed 60 (user2's share)
+      expect(balanceUser2).toBe(-60); // user2 owes 60
     });
 
     it('should calculate zero balance when expenses are equal', () => {
@@ -313,7 +360,9 @@ describe('calculations.js - Math Behavior Tests', () => {
       expect(balance).toBe(80); // 50 + 30
     });
 
-    it('should increase balance when user2 settles', () => {
+    it('should increase negative balance when user2 settles', () => {
+      // user2 paid $100, 50/50 split: user1Amount=50 (payer), user2Amount=50 (non-payer)
+      // user1 owes user2 $50, then user2 settles $30 more
       const expenses = [
         { paidBy: user2Id, splitDetails: { user1Amount: 50, user2Amount: 50 } },
       ];
@@ -532,6 +581,9 @@ describe('calculations.js - Math Behavior Tests', () => {
     });
 
     it('should calculate total share for multiple expenses', () => {
+      // user1Amount = payer's share, user2Amount = non-payer's share
+      // Expense 1: user paid, user's share = 60 (payer's share)
+      // Expense 2: partner paid, user's share = 30 (non-payer's share)
       const expenses = [
         {
           paidBy: userId,
@@ -539,7 +591,7 @@ describe('calculations.js - Math Behavior Tests', () => {
         },
         {
           paidBy: 'user2',
-          splitDetails: { user1Amount: 30, user2Amount: 70 },
+          splitDetails: { user1Amount: 70, user2Amount: 30 },
         },
       ];
       expect(calculateUserShare(expenses, userId)).toBe(90); // 60 + 30

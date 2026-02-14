@@ -754,6 +754,7 @@ export default function AddExpenseScreen({ navigation, route }) {
               <OCRSuggestionCard
                 receiptUrl={ocrState.receiptUrl}
                 suggestions={ocrState.suggestions}
+                currency={primaryCurrency}
                 onAccept={handleAcceptSuggestions}
                 onDismiss={handleDismissSuggestions}
                 onCreateAlias={handleCreateAlias}

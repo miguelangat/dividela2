@@ -68,10 +68,15 @@ export function mapTransactionToExpense(transaction, config) {
     splitWarning = `Split amounts didn't match total, recalculated with 50/50`;
   }
 
+  // Use currency detected from CSV (e.g., from € or $ symbols) if available,
+  // otherwise use the config currency (which defaults to the couple's primary currency)
+  const expenseCurrency = transaction.currency || currency;
+
   const baseExpense = {
     coupleId,
     paidBy,
     amount: transaction.amount,
+    currency: expenseCurrency,
     description: transaction.description,
     categoryKey: finalCategory,
     category: finalCategory, // Legacy field

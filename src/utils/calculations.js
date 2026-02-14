@@ -136,8 +136,8 @@ export const calculateBalance = (expenses, user1Id, user2Id) => {
       // User 1 paid, so user 2 owes their share
       balance += splitDetails.user2Amount;
     } else if (paidBy === user2Id) {
-      // User 2 paid, so user 1 owes their share
-      balance -= splitDetails.user1Amount;
+      // User 2 paid, so user 1 owes their share (non-payer's share = user2Amount)
+      balance -= splitDetails.user2Amount;
     } else {
       console.warn('calculateBalance: expense paidBy unknown user', expense);
     }

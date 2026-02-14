@@ -10,7 +10,7 @@
  * - Sorting and grouping options
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -89,7 +89,7 @@ export default function StatsScreen() {
             }
           }
         } catch (error) {
-          console.error('Error fetching partner details:', error);
+          if (__DEV__) console.error('Error fetching partner details:', error);
         }
       }
     };
@@ -103,7 +103,7 @@ export default function StatsScreen() {
       return;
     }
 
-    console.log('Setting up expenses listener for stats');
+    if (__DEV__) console.log('Setting up expenses listener for stats');
 
     const expensesQuery = query(
       collection(db, 'expenses'),
@@ -119,14 +119,14 @@ export default function StatsScreen() {
           expensesList.push({ id: doc.id, ...doc.data() });
         });
 
-        console.log(`Stats: Loaded ${expensesList.length} expenses`);
+        if (__DEV__) console.log(`Stats: Loaded ${expensesList.length} expenses`);
         setExpenses(expensesList);
         setError(null);
         setLoading(false);
         setRefreshing(false);
       },
       error => {
-        console.error('Error fetching expenses for stats:', error);
+        if (__DEV__) console.error('Error fetching expenses for stats:', error);
         setError(t('stats.error'));
         setLoading(false);
         setRefreshing(false);
@@ -142,7 +142,7 @@ export default function StatsScreen() {
       return;
     }
 
-    console.log('Setting up settlements listener for stats');
+    if (__DEV__) console.log('Setting up settlements listener for stats');
 
     const settlementsQuery = query(
       collection(db, 'settlements'),
@@ -158,11 +158,11 @@ export default function StatsScreen() {
           settlementsList.push({ id: doc.id, ...doc.data() });
         });
 
-        console.log(`Stats: Loaded ${settlementsList.length} settlements`);
+        if (__DEV__) console.log(`Stats: Loaded ${settlementsList.length} settlements`);
         setSettlements(settlementsList);
       },
       error => {
-        console.error('Error fetching settlements for stats:', error);
+        if (__DEV__) console.error('Error fetching settlements for stats:', error);
         // Don't show error to user for settlements - non-critical
       }
     );
@@ -293,8 +293,8 @@ export default function StatsScreen() {
     </View>
   );
 
-  // Render individual expense item
-  const renderExpenseItem = expense => {
+  // PERFORMANCE: Memoized render function for expense items
+  const renderExpenseItem = useCallback(expense => {
     const isPaidByUser = expense.paidBy === user?.uid;
     const isSettled = !!expense.settledAt;
     const categoryKey = expense.category || expense.categoryKey || 'other';
@@ -347,7 +347,7 @@ export default function StatsScreen() {
         </View>
       </TouchableOpacity>
     );
-  };
+  }, [user?.uid, categories, partnerName, t]);
 
   const renderSummaryCards = () => (
     <View style={styles.summaryContainer}>

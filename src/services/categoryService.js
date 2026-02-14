@@ -10,6 +10,8 @@ import {
   deleteDoc,
   query,
   where,
+  limit,
+  getCountFromServer,
   onSnapshot,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
@@ -41,9 +43,9 @@ export const initializeCategoriesForCouple = async (coupleId) => {
     });
 
     await Promise.all(promises);
-    console.log('✅ Default categories initialized for couple:', coupleId);
+    if (__DEV__) console.log('✅ Default categories initialized for couple:', coupleId);
   } catch (error) {
-    console.error('Error initializing categories:', error);
+    if (__DEV__) console.error('Error initializing categories:', error);
     throw error;
   }
 };
@@ -75,7 +77,7 @@ export const getCategoriesForCouple = async (coupleId) => {
 
     return categories;
   } catch (error) {
-    console.error('Error getting categories:', error);
+    if (__DEV__) console.error('Error getting categories:', error);
     throw error;
   }
 };
@@ -99,7 +101,7 @@ export const subscribeToCategoriesForCouple = (coupleId, callback) => {
 
     callback(categories);
   }, (error) => {
-    console.error('Error in category subscription:', error);
+    if (__DEV__) console.error('Error in category subscription:', error);
   });
 };
 
@@ -136,10 +138,10 @@ export const addCustomCategory = async (coupleId, { name, icon, defaultBudget, f
 
     await setDoc(doc(categoriesRef, `${coupleId}_${key}`), categoryDoc);
 
-    console.log('✅ Custom category added:', name);
+    if (__DEV__) console.log('✅ Custom category added:', name);
     return { success: true, key };
   } catch (error) {
-    console.error('Error adding custom category:', error);
+    if (__DEV__) console.error('Error adding custom category:', error);
     throw error;
   }
 };
@@ -175,11 +177,56 @@ export const updateCategory = async (coupleId, key, updates) => {
       updatedAt: new Date(),
     });
 
-    console.log('✅ Category updated:', key);
+    if (__DEV__) console.log('✅ Category updated:', key);
     return { success: true };
   } catch (error) {
-    console.error('Error updating category:', error);
+    if (__DEV__) console.error('Error updating category:', error);
     throw error;
+  }
+};
+
+/**
+ * Check if any expenses use a specific category
+ * Uses efficient Firestore query instead of fetching all expenses
+ */
+export const hasExpensesWithCategory = async (coupleId, categoryKey) => {
+  try {
+    const expensesRef = collection(db, 'expenses');
+    const q = query(
+      expensesRef,
+      where('coupleId', '==', coupleId),
+      where('categoryKey', '==', categoryKey),
+      limit(1) // We only need to know if at least one exists
+    );
+
+    const snapshot = await getDocs(q);
+    return !snapshot.empty;
+  } catch (error) {
+    if (__DEV__) console.error('Error checking expenses for category:', error);
+    return false;
+  }
+};
+
+/**
+ * Count expenses that use a specific category
+ * Uses Firestore aggregation for efficiency
+ */
+export const countExpensesWithCategory = async (coupleId, categoryKey) => {
+  try {
+    const expensesRef = collection(db, 'expenses');
+    const q = query(
+      expensesRef,
+      where('coupleId', '==', coupleId),
+      where('categoryKey', '==', categoryKey)
+    );
+
+    const countSnapshot = await getCountFromServer(q);
+    return countSnapshot.data().count;
+  } catch (error) {
+    if (__DEV__) console.error('Error counting expenses for category:', error);
+    // Fallback: if count aggregation fails, do a regular query
+    const snapshot = await getDocs(q);
+    return snapshot.size;
   }
 };
 
@@ -205,24 +252,22 @@ export const deleteCategory = async (coupleId, key, expenseService) => {
       throw new Error('Cannot delete default categories');
     }
 
-    // Check if any expenses use this category
-    if (expenseService) {
-      const expenses = await expenseService.getExpenses(coupleId);
-      const expensesWithCategory = expenses.filter(exp => exp.categoryKey === key);
+    // Check if any expenses use this category using efficient Firestore query
+    // PERFORMANCE FIX: Use direct query instead of fetching all expenses
+    const expenseCount = await countExpensesWithCategory(coupleId, key);
 
-      if (expensesWithCategory.length > 0) {
-        throw new Error(
-          `Cannot delete "${categoryData.name}" because it has ${expensesWithCategory.length} expense${expensesWithCategory.length !== 1 ? 's' : ''}. Please delete or reassign those expenses first.`
-        );
-      }
+    if (expenseCount > 0) {
+      throw new Error(
+        `Cannot delete "${categoryData.name}" because it has ${expenseCount} expense${expenseCount !== 1 ? 's' : ''}. Please delete or reassign those expenses first.`
+      );
     }
 
     await deleteDoc(categoryDocRef);
 
-    console.log('✅ Category deleted:', key);
+    if (__DEV__) console.log('✅ Category deleted:', key);
     return { success: true };
   } catch (error) {
-    console.error('Error deleting category:', error);
+    if (__DEV__) console.error('Error deleting category:', error);
     throw error;
   }
 };
@@ -230,6 +275,7 @@ export const deleteCategory = async (coupleId, key, expenseService) => {
 /**
  * Reset categories to defaults
  * Keeps custom categories that have expenses
+ * PERFORMANCE FIX: Uses efficient per-category queries instead of fetching all expenses
  */
 export const resetToDefaultCategories = async (coupleId, expenseService) => {
   try {
@@ -237,31 +283,41 @@ export const resetToDefaultCategories = async (coupleId, expenseService) => {
     const q = query(categoriesRef, where('coupleId', '==', coupleId));
     const snapshot = await getDocs(q);
 
-    // Get all expenses to check which custom categories are in use
-    let expenses = [];
-    if (expenseService) {
-      expenses = await expenseService.getExpenses(coupleId);
-    }
-
     const deletePromises = [];
     const customCategoriesWithExpenses = [];
+    const checkPromises = [];
 
+    // Collect custom categories to check
+    const customCategories = [];
     snapshot.forEach((doc) => {
       const data = doc.data();
-
-      // If it's a custom category
       if (!data.isDefault) {
-        const hasExpenses = expenses.some(exp => exp.categoryKey === data.key);
-
-        if (hasExpenses) {
-          // Keep it
-          customCategoriesWithExpenses.push(data.key);
-        } else {
-          // Delete it
-          deletePromises.push(deleteDoc(doc.ref));
-        }
+        customCategories.push({ doc, data });
       }
     });
+
+    // Check each custom category for expenses in parallel (more efficient than fetching all expenses)
+    for (const { doc: catDoc, data } of customCategories) {
+      checkPromises.push(
+        hasExpensesWithCategory(coupleId, data.key).then(hasExp => ({
+          doc: catDoc,
+          data,
+          hasExpenses: hasExp
+        }))
+      );
+    }
+
+    const results = await Promise.all(checkPromises);
+
+    for (const { doc: catDoc, data, hasExpenses } of results) {
+      if (hasExpenses) {
+        // Keep it
+        customCategoriesWithExpenses.push(data.key);
+      } else {
+        // Delete it
+        deletePromises.push(deleteDoc(catDoc.ref));
+      }
+    }
 
     // Delete custom categories without expenses
     await Promise.all(deletePromises);
@@ -269,9 +325,11 @@ export const resetToDefaultCategories = async (coupleId, expenseService) => {
     // Re-initialize defaults (will skip if they already exist)
     await initializeCategoriesForCouple(coupleId);
 
-    console.log('✅ Categories reset to defaults');
-    if (customCategoriesWithExpenses.length > 0) {
-      console.log('ℹ️ Kept custom categories with expenses:', customCategoriesWithExpenses);
+    if (__DEV__) {
+      console.log('✅ Categories reset to defaults');
+      if (customCategoriesWithExpenses.length > 0) {
+        console.log('ℹ️ Kept custom categories with expenses:', customCategoriesWithExpenses);
+      }
     }
 
     return {
@@ -279,7 +337,7 @@ export const resetToDefaultCategories = async (coupleId, expenseService) => {
       keptCategories: customCategoriesWithExpenses
     };
   } catch (error) {
-    console.error('Error resetting categories:', error);
+    if (__DEV__) console.error('Error resetting categories:', error);
     throw error;
   }
 };
@@ -292,7 +350,7 @@ export const getCategoryCount = async (coupleId) => {
     const categories = await getCategoriesForCouple(coupleId);
     return Object.keys(categories).length;
   } catch (error) {
-    console.error('Error getting category count:', error);
+    if (__DEV__) console.error('Error getting category count:', error);
     return 0;
   }
 };
@@ -307,7 +365,7 @@ export const categoryExists = async (coupleId, key) => {
     const categoryDoc = await getDoc(categoryDocRef);
     return categoryDoc.exists();
   } catch (error) {
-    console.error('Error checking category existence:', error);
+    if (__DEV__) console.error('Error checking category existence:', error);
     return false;
   }
 };
@@ -332,7 +390,7 @@ export const getCategoriesByFrequency = async (coupleId, frequency) => {
 
     return filtered;
   } catch (error) {
-    console.error('Error getting categories by frequency:', error);
+    if (__DEV__) console.error('Error getting categories by frequency:', error);
     throw error;
   }
 };
@@ -360,7 +418,7 @@ export const getMonthlyCategories = async (coupleId) => {
 
     return filtered;
   } catch (error) {
-    console.error('Error getting monthly categories:', error);
+    if (__DEV__) console.error('Error getting monthly categories:', error);
     throw error;
   }
 };

@@ -127,7 +127,28 @@ exports.handleMailersendWebhook = webhooks.handleMailersendWebhook;
 // ============================================================================
 
 // Test email function (simple test for Mailersend configuration)
+// SECURITY: Restricted to emulator/development or authenticated admin users
 exports.testEmail = functions.https.onRequest(async (req, res) => {
+  // Only allow in emulator or with valid auth token
+  const isEmulator = process.env.FUNCTIONS_EMULATOR === 'true';
+
+  if (!isEmulator) {
+    // Verify authentication in production
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      res.status(401).json({ error: 'Unauthorized: Missing authentication token' });
+      return;
+    }
+
+    try {
+      const idToken = authHeader.split('Bearer ')[1];
+      await admin.auth().verifyIdToken(idToken);
+    } catch (error) {
+      res.status(401).json({ error: 'Unauthorized: Invalid token' });
+      return;
+    }
+  }
+
   const toEmail = req.query.to;
 
   if (!toEmail) {
@@ -165,12 +186,43 @@ exports.unregisterPushToken = pushNotifications.unregisterPushToken;
 exports.cleanupInvalidTokens = pushNotifications.cleanupInvalidTokens;
 
 // Test function to send a push notification to a specific user
+// SECURITY: Restricted to emulator/development or authenticated users can only test to themselves
 exports.testPushNotification = functions.https.onRequest(async (req, res) => {
+  // Only allow in emulator or with valid auth token
+  const isEmulator = process.env.FUNCTIONS_EMULATOR === 'true';
+  let authenticatedUserId = null;
+
+  if (!isEmulator) {
+    // Verify authentication in production
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      res.status(401).json({ error: 'Unauthorized: Missing authentication token' });
+      return;
+    }
+
+    try {
+      const idToken = authHeader.split('Bearer ')[1];
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      authenticatedUserId = decodedToken.uid;
+    } catch (error) {
+      res.status(401).json({ error: 'Unauthorized: Invalid token' });
+      return;
+    }
+  }
+
   const userId = req.query.userId;
 
   if (!userId) {
     res.status(400).json({
       error: 'Missing "userId" parameter. Usage: ?userId=your-user-id',
+    });
+    return;
+  }
+
+  // In production, users can only send test notifications to themselves
+  if (!isEmulator && authenticatedUserId !== userId) {
+    res.status(403).json({
+      error: 'Forbidden: You can only send test notifications to yourself',
     });
     return;
   }

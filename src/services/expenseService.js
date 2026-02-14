@@ -12,23 +12,42 @@ import {
   query,
   where,
   orderBy,
+  limit,
+  startAfter,
   onSnapshot,
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
-/**
- * Get all expenses for a couple
- */
-export const getExpenses = async (coupleId) => {
-  try {
-    const expensesRef = collection(db, 'expenses');
-    const q = query(
-      expensesRef,
-      where('coupleId', '==', coupleId),
-      orderBy('date', 'desc')
-    );
+// Default limit for expense queries to prevent fetching entire history
+const DEFAULT_EXPENSE_LIMIT = 500;
 
+/**
+ * Get expenses for a couple with optional pagination
+ * @param {string} coupleId - The couple's ID
+ * @param {Object} options - Query options
+ * @param {number} options.limitCount - Maximum number of expenses to fetch (default: 500)
+ * @param {DocumentSnapshot} options.startAfterDoc - Document to start after for pagination
+ * @returns {Promise<{expenses: Array, lastDoc: DocumentSnapshot|null}>}
+ */
+export const getExpenses = async (coupleId, options = {}) => {
+  try {
+    const { limitCount = DEFAULT_EXPENSE_LIMIT, startAfterDoc = null } = options;
+    const expensesRef = collection(db, 'expenses');
+
+    // Build query with limit to prevent fetching entire history
+    const queryConstraints = [
+      where('coupleId', '==', coupleId),
+      orderBy('date', 'desc'),
+      limit(limitCount),
+    ];
+
+    // Add pagination cursor if provided
+    if (startAfterDoc) {
+      queryConstraints.push(startAfter(startAfterDoc));
+    }
+
+    const q = query(expensesRef, ...queryConstraints);
     const snapshot = await getDocs(q);
     const expenses = [];
 
@@ -39,22 +58,30 @@ export const getExpenses = async (coupleId) => {
       });
     });
 
-    return expenses;
+    // Return last document for pagination
+    const lastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null;
+
+    return { expenses, lastDoc };
   } catch (error) {
-    console.error('Error getting expenses:', error);
+    if (__DEV__) console.error('Error getting expenses:', error);
     throw error;
   }
 };
 
 /**
  * Subscribe to real-time expense updates
+ * @param {string} coupleId - The couple's ID
+ * @param {Function} callback - Callback function receiving expenses array
+ * @param {number} limitCount - Maximum number of expenses to fetch (default: 500)
+ * @returns {Function} Unsubscribe function
  */
-export const subscribeToExpenses = (coupleId, callback) => {
+export const subscribeToExpenses = (coupleId, callback, limitCount = DEFAULT_EXPENSE_LIMIT) => {
   const expensesRef = collection(db, 'expenses');
   const q = query(
     expensesRef,
     where('coupleId', '==', coupleId),
-    orderBy('date', 'desc')
+    orderBy('date', 'desc'),
+    limit(limitCount)
   );
 
   return onSnapshot(q, (snapshot) => {
@@ -68,7 +95,7 @@ export const subscribeToExpenses = (coupleId, callback) => {
 
     callback(expenses);
   }, (error) => {
-    console.error('Error in expense subscription:', error);
+    if (__DEV__) console.error('Error in expense subscription:', error);
   });
 };
 
@@ -88,7 +115,7 @@ export const getExpenseById = async (expenseId) => {
       ...expenseDoc.data(),
     };
   } catch (error) {
-    console.error('Error getting expense:', error);
+    if (__DEV__) console.error('Error getting expense:', error);
     throw error;
   }
 };
@@ -107,13 +134,13 @@ export const addExpense = async (expenseData) => {
 
     const docRef = await addDoc(expensesRef, newExpense);
 
-    console.log('✅ Expense added:', docRef.id);
+    if (__DEV__) console.log('✅ Expense added:', docRef.id);
     return {
       id: docRef.id,
       ...newExpense,
     };
   } catch (error) {
-    console.error('Error adding expense:', error);
+    if (__DEV__) console.error('Error adding expense:', error);
     throw error;
   }
 };
@@ -133,10 +160,10 @@ export const updateExpense = async (expenseId, updates) => {
       updatedAt: serverTimestamp(),
     });
 
-    console.log('✅ Expense updated:', expenseId);
+    if (__DEV__) console.log('✅ Expense updated:', expenseId);
     return { success: true };
   } catch (error) {
-    console.error('Error updating expense:', error);
+    if (__DEV__) console.error('Error updating expense:', error);
     throw error;
   }
 };
@@ -149,10 +176,10 @@ export const deleteExpense = async (expenseId) => {
     const expenseRef = doc(db, 'expenses', expenseId);
     await deleteDoc(expenseRef);
 
-    console.log('✅ Expense deleted:', expenseId);
+    if (__DEV__) console.log('✅ Expense deleted:', expenseId);
     return { success: true };
   } catch (error) {
-    console.error('Error deleting expense:', error);
+    if (__DEV__) console.error('Error deleting expense:', error);
     throw error;
   }
 };

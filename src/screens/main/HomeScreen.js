@@ -8,7 +8,7 @@
  * - Real-time sync with partner
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -140,12 +140,12 @@ export default function HomeScreen({ navigation }) {
             if (partner.displayName) {
               setPartnerName(partner.displayName);
             } else {
-              console.warn('Partner details not found or missing displayName');
+              if (__DEV__) console.warn('Partner details not found or missing displayName');
               setPartnerName('Partner');
             }
           }
         } catch (error) {
-          console.error('Error fetching partner details:', error);
+          if (__DEV__) console.error('Error fetching partner details:', error);
           setPartnerName('Partner'); // Fallback to generic name
         }
       }
@@ -163,7 +163,7 @@ export default function HomeScreen({ navigation }) {
             const currency = await getPrimaryCurrency(userDetails.coupleId);
             setPrimaryCurrency(currency.code);
           } catch (error) {
-            console.error('Error fetching primary currency:', error);
+            if (__DEV__) console.error('Error fetching primary currency:', error);
           }
         }
       };
@@ -178,7 +178,7 @@ export default function HomeScreen({ navigation }) {
       return;
     }
 
-    console.log('Setting up expenses listener for couple:', userDetails.coupleId);
+    if (__DEV__) console.log('Setting up expenses listener for couple:', userDetails.coupleId);
 
     const expensesQuery = query(
       collection(db, 'expenses'),
@@ -194,7 +194,7 @@ export default function HomeScreen({ navigation }) {
           expensesList.push({ id: doc.id, ...doc.data() });
         });
 
-        console.log(`Loaded ${expensesList.length} expenses`);
+        if (__DEV__) console.log(`Loaded ${expensesList.length} expenses`);
         setExpenses(expensesList);
 
         setError(null); // Clear any previous errors
@@ -202,7 +202,7 @@ export default function HomeScreen({ navigation }) {
         setRefreshing(false);
       },
       (error) => {
-        console.error('Error fetching expenses:', error);
+        if (__DEV__) console.error('Error fetching expenses:', error);
 
         // Set user-friendly error message
         if (error.code === 'permission-denied') {
@@ -227,7 +227,7 @@ export default function HomeScreen({ navigation }) {
       return;
     }
 
-    console.log('Setting up settlements listener for couple:', userDetails.coupleId);
+    if (__DEV__) console.log('Setting up settlements listener for couple:', userDetails.coupleId);
 
     const settlementsQuery = query(
       collection(db, 'settlements'),
@@ -243,11 +243,11 @@ export default function HomeScreen({ navigation }) {
           settlementsList.push({ id: doc.id, ...doc.data() });
         });
 
-        console.log(`Loaded ${settlementsList.length} settlements`);
+        if (__DEV__) console.log(`Loaded ${settlementsList.length} settlements`);
         setSettlements(settlementsList);
       },
       (error) => {
-        console.error('Error fetching settlements:', error);
+        if (__DEV__) console.error('Error fetching settlements:', error);
         // Don't show error to user for settlements - non-critical
       }
     );
@@ -258,7 +258,7 @@ export default function HomeScreen({ navigation }) {
   // Calculate balance whenever expenses or settlements change
   useEffect(() => {
     if (!user || !user.uid || !userDetails || !userDetails.partnerId || !userDetails.coupleId) {
-      console.warn('Cannot calculate balance: missing user, partner ID, or couple ID');
+      if (__DEV__) console.warn('Cannot calculate balance: missing user, partner ID, or couple ID');
       setBalance(0);
       return;
     }
@@ -272,7 +272,7 @@ export default function HomeScreen({ navigation }) {
       userDetails.coupleId // Pass coupleId for security validation
     );
 
-    console.log(`Balance calculated: ${currentBalance} (from ${expenses.length} expenses and ${settlements.length} settlements)`);
+    if (__DEV__) console.log(`Balance calculated: ${currentBalance} (from ${expenses.length} expenses and ${settlements.length} settlements)`);
     setBalance(currentBalance);
   }, [expenses, settlements, user?.uid, userDetails?.partnerId, userDetails?.coupleId]);
 
@@ -297,18 +297,24 @@ export default function HomeScreen({ navigation }) {
   const handleDeleteExpense = (expenseId) => {
     // The expense is already deleted by ExpenseDetailModal
     // Just close the modal - real-time listener will update the list
-    console.log('Expense deleted:', expenseId);
+    if (__DEV__) console.log('Expense deleted:', expenseId);
   };
 
-  // Filter expenses based on selected filter
-  const getFilteredExpenses = () => {
+  // PERFORMANCE: Memoize filtered expenses to avoid recalculating on every render
+  const filteredExpenses = useMemo(() => {
     if (expenseFilter === 'active') {
       return expenses.filter(exp => !exp.settledAt);
     } else if (expenseFilter === 'settled') {
       return expenses.filter(exp => exp.settledAt);
     }
     return expenses; // 'all'
-  };
+  }, [expenses, expenseFilter]);
+
+  // PERFORMANCE: Memoize expense counts
+  const { unsettledCount, settledCount } = useMemo(() => ({
+    unsettledCount: expenses.filter(exp => !exp.settledAt).length,
+    settledCount: expenses.filter(exp => exp.settledAt).length,
+  }), [expenses]);
 
   const handleSettleUp = async () => {
     if (!user || !userDetails || !userDetails.coupleId) {
@@ -355,7 +361,7 @@ export default function HomeScreen({ navigation }) {
 
       Alert.alert(t('home.alerts.settledTitle'), message, [{ text: t('common.ok') }]);
     } catch (error) {
-      console.error('Error settling up:', error);
+      if (__DEV__) console.error('Error settling up:', error);
 
       // Provide more specific error messages
       let errorMessage = t('home.alerts.settlementFailed');
@@ -378,8 +384,8 @@ export default function HomeScreen({ navigation }) {
     const unsettledExpenses = expenses.filter(exp => !exp.settledAt);
     const totalExpensesAmount = unsettledExpenses.reduce((sum, exp) => sum + exp.amount, 0);
 
-    // Generate category breakdown preview
-    const categoryBreakdown = settlementService.generateCategoryBreakdown(unsettledExpenses, categories);
+    // Generate category breakdown preview with proper user attribution
+    const categoryBreakdown = settlementService.generateCategoryBreakdown(unsettledExpenses, categories, user?.uid, userDetails?.partnerId);
     const topCategories = settlementService.identifyTopCategories(categoryBreakdown, 3);
 
     // Generate budget summary
@@ -526,10 +532,11 @@ export default function HomeScreen({ navigation }) {
     );
   };
 
-  const renderExpenseItem = ({ item }) => {
+  // PERFORMANCE: Memoized render function to avoid re-creating on every render
+  const renderExpenseItem = useCallback(({ item }) => {
     // Validate expense data
     if (!item || !item.amount || !item.description) {
-      console.warn('Invalid expense item:', item);
+      if (__DEV__) console.warn('Invalid expense item:', item);
       return null;
     }
 
@@ -599,7 +606,7 @@ export default function HomeScreen({ navigation }) {
         </View>
       </TouchableOpacity>
     );
-  };
+  }, [user, categories, primaryCurrency, partnerName, t]);
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
@@ -611,10 +618,8 @@ export default function HomeScreen({ navigation }) {
     </View>
   );
 
-  const balanceInfo = formatBalance(balance, 'You', partnerName);
-  const filteredExpenses = getFilteredExpenses();
-  const unsettledCount = expenses.filter(exp => !exp.settledAt).length;
-  const settledCount = expenses.filter(exp => exp.settledAt).length;
+  // PERFORMANCE: Memoize balance info formatting
+  const balanceInfo = useMemo(() => formatBalance(balance, 'You', partnerName), [balance, partnerName]);
 
   if (loading) {
     return (
@@ -771,17 +776,17 @@ export default function HomeScreen({ navigation }) {
               style={styles.importButton}
               onPress={() => {
                 try {
-                  console.log('Import button pressed, isPremium:', isPremium);
+                  if (__DEV__) console.log('Import button pressed, isPremium:', isPremium);
                   // Check if user has premium access
                   if (!isPremium) {
-                    console.log('User is not premium, redirecting to paywall');
+                    if (__DEV__) console.log('User is not premium, redirecting to paywall');
                     navigation.navigate('Paywall', { feature: 'import_expenses' });
                     return;
                   }
-                  console.log('Navigating to ImportExpenses screen');
+                  if (__DEV__) console.log('Navigating to ImportExpenses screen');
                   navigation.navigate('ImportExpenses');
                 } catch (error) {
-                  console.error('Error navigating to ImportExpenses:', error);
+                  if (__DEV__) console.error('Error navigating to ImportExpenses:', error);
                   Alert.alert(t('home.alerts.navigationErrorTitle'), t('home.alerts.navigationErrorMessage'));
                 }
               }}

@@ -281,17 +281,18 @@ export const generateReportSummary = (expenses, user1Id, user2Id) => {
     };
   }
 
-  const totalExpenses = expenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
+  // Use primaryCurrencyAmount for multi-currency support, fallback to amount for legacy data
+  const totalExpenses = expenses.reduce((sum, exp) => sum + (exp.primaryCurrencyAmount || exp.amount || 0), 0);
   const expenseCount = expenses.length;
   const averageExpense = totalExpenses / expenseCount;
 
   const user1Total = expenses.reduce((sum, exp) => {
-    if (exp.paidBy === user1Id) return sum + (exp.amount || 0);
+    if (exp.paidBy === user1Id) return sum + (exp.primaryCurrencyAmount || exp.amount || 0);
     return sum;
   }, 0);
 
   const user2Total = expenses.reduce((sum, exp) => {
-    if (exp.paidBy === user2Id) return sum + (exp.amount || 0);
+    if (exp.paidBy === user2Id) return sum + (exp.primaryCurrencyAmount || exp.amount || 0);
     return sum;
   }, 0);
 

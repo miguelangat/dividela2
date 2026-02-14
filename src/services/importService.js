@@ -181,6 +181,7 @@ export async function processTransactions(transactions, config) {
         partnerId: config.partnerId,
         splitConfig: config.splitConfig || { type: '50/50' },
         categoryKey: config.defaultCategoryKey || 'other',
+        currency: config.currency || 'USD',
       },
       (transaction, index) => {
         // Return suggested category for this transaction
